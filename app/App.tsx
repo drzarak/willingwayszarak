@@ -5,7 +5,6 @@ import Transcript from './components/Transcript';
 import BottomToolbar from './components/BottomToolbar';
 import MoodSelector from './components/MoodSelector';
 import CrisisBanner from './components/CrisisBanner';
-import ResourcesSidebar from './components/ResourcesSidebar';
 import { ConversationItem } from './types';
 import { mentalHealthCoachAgent } from './agentConfigs/mentalHealthCoach';
 import {
@@ -365,41 +364,51 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <header className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Mind 🧠 | Dr. Zarak</h1>
-            <p className="text-sm opacity-90">Your ADHD & Mental Health Companion</p>
+    <div className="flex flex-col min-h-screen">
+      <header className="border-b bg-white/90 backdrop-blur">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
+              DZ
+            </div>
+            <div>
+              <p className="text-lg font-semibold">Mind by Dr. Zarak</p>
+              <p className="text-sm text-slate-500">Clear, calm ADHD & mental health support</p>
+            </div>
           </div>
-          <div className="text-right text-sm">
-            <p>Powered by OpenAI Realtime API</p>
-            <p className="text-xs opacity-75">Evidence-based support & guidance</p>
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span>OpenAI Realtime</span>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col">
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {showCrisisBanner && (
-            <div className="p-4">
-              <CrisisBanner onClose={() => setShowCrisisBanner(false)} />
-            </div>
+            <CrisisBanner onClose={() => setShowCrisisBanner(false)} />
           )}
 
-          <div className="px-4">
+          <section className="rounded-2xl bg-white border border-slate-200 shadow-sm">
             <MoodSelector onMoodSelect={handleMoodSelect} />
-          </div>
+          </section>
 
-          <Transcript items={items} />
+          <section className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+            <Transcript items={items} />
+          </section>
 
-          <div className="pb-24">
-            {/* Spacer for bottom toolbar */}
-          </div>
+          <section className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 text-sm text-slate-600">
+            <h3 className="text-base font-semibold text-slate-800 mb-2">Tips for best results</h3>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Speak naturally and pause when you want a response.</li>
+              <li>Use the mood check-in to set the tone you need.</li>
+              <li>Ask for a human consultation any time to reach Dr. Zarak directly.</li>
+            </ul>
+          </section>
+
+          <div className="h-24" />
         </div>
-
-        <ResourcesSidebar />
-      </div>
+      </main>
 
       <BottomToolbar
         isConnected={isConnected}

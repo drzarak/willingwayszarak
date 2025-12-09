@@ -36,22 +36,22 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
 
   if (!isVisible) {
     return (
-      <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+      <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
         <button
           onClick={() => setIsVisible(true)}
-          className="text-sm text-blue-500 hover:text-blue-700"
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
-          Update Mood
+          Update mood check-in
         </button>
       </div>
     );
   }
 
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-      <h3 className="text-lg font-semibold mb-3">How are you feeling?</h3>
-      
-      <div className="grid grid-cols-4 gap-2 mb-4">
+    <div className="mood-selector">
+      <h3 className="text-lg font-semibold mb-3 text-slate-800">How are you feeling?</h3>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {moods.map((mood) => (
           <button
             key={mood.name}
@@ -69,7 +69,7 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
       {selectedMood && (
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium mb-1 block">
+            <label className="text-sm font-medium mb-1 block text-slate-700">
               Intensity: {intensity}/10
             </label>
             <input
@@ -78,13 +78,13 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
               max="10"
               value={intensity}
               onChange={(e) => setIntensity(Number(e.target.value))}
-              className="w-full"
+              className="w-full accent-blue-500"
             />
           </div>
           
           <button
             onClick={handleSubmit}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg font-medium transition-colors"
           >
             Submit Mood
           </button>
