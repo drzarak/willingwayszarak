@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
 import "./globals.css";
 
-const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
-
 export const metadata: Metadata = {
-  title: "Mind - Dr. Zarak | ADHD & Mental Health Support",
-  description: "Your personal AI mental health companion specializing in ADHD, anxiety, and life coaching. Meet Dr. Zarak - evidence-based support powered by OpenAI's Realtime API",
-  keywords: "mental health, ADHD, life coaching, AI therapy, Dr. Zarak, wellness, mindfulness, anxiety support",
+  title: "Dr. Zarak AI-Assisted Family Health Hub | ADHD & Mental Health Support",
+  description: "Your personal AI-powered family health platform specializing in ADHD, anxiety, and comprehensive healthcare. Meet Dr. Zarak - evidence-based support with telehealth consultation, EHR integration, and predictive analytics powered by OpenAI's Realtime API",
+  keywords: "mental health, ADHD, life coaching, AI therapy, Dr. Zarak, wellness, mindfulness, anxiety support, telehealth, family health, EHR, health dashboard",
 };
 
 export default function RootLayout({
@@ -16,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${manrope.className} antialiased bg-slate-50 text-slate-900`}>
+    <html lang="en" className="dark">
+      <body className="antialiased bg-slate-950 text-slate-100 font-sans">
         {children}
       </body>
     </html>

@@ -7,14 +7,14 @@ interface MoodSelectorProps {
 }
 
 const moods = [
-  { name: 'Calm', emoji: '😌', color: 'bg-mental-calm' },
-  { name: 'Anxious', emoji: '😰', color: 'bg-yellow-200' },
-  { name: 'Happy', emoji: '😊', color: 'bg-mental-peace' },
-  { name: 'Sad', emoji: '😢', color: 'bg-blue-200' },
-  { name: 'Energetic', emoji: '⚡', color: 'bg-mental-energy' },
-  { name: 'Tired', emoji: '😴', color: 'bg-gray-300' },
-  { name: 'Stressed', emoji: '😫', color: 'bg-red-200' },
-  { name: 'Neutral', emoji: '😐', color: 'bg-gray-200' },
+  { name: 'Calm', emoji: '😌' },
+  { name: 'Anxious', emoji: '😰' },
+  { name: 'Happy', emoji: '😊' },
+  { name: 'Sad', emoji: '😢' },
+  { name: 'Energetic', emoji: '⚡' },
+  { name: 'Tired', emoji: '😴' },
+  { name: 'Stressed', emoji: '😫' },
+  { name: 'Neutral', emoji: '😐' },
 ];
 
 export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
@@ -36,10 +36,10 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
 
   if (!isVisible) {
     return (
-      <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
+      <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-center">
         <button
           onClick={() => setIsVisible(true)}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          className="text-sm text-slate-100 hover:text-white font-medium"
         >
           Update mood check-in
         </button>
@@ -49,14 +49,14 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
 
   return (
     <div className="mood-selector">
-      <h3 className="text-lg font-semibold mb-3 text-slate-800">How are you feeling?</h3>
+      <h3 className="text-lg font-semibold mb-3 text-slate-100">How are you feeling?</h3>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {moods.map((mood) => (
           <button
             key={mood.name}
             onClick={() => handleMoodClick(mood.name)}
-            className={`mood-button ${mood.color} ${
+            className={`mood-button ${
               selectedMood === mood.name ? 'selected' : ''
             }`}
           >
@@ -69,7 +69,7 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
       {selectedMood && (
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">
+            <label className="text-sm font-medium mb-1 block text-slate-200">
               Intensity: {intensity}/10
             </label>
             <input
@@ -78,13 +78,13 @@ export default function MoodSelector({ onMoodSelect }: MoodSelectorProps) {
               max="10"
               value={intensity}
               onChange={(e) => setIntensity(Number(e.target.value))}
-              className="w-full accent-blue-500"
+              className="w-full accent-blue-400"
             />
           </div>
           
           <button
             onClick={handleSubmit}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg font-medium transition-colors"
+            className="w-full bg-slate-100 hover:bg-white text-slate-900 py-3 rounded-lg font-medium transition-colors"
           >
             Submit Mood
           </button>

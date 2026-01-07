@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #020617;
+  --foreground: #f8fafc;
 }
 
 body {
@@ -18,34 +18,58 @@ body {
   }
 }
 
+.markdown {
+  @apply text-sm leading-relaxed text-slate-100;
+}
+
+.markdown > :where(p, ul, ol, blockquote, pre) + :where(p, ul, ol, blockquote, pre) {
+  @apply mt-2;
+}
+
+.markdown :where(a) {
+  @apply underline underline-offset-2 text-slate-200 hover:text-white;
+}
+
+.markdown :where(ul) {
+  @apply list-disc pl-5;
+}
+
+.markdown :where(ol) {
+  @apply list-decimal pl-5;
+}
+
+.markdown :where(code) {
+  @apply rounded bg-slate-900 px-1 py-0.5;
+}
+
 .message-user {
-  @apply bg-white border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm;
+  @apply bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-2;
 }
 
 .message-assistant {
-  @apply bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-2 shadow-sm;
+  @apply bg-slate-950 border border-slate-800 rounded-2xl p-3 mb-2;
 }
 
 .message-tool {
-  @apply bg-emerald-50 border border-emerald-200 rounded-xl p-2 mb-2 text-sm;
+  @apply bg-emerald-950/40 border border-emerald-900/60 rounded-xl p-2 mb-2 text-sm;
 }
 
 .audio-controls {
-  @apply fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 p-4 shadow-lg;
+  @apply fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-slate-800 p-4;
 }
 
 .crisis-banner {
-  @apply bg-white border border-amber-200 rounded-2xl p-4 mb-4 shadow-sm;
+  @apply bg-slate-950 border border-amber-900/50 rounded-2xl p-4 mb-4;
 }
 
 .mood-selector {
-  @apply grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm;
+  @apply grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-slate-950 border border-slate-800 rounded-2xl;
 }
 
 .mood-button {
-  @apply p-3 rounded-xl border border-slate-200 transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer bg-slate-50;
+  @apply p-3 rounded-xl border border-slate-800 transition-colors cursor-pointer bg-slate-900 hover:bg-slate-800;
 }
 
 .mood-button.selected {
-  @apply border-blue-500 bg-blue-50 shadow-sm;
+  @apply border-blue-400 bg-blue-950/30;
 }
