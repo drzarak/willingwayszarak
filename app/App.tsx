@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Transcript from './components/Transcript';
 import BottomToolbar from './components/BottomToolbar';
 import MoodSelector from './components/MoodSelector';
 import CrisisBanner from './components/CrisisBanner';
+import TelehealthPanel from './components/TelehealthPanel';
+import HealthDashboard from './components/HealthDashboard';
+import LanguageSelector from './components/LanguageSelector';
 import { ConversationItem } from './types';
 import { mentalHealthCoachAgent } from './agentConfigs/mentalHealthCoach';
 import {
@@ -15,14 +19,19 @@ import {
   VAD_PREFIX_PADDING_MS,
   VAD_SILENCE_DURATION_MS,
 } from './lib/constants';
+import './i18n/config';
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [useVAD, setUseVAD] = useState(true);
   const [showCrisisBanner, setShowCrisisBanner] = useState(true);
   const [moodHistory, setMoodHistory] = useState<Array<{mood: string, intensity: number, timestamp: string}>>([]);
+  const [showTelehealth, setShowTelehealth] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
 
   const availableVoices = useMemo(
     () => ['sage', 'alloy', 'verse', 'nova', 'shimmer', 'onyx', 'echo', 'fable'],
@@ -68,6 +77,28 @@ export default function App() {
       // ignore
     }
   }, [voice]);
+
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+    i18n.changeLanguage(lang);
+    try {
+      localStorage.setItem('mind.language', lang);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem('mind.language');
+      if (savedLang) {
+        setCurrentLanguage(savedLang);
+        i18n.changeLanguage(savedLang);
+      }
+    } catch {
+      // ignore
+    }
+  }, [i18n]);
 
   const buildConversationForSummary = () => {
     const recent = items
@@ -597,28 +628,78 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-950">
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center text-sm font-semibold">
               DZ
             </div>
             <div>
-              <p className="text-lg font-semibold text-slate-100">Mind by Dr. Zarak</p>
-              <p className="text-sm text-slate-400">Clear, calm ADHD & mental health support</p>
+              <p className="text-lg font-semibold text-slate-100">{t('app.title')}</p>
+              <p className="text-sm text-slate-400">{t('app.subtitle')}</p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span>OpenAI Realtime</span>
+          <div className="flex items-center gap-3">
+            <LanguageSelector 
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+            />
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>{t('app.badge')}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2">
+            <button
+              onClick={() => {
+                setShowDashboard(!showDashboard);
+                setShowTelehealth(false);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                showDashboard 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              {t('dashboard.title')}
+            </button>
+            <button
+              onClick={() => {
+                setShowTelehealth(!showTelehealth);
+                setShowDashboard(false);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                showTelehealth 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              {t('telehealth.title')}
+            </button>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+        <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
           {showCrisisBanner && (
             <CrisisBanner onClose={() => setShowCrisisBanner(false)} />
+          )}
+
+          {showDashboard && (
+            <HealthDashboard riskScores={{
+              diabetes: 25,
+              heart_disease: 35,
+              hypertension: 40,
+              mental_health: 45
+            }} />
+          )}
+
+          {showTelehealth && (
+            <TelehealthPanel onClose={() => setShowTelehealth(false)} />
           )}
 
           <section className="rounded-2xl bg-slate-950 border border-slate-800">
@@ -632,23 +713,23 @@ export default function App() {
 
             <aside className="rounded-2xl bg-slate-950 border border-slate-800 p-4">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold text-slate-100">Live summary</h3>
+                <h3 className="text-base font-semibold text-slate-100">{t('summary.title')}</h3>
                 <button
                   onClick={downloadSummary}
                   disabled={!summary && remedies.length === 0}
                   className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-900 disabled:opacity-40"
                 >
-                  Download
+                  {t('summary.download')}
                 </button>
               </div>
               <p className="mt-2 text-sm text-slate-300 leading-relaxed">
-                {summary || 'As you chat, a brief summary will appear here.'}
+                {summary || t('summary.placeholder')}
               </p>
 
               <div className="mt-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-200">Immediate remedies</h4>
-                  {isSummarizing && <span className="text-xs text-slate-500">Updating…</span>}
+                  <h4 className="text-sm font-semibold text-slate-200">{t('summary.remedies')}</h4>
+                  {isSummarizing && <span className="text-xs text-slate-500">{t('summary.updating')}</span>}
                 </div>
                 <ul className="mt-2 space-y-2 text-sm text-slate-300">
                   {remedies.length === 0 ? (

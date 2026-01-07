@@ -1,0 +1,86 @@
+{
+  "app": {
+    "title": "Dr. Zarak AI-Assisted Family Health Hub",
+    "subtitle": "Clear, calm ADHD & mental health support",
+    "badge": "OpenAI Realtime"
+  },
+  "header": {
+    "connect": "Connect",
+    "disconnect": "Disconnect"
+  },
+  "mood": {
+    "title": "How are you feeling?",
+    "intensity": "Intensity"
+  },
+  "chat": {
+    "placeholder": "Type your message...",
+    "send": "Send"
+  },
+  "summary": {
+    "title": "Live summary",
+    "download": "Download",
+    "placeholder": "As you chat, a brief summary will appear here.",
+    "remedies": "Immediate remedies",
+    "noRemedies": "No suggestions yet.",
+    "updating": "Updating…"
+  },
+  "tips": {
+    "title": "Tips for best results",
+    "tip1": "Speak naturally and pause when you want a response.",
+    "tip2": "Use the mood check-in to set the tone you need.",
+    "tip3": "Use text chat for quick questions."
+  },
+  "practice": {
+    "title": "Conversation practice",
+    "subtitle": "Practice what to say when it's hard to find words.",
+    "context": "Context",
+    "contextPlaceholder": "Who are you talking to and what's happening?",
+    "goal": "What you want to communicate",
+    "goalPlaceholder": "E.g., I need some space today, but I still care about you.",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "trySaying": "Try saying",
+    "followUp": "Follow-up questions"
+  },
+  "crisis": {
+    "title": "Need immediate help?",
+    "text": "If you're in crisis, please reach out to emergency services or a crisis helpline.",
+    "phone": "988 or 1-800-273-8255",
+    "text_line": "Text HOME to 741741",
+    "close": "Close"
+  },
+  "voice": {
+    "label": "Voice",
+    "sage": "Sage",
+    "alloy": "Alloy",
+    "verse": "Verse",
+    "nova": "Nova",
+    "shimmer": "Shimmer",
+    "onyx": "Onyx",
+    "echo": "Echo",
+    "fable": "Fable"
+  },
+  "telehealth": {
+    "title": "Telehealth Consultation",
+    "bookAppointment": "Book Appointment",
+    "myAppointments": "My Appointments",
+    "consultDrZarak": "Consult Dr. Zarak",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "description": "Schedule a private consultation with Dr. Zarak for personalized care"
+  },
+  "ehr": {
+    "title": "Health Records",
+    "viewRecords": "View Records",
+    "addRecord": "Add Record",
+    "myRecords": "My Records",
+    "noRecords": "No records found"
+  },
+  "dashboard": {
+    "title": "Health Dashboard",
+    "analytics": "Predictive Analytics",
+    "riskScore": "Risk Score",
+    "chronicDiseaseRisk": "Chronic Disease Risk",
+    "mentalHealthScore": "Mental Health Score"
+  }
+}
