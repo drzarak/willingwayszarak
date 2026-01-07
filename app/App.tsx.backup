@@ -85,7 +85,6 @@ export default function App() {
         connect();
       }, 500);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice]);
 
   const handleLanguageChange = (lang: string) => {
@@ -637,126 +636,199 @@ export default function App() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#0a0a0a] text-slate-100 overflow-hidden">
-      {/* Compact Header - Perplexity Style */}
-      <header className="flex-none border-b border-slate-800/50 bg-[#0a0a0a]">
-        <div className="flex items-center justify-between px-3 py-2.5 md:px-6 md:py-3">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="h-8 w-8 md:h-9 md:w-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs md:text-sm font-bold text-white shadow-lg">
+    <div className="flex flex-col min-h-screen bg-slate-950">
+      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center text-sm font-semibold">
               DZ
             </div>
-            <div className="hidden sm:block">
-              <p className="text-sm md:text-base font-semibold text-slate-100">{t('app.title')}</p>
-              <p className="text-xs text-slate-500">{t('app.subtitle')}</p>
+            <div>
+              <p className="text-lg font-semibold text-slate-100">{t('app.title')}</p>
+              <p className="text-sm text-slate-400">{t('app.subtitle')}</p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-3">
             <LanguageSelector 
               currentLanguage={currentLanguage}
               onLanguageChange={handleLanguageChange}
             />
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>{t('app.badge')}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2">
             <button
               onClick={() => {
                 setShowDashboard(!showDashboard);
                 setShowTelehealth(false);
               }}
-              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-medium transition ${
-                showDashboard ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                showDashboard 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
               }`}
             >
-              Dashboard
+              {t('dashboard.title')}
             </button>
             <button
               onClick={() => {
                 setShowTelehealth(!showTelehealth);
                 setShowDashboard(false);
               }}
-              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-medium transition ${
-                showTelehealth ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                showTelehealth 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
               }`}
             >
-              Telehealth
+              {t('telehealth.title')}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area - Fixed Height with Internal Scrolling */}
-      <main className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col pb-32">
-          {/* Crisis Banner - Collapsible */}
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
           {showCrisisBanner && (
-            <div className="flex-none px-3 py-2 md:px-4">
-              <CrisisBanner onClose={() => setShowCrisisBanner(false)} />
-            </div>
+            <CrisisBanner onClose={() => setShowCrisisBanner(false)} />
           )}
 
-          {/* Conditional Panels */}
           {showDashboard && (
-            <div className="flex-none px-3 py-2 md:px-4 max-h-[35vh] overflow-y-auto">
-              <HealthDashboard riskScores={{
-                diabetes: 25,
-                heart_disease: 35,
-                hypertension: 40,
-                mental_health: 45
-              }} />
-            </div>
+            <HealthDashboard riskScores={{
+              diabetes: 25,
+              heart_disease: 35,
+              hypertension: 40,
+              mental_health: 45
+            }} />
           )}
 
           {showTelehealth && (
-            <div className="flex-none px-3 py-2 md:px-4 max-h-[35vh] overflow-y-auto">
-              <TelehealthPanel onClose={() => setShowTelehealth(false)} />
-            </div>
+            <TelehealthPanel onClose={() => setShowTelehealth(false)} />
           )}
 
-          {/* Main Chat Area - Perplexity-style Layout */}
-          <div className="flex-1 overflow-y-auto px-3 py-2 md:px-4">
-            <div className="max-w-4xl mx-auto space-y-3">
-              {/* Mood Selector - Compact */}
-              <div className="rounded-xl bg-[#111111] border border-slate-800/50">
-                <MoodSelector onMoodSelect={handleMoodSelect} />
-              </div>
+          <section className="rounded-2xl bg-slate-950 border border-slate-800">
+            <MoodSelector onMoodSelect={handleMoodSelect} />
+          </section>
 
-              {/* Chat Transcript - Main Focus */}
-              <div className="rounded-xl bg-[#111111] border border-slate-800/50 overflow-hidden min-h-[250px] md:min-h-[350px]">
-                <Transcript items={items} />
-              </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
+            <section className="rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden min-h-[420px]">
+              <Transcript items={items} />
+            </section>
 
-              {/* Summary Panel - Inline (only show when has content) */}
-              {(summary || remedies.length > 0) && (
-                <div className="rounded-xl bg-[#111111] border border-slate-800/50 p-3 md:p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-sm font-semibold text-slate-200">{t('summary.title')}</h3>
-                    <button
-                      onClick={downloadSummary}
-                      className="rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-xs font-medium text-slate-100 transition"
-                    >
-                      {t('summary.download')}
-                    </button>
-                  </div>
-                  {summary && (
-                    <p className="text-sm text-slate-300 leading-relaxed mb-3">
-                      {summary}
-                    </p>
-                  )}
-                  {remedies.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">{t('summary.remedies')}</h4>
-                      <ul className="space-y-1.5 text-sm text-slate-300">
-                        {remedies.map((r, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-blue-400 mt-0.5">•</span>
-                            <span>{r}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+            <aside className="rounded-2xl bg-slate-950 border border-slate-800 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-base font-semibold text-slate-100">{t('summary.title')}</h3>
+                <button
+                  onClick={downloadSummary}
+                  disabled={!summary && remedies.length === 0}
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-900 disabled:opacity-40"
+                >
+                  {t('summary.download')}
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+                {summary || t('summary.placeholder')}
+              </p>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-slate-200">{t('summary.remedies')}</h4>
+                  {isSummarizing && <span className="text-xs text-slate-500">{t('summary.updating')}</span>}
                 </div>
-              )}
-            </div>
+                <ul className="mt-2 space-y-2 text-sm text-slate-300">
+                  {remedies.length === 0 ? (
+                    <li className="text-slate-500">No suggestions yet.</li>
+                  ) : (
+                    remedies.map((r, idx) => <li key={idx}>• {r}</li>)
+                  )}
+                </ul>
+              </div>
+            </aside>
           </div>
+
+          <section className="rounded-2xl bg-slate-950 border border-slate-800 p-4 text-sm text-slate-300">
+            <h3 className="text-base font-semibold text-slate-100 mb-2">Tips for best results</h3>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Speak naturally and pause when you want a response.</li>
+              <li>Use the mood check-in to set the tone you need.</li>
+              <li>Use text chat for quick questions.</li>
+            </ul>
+          </section>
+
+          <section className="rounded-2xl bg-slate-950 border border-slate-800 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-slate-100">Conversation practice</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Practice what to say when it’s hard to find words.
+                </p>
+              </div>
+              <button
+                onClick={runPractice}
+                disabled={isPracticing || !practiceContext.trim() || !practiceGoal.trim()}
+                className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-900 disabled:opacity-40"
+              >
+                {isPracticing ? 'Generating…' : 'Generate'}
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <label className="text-sm text-slate-300">
+                Context
+                <textarea
+                  value={practiceContext}
+                  onChange={(e) => setPracticeContext(e.target.value)}
+                  placeholder="Who are you talking to and what’s happening?"
+                  className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+                  rows={3}
+                />
+              </label>
+
+              <label className="text-sm text-slate-300">
+                {t('practice.goal')}
+                <textarea
+                  value={practiceGoal}
+                  onChange={(e) => setPracticeGoal(e.target.value)}
+                  placeholder={t('practice.goalPlaceholder')}
+                  className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+                  rows={3}
+                />
+              </label>
+            </div>
+
+            {practiceResult && (
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <h4 className="text-sm font-semibold text-slate-200">{t('practice.trySaying')}</h4>
+                  <ul className="mt-2 space-y-2 text-sm text-slate-300">
+                    {practiceResult.say.length === 0 ? (
+                      <li className="text-slate-500">{t('summary.noRemedies')}</li>
+                    ) : (
+                      practiceResult.say.map((s, idx) => <li key={idx}>• {s}</li>)
+                    )}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
+                  <h4 className="text-sm font-semibold text-slate-200">{t('practice.followUp')}</h4>
+                  <ul className="mt-2 space-y-2 text-sm text-slate-300">
+                    {practiceResult.follow_up_questions.length === 0 ? (
+                      <li className="text-slate-500">{t('summary.noRemedies')}</li>
+                    ) : (
+                      practiceResult.follow_up_questions.map((q, idx) => <li key={idx}>• {q}</li>)
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="h-24" />
         </div>
       </main>
 

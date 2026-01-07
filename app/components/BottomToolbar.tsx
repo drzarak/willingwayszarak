@@ -33,98 +33,89 @@ export default function BottomToolbar({
 }: BottomToolbarProps) {
   return (
     <div className="audio-controls">
-      <div className="max-w-4xl mx-auto flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-200">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          />
-          <span className="text-sm">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
+      <div className="max-w-4xl mx-auto flex flex-col gap-2.5">
+        {/* Top Row: Connection status and controls */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-emerald-500 shadow-lg shadow-emerald-500/50' : 'bg-red-500'
+              }`}
+            />
+            <span className="text-xs md:text-sm text-slate-400">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs text-slate-400">
-            Voice
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Voice Selector */}
             <select
               value={voice}
               onChange={(e) => onVoiceChange(e.target.value)}
-              className="ml-2 rounded-lg border border-slate-800 bg-slate-900 px-2 py-2 text-sm text-slate-100"
+              className="text-xs md:text-sm rounded-lg border border-slate-800/50 bg-[#111111] px-2 py-1.5 md:px-3 md:py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               aria-label="Select voice"
             >
               {availableVoices.map((v) => (
                 <option key={v} value={v}>
-                  {v}
+                  {v.charAt(0).toUpperCase() + v.slice(1)}
                 </option>
               ))}
             </select>
-          </label>
 
-          {!isConnected ? (
-            <button
-              onClick={onConnect}
-              className="px-5 py-2 bg-slate-100 hover:bg-white text-slate-900 rounded-lg font-medium transition-colors"
-            >
-              Connect
-            </button>
-          ) : (
-            <>
+            {/* Connection button */}
+            {!isConnected ? (
               <button
-                onClick={onToggleRecording}
-                className={`px-5 py-3 rounded-full font-medium border border-slate-800 ${
-                  isRecording
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-100'
-                }`}
+                onClick={onConnect}
+                className="px-4 py-1.5 md:px-5 md:py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs md:text-sm font-medium transition-colors shadow-lg shadow-blue-600/20"
               >
-                {isRecording ? '🎤 Recording...' : '🎤 Push to Talk'}
+                Connect
               </button>
+            ) : (
+              <>
+                {/* VAD Toggle */}
+                <button
+                  onClick={onToggleVAD}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                    useVAD
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-[#111111] text-slate-400 border border-slate-800/50 hover:border-slate-700'
+                  }`}
+                >
+                  VAD {useVAD ? 'On' : 'Off'}
+                </button>
 
-              <button
-                onClick={onToggleVAD}
-                className={`px-4 py-2 rounded-lg font-medium text-sm border ${
-                  useVAD
-                    ? 'bg-slate-100 text-slate-900 border-slate-100'
-                    : 'bg-slate-900 text-slate-100 border-slate-800'
-                }`}
-              >
-                {useVAD ? 'VAD: On' : 'VAD: Off'}
-              </button>
-
-              <button
-                onClick={onDisconnect}
-                className="px-4 py-2 bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-100 rounded-lg font-medium"
-              >
-                Disconnect
-              </button>
-            </>
-          )}
+                {/* Disconnect button */}
+                <button
+                  onClick={onDisconnect}
+                  className="px-3 py-1.5 md:px-4 md:py-2 bg-[#111111] border border-slate-800/50 hover:border-slate-700 text-slate-300 hover:text-slate-100 rounded-lg text-xs md:text-sm font-medium transition-colors"
+                >
+                  Disconnect
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="text-xs text-slate-400">
-          {useVAD ? 'Voice auto-detect on' : 'Manual push-to-talk'}
-        </div>
-        </div>
-
+        {/* Bottom Row: Text input */}
         <div className="flex items-center gap-2">
           <input
             value={textValue}
             onChange={(e) => onTextChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onSendText();
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                onSendText();
+              }
             }}
             placeholder={isConnected ? 'Type a message…' : 'Connect to start chatting…'}
-            className="flex-1 min-w-0 rounded-xl border border-slate-800 bg-slate-900 px-3 py-3 text-sm text-slate-100 placeholder:text-slate-500"
+            className="flex-1 min-w-0 rounded-xl border border-slate-800/50 bg-[#111111] px-3 py-2.5 md:px-4 md:py-3 text-sm md:text-base text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
             disabled={!isConnected}
             aria-label="Text message"
           />
           <button
             onClick={onSendText}
             disabled={!isConnected || !textValue.trim()}
-            className="shrink-0 rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-900 disabled:opacity-40"
+            className="shrink-0 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-base font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
           >
             Send
           </button>
