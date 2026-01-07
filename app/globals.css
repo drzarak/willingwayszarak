@@ -3,13 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --background: #020617;
-  --foreground: #f8fafc;
+  --background: #0a0a0a;
+  --foreground: #f1f5f9;
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer utilities {
@@ -43,11 +49,11 @@ body {
 }
 
 .message-user {
-  @apply bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-2;
+  @apply bg-[#1a1a1a] border border-slate-800/50 rounded-2xl p-3 mb-2;
 }
 
 .message-assistant {
-  @apply bg-slate-950 border border-slate-800 rounded-2xl p-3 mb-2;
+  @apply bg-[#111111] border border-slate-800/50 rounded-2xl p-3 mb-2;
 }
 
 .message-tool {
@@ -55,21 +61,21 @@ body {
 }
 
 .audio-controls {
-  @apply fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-slate-800 p-4;
+  @apply fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-slate-800/50 p-3 md:p-4;
 }
 
 .crisis-banner {
-  @apply bg-slate-950 border border-amber-900/50 rounded-2xl p-4 mb-4;
+  @apply bg-[#111111] border border-amber-900/50 rounded-xl p-4 mb-4;
 }
 
 .mood-selector {
-  @apply grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-slate-950 border border-slate-800 rounded-2xl;
+  @apply grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 md:p-4 bg-[#111111] border border-slate-800/50 rounded-xl;
 }
 
 .mood-button {
-  @apply p-3 rounded-xl border border-slate-800 transition-colors cursor-pointer bg-slate-900 hover:bg-slate-800;
+  @apply p-3 rounded-xl border border-slate-800/50 transition-all cursor-pointer bg-[#1a1a1a] hover:bg-[#222222] hover:border-slate-700 active:scale-95;
 }
 
 .mood-button.selected {
-  @apply border-blue-400 bg-blue-950/30;
+  @apply border-blue-500/50 bg-blue-950/30 shadow-lg shadow-blue-500/10;
 }
