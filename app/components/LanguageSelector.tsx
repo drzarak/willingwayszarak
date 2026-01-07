@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 interface LanguageSelectorProps {
   currentLanguage: string;
@@ -9,7 +8,6 @@ interface LanguageSelectorProps {
 }
 
 export default function LanguageSelector({ currentLanguage, onLanguageChange }: LanguageSelectorProps) {
-  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const languages = [

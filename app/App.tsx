@@ -781,11 +781,11 @@ export default function App() {
               </label>
 
               <label className="text-sm text-slate-300">
-                What you want to communicate
+                {t('practice.goal')}
                 <textarea
                   value={practiceGoal}
                   onChange={(e) => setPracticeGoal(e.target.value)}
-                  placeholder="E.g., I need some space today, but I still care about you."
+                  placeholder={t('practice.goalPlaceholder')}
                   className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
                   rows={3}
                 />
@@ -795,10 +795,10 @@ export default function App() {
             {practiceResult && (
               <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-                  <h4 className="text-sm font-semibold text-slate-200">Try saying</h4>
+                  <h4 className="text-sm font-semibold text-slate-200">{t('practice.trySaying')}</h4>
                   <ul className="mt-2 space-y-2 text-sm text-slate-300">
                     {practiceResult.say.length === 0 ? (
-                      <li className="text-slate-500">No suggestions yet.</li>
+                      <li className="text-slate-500">{t('summary.noRemedies')}</li>
                     ) : (
                       practiceResult.say.map((s, idx) => <li key={idx}>• {s}</li>)
                     )}
@@ -806,10 +806,10 @@ export default function App() {
                 </div>
 
                 <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-                  <h4 className="text-sm font-semibold text-slate-200">Follow-up questions</h4>
+                  <h4 className="text-sm font-semibold text-slate-200">{t('practice.followUp')}</h4>
                   <ul className="mt-2 space-y-2 text-sm text-slate-300">
                     {practiceResult.follow_up_questions.length === 0 ? (
-                      <li className="text-slate-500">No follow-ups yet.</li>
+                      <li className="text-slate-500">{t('summary.noRemedies')}</li>
                     ) : (
                       practiceResult.follow_up_questions.map((q, idx) => <li key={idx}>• {q}</li>)
                     )}
