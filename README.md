@@ -1,216 +1,30 @@
-# Dr. Zarak AI-Assisted Family Health Hub 🏥 🧠
+# Willing Ways AI – Official Chatbot
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-Realtime%20API-412991?logo=openai)](https://platform.openai.com/docs/guides/realtime)
-[![Supabase](https://img.shields.io/badge/Supabase-EHR-3ECF8E?logo=supabase)](https://supabase.com)
-[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+Pakistan’s leading addiction treatment & mental health AI assistant, powered by your own OpenAI key.
 
-Your comprehensive **AI-powered family health platform** with **Dr. Zarak** - combining mental health support, telehealth consultation, electronic health records, and predictive analytics in one seamless platform.
+Built as an official digital extension of https://www.willingways.org/  
+Helps both patients/families AND doctors with the same compassionate expertise.
 
-> **⚡ Quick Start**: [Get running in 5 minutes →](QUICKSTART.md)
+## ✨ One-Click Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR-USERNAME/willing-ways-ai)
+
+## How to Use
+1. Click the button above → Connect your GitHub
+2. Deploy instantly (free)
+3. Open the live app
+4. In Vercel, add `OPENAI_API_KEY` as a project environment variable and redeploy
+5. Open the live app and start chatting
+6. Optional for local testing: Go to Settings → Paste your OpenAI API key (sk-...)
 
 ## Features
+- Full original Willing Ways system prompt (2,000+ words)
+- Patient/Family vs Doctor/Clinical Staff mode toggle
+- Streaming responses with beautiful markdown
+- Server-side `OPENAI_API_KEY` support for Vercel deployments
+- Optional browser-side API key override for local testing
+- Sidebar with all contact numbers & branches
+- English / Urdu toggle and improved local chat history management
+- Mobile-friendly, dark/light mode ready
 
-### 🎤 AI Mental Health Support
-- **Real-time Voice Interaction**: Natural conversation with low-latency audio using OpenAI's Realtime API
-- **Dr. Zarak AI Therapist**: Specialized persona with ADHD expertise and personalized therapeutic approach
-- **💙 ADHD-Focused Support**: Evidence-based strategies for executive function, time management, RSD, and more
-- **Text & Voice Chat**: Flexible communication options for your comfort
-- **Voice Selection**: Choose from 8 different AI voices (sage, alloy, verse, nova, shimmer, onyx, echo, fable)
-- **Live Summary & Remedies**: Real-time conversation summaries with actionable next steps
-- **Conversation Practice**: Rehearse difficult conversations with AI guidance
-
-### 🌍 Multilingual Support
-- **English** 🇬🇧
-- **اردو Urdu** 🇵🇰
-- **العربية Arabic** 🇸🇦
-- Seamlessly switch between languages with the language selector
-
-### 🏥 Telehealth Consultation
-- **Direct Contact with Dr. Zarak**: Email and WhatsApp consultation links
-- **Appointment Scheduling**: Book and manage appointments (coming soon)
-- **Video Consultation Integration**: Doximity-style telehealth features
-- **Consultation Notes**: Secure storage of visit records
-
-### 📊 Health Dashboard & Predictive Analytics
-- **Risk Score Monitoring**: Track risk levels for:
-  - Diabetes
-  - Heart Disease
-  - Hypertension
-  - Mental Health
-- **Visual Analytics**: Color-coded risk indicators and progress bars
-- **Personalized Insights**: Data-driven health recommendations
-
-### 🗂️ Electronic Health Records (EHR)
-- **Supabase Integration**: Secure, HIPAA-compliant data storage
-- **Patient Records**: Comprehensive health history management
-- **Health Metrics Tracking**: Monitor vitals and key health indicators
-- **Medication Management**: Track prescriptions and adherence
-- **Document Storage**: Secure attachment uploads
-
-### 🛡️ Privacy & Security
-- **Row-Level Security**: Supabase RLS ensures data privacy
-- **Encrypted Storage**: All sensitive data encrypted at rest
-- **HIPAA Considerations**: Built with healthcare compliance in mind
-- **Crisis Resources**: Immediate access to emergency helplines
-
-### 📱 Additional Features
-- 📊 **Mood Tracking**: Track and share your emotional state
-- 💡 **Fun Facts & Quick Tips**: Engaging neuroscience insights and immediately actionable strategies
-- 🧘 **Coping Techniques**: Built-in grounding exercises, Pomodoro technique, and breathing methods
-- 🔒 **Privacy-Focused**: Your conversations and data are private and secure
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ 
-- An OpenAI API key with access to the Realtime API
-- A Supabase project (for EHR and telehealth features)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/drzarak/drzarakmind.git
-cd drzarakmind
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.sample .env
-```
-
-Edit `.env` and add your credentials:
-```
-OPENAI_API_KEY=your_api_key_here
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-```
-
-4. Set up Supabase database:
-   - Create a new Supabase project at [supabase.com](https://supabase.com)
-   - Run the SQL script from `supabase-schema.sql` in your Supabase SQL editor
-   - This creates all necessary tables with Row-Level Security policies
-
-5. Run the development server:
-```bash
-npm run dev
-```
-
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Deploy to Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/drzarak/drzarakmind)
-
-1. Click the button above or go to [Vercel](https://vercel.com)
-2. Import your GitHub repository
-3. Add your environment variables in Vercel settings:
-   - `OPENAI_API_KEY`
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-4. Deploy!
-
-Vercel will automatically detect the Next.js configuration and deploy your app.
-
-## Usage
-
-### Mental Health Support
-1. **Connect**: Click the "Connect" button to start a session
-2. **Communicate**: Use voice (with auto-detection) or text chat
-3. **Track Mood**: Select your current mood and intensity
-4. **Get Support**: Receive empathetic guidance and coping strategies
-5. **Access Resources**: View crisis helplines and quick techniques anytime
-6. **Switch Languages**: Use the language selector for Urdu or Arabic
-
-### Telehealth Consultation
-1. **Contact Dr. Zarak**: Click "Telehealth Consultation" in the header
-2. **Book Appointment**: Fill out the appointment request form
-3. **Direct Communication**: Use email (care@drzarak.com) or WhatsApp (+92 335 7900295)
-
-### Health Dashboard
-1. **View Analytics**: Click "Health Dashboard" to see your risk scores
-2. **Monitor Trends**: Track changes in health metrics over time
-3. **Review Insights**: Get personalized health recommendations
-
-### Electronic Health Records
-- **Access Records**: View your health history securely
-- **Add Information**: Update medications, vitals, and notes
-- **Export Data**: Download records for other healthcare providers
-
-## Technology Stack
-
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **AI**: OpenAI Realtime API (gpt-4o-realtime-preview)
-- **Audio**: WebRTC for real-time audio streaming
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Storage**: Supabase Storage
-- **Internationalization**: i18next, react-i18next
-- **Deployment**: Vercel
-
-## Architecture
-
-The app uses OpenAI's Realtime API with WebRTC for low-latency voice interactions:
-
-1. **Session Creation**: API route creates an ephemeral session token
-2. **WebRTC Connection**: Client establishes peer connection with OpenAI
-3. **Audio Streaming**: Bidirectional audio via WebRTC tracks
-4. **Event Handling**: Data channel for conversation events and responses
-5. **Agent Configuration**: Custom mental health coach agent with specialized instructions
-
-## Safety & Disclaimer
-
-⚠️ **Important**: Mind is an AI companion for support and guidance. It is **NOT** a substitute for professional mental health care.
-
-- This app does not provide medical advice, diagnosis, or treatment
-- In case of emergency, contact emergency services (911) or crisis helplines
-- For ongoing mental health concerns, please consult a licensed professional
-
-### Crisis Resources
-
-- **National Suicide Prevention Lifeline**: 988 or 1-800-273-8255
-- **Crisis Text Line**: Text HOME to 741741
-- **International**: [Find a Helpline](https://findahelpline.com)
-
-## Development
-
-```bash
-# Development
-npm run dev
-
-# Build
-npm run build
-
-# Production
-npm start
-
-# Lint
-npm run lint
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT
-
-## Acknowledgments
-
-- Built with [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime)
-- Inspired by the [OpenAI Realtime Agents](https://github.com/openai/openai-realtime-agents) example
-- Mental health resources from [NAMI](https://nami.org) and [SAMHSA](https://samhsa.gov)
+Made with love for Willing Ways Lahore, Karachi & Islamabad ❤️

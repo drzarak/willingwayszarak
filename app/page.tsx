@@ -1,5 +1,6 @@
-import App from './App';
+import { ChatApp } from "@/components/chat-app";
 
-export default function Page() {
-  return <App />;
+export default function HomePage() {
+  return <ChatApp />;
 }
+
