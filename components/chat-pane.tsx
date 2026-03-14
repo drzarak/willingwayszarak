@@ -24,6 +24,7 @@ import {
 import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { MessageBubble } from "@/components/message-bubble";
+import { RealtimeVoicePanel } from "@/components/realtime-voice-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -32,6 +33,7 @@ interface ChatPaneProps {
   modelId: ModelId;
   onMessagesChange: (chatId: string, messages: UIMessage[]) => void;
   onOpenSettings: () => void;
+  realtimeConfigured: boolean;
   serverKeyConfigured: boolean;
   session: ChatSession;
 }
@@ -41,6 +43,7 @@ export function ChatPane({
   modelId,
   onMessagesChange,
   onOpenSettings,
+  realtimeConfigured,
   serverKeyConfigured,
   session,
 }: ChatPaneProps) {
@@ -167,6 +170,12 @@ export function ChatPane({
     <div className="flex h-full min-h-0 w-full flex-col">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-6 pt-6 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
+          <RealtimeVoicePanel
+            enabled={realtimeConfigured}
+            language={session.language}
+            mode={session.mode}
+          />
+
           {deferredMessages.length === 0 ? (
             <div className="animate-fade-up py-10">
               <div className="mx-auto max-w-3xl text-center">
@@ -215,16 +224,26 @@ export function ChatPane({
                     className="mx-auto h-24 w-24 rounded-[24px] object-cover sm:mx-0"
                     unoptimized
                   />
-                  <div className="mt-4 text-left sm:mt-0">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-                      Founded By
+                  <div className={`mt-4 sm:mt-0 ${session.language === "urdu" ? "text-right" : "text-left"}`}>
+                    <div
+                      className={`text-xs font-semibold tracking-[0.22em] text-primary ${
+                        session.language === "urdu" ? "font-urdu normal-case" : "uppercase"
+                      }`}
+                    >
+                      {session.language === "urdu" ? "بانی" : "Founded By"}
                     </div>
-                    <div className="mt-2 font-serif text-2xl font-semibold text-slate-950">
+                    <div className={`mt-2 text-2xl font-semibold text-slate-950 ${session.language === "urdu" ? "font-urdu" : "font-serif"}`}>
                       Dr. Sadaqat Ali
                     </div>
-                    <p className="mt-2 text-base leading-8 text-[#5a3743]">
-                      50+ years of addiction psychiatry leadership in Pakistan, now reflected in the
-                      same chat UX through a Willing Ways-first support experience.
+                    <p
+                      className={`mt-2 text-base leading-8 text-[#5a3743] ${
+                        session.language === "urdu" ? "font-urdu" : ""
+                      }`}
+                      dir={session.language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {session.language === "urdu"
+                        ? "پاکستان میں addiction psychiatry کی 50+ سالہ leadership، جو اب اسی chat UX میں Willing Ways کے باوقار support experience کے ساتھ نظر آتی ہے۔"
+                        : "50+ years of addiction psychiatry leadership in Pakistan, now reflected in the same chat UX through a Willing Ways-first support experience."}
                     </p>
                   </div>
                 </div>
@@ -251,7 +270,7 @@ export function ChatPane({
                 </div>
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
-                  Our team is thinking...
+                  {session.language === "urdu" ? "ہماری ٹیم غور کر رہی ہے..." : "Our team is thinking..."}
                 </div>
               </div>
             </div>
@@ -271,7 +290,7 @@ export function ChatPane({
           {copiedText ? (
             <div className="mb-4 flex items-center gap-2 rounded-[24px] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900">
               <Check className="h-4 w-4" />
-              Response copied to clipboard.
+              {session.language === "urdu" ? "جواب clipboard میں کاپی ہو گیا۔" : "Response copied to clipboard."}
             </div>
           ) : null}
 
@@ -315,21 +334,25 @@ export function ChatPane({
                   <Sparkles className="h-4 w-4 text-accent" />
                 )}
                 {session.mode === "doctor"
-                  ? "Clinical mode with strict boundaries"
-                  : "Patient / family mode with simplified guidance"}
+                  ? session.language === "urdu"
+                    ? "سخت حدود کے ساتھ کلینیکل موڈ"
+                    : "Clinical mode with strict boundaries"
+                  : session.language === "urdu"
+                    ? "سادہ رہنمائی کے ساتھ مریض / خاندان موڈ"
+                    : "Patient / family mode with simplified guidance"}
               </div>
 
               <div className="flex items-center gap-2">
                 {isGenerating ? (
                   <Button type="button" variant="outline" onClick={() => void stop()}>
                     <Square className="h-4 w-4 fill-current" />
-                    Stop
+                    {session.language === "urdu" ? "روکیں" : "Stop"}
                   </Button>
                 ) : null}
 
                 <Button type="submit" variant="accent" disabled={!input.trim()}>
                   <ArrowUp className="h-4 w-4" />
-                  Send
+                  {session.language === "urdu" ? "بھیجیں" : "Send"}
                 </Button>
               </div>
             </div>
@@ -337,13 +360,15 @@ export function ChatPane({
 
           {latestAssistantMessage && !isGenerating ? (
             <div className="mt-3 flex flex-col gap-2 text-xs text-[#7a5a64] sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Last reply length: {getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length}{" "}
-                words
+              <span className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
+                {session.language === "urdu"
+                  ? `آخری جواب کی لمبائی: ${getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length} الفاظ`
+                  : `Last reply length: ${getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length} words`}
               </span>
-              <span>
-                AI generated responses may contain inaccuracies. In emergencies, contact the 24/7
-                Willing Ways helpline immediately.
+              <span className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
+                {session.language === "urdu"
+                  ? "AI generated responses میں غلطیاں ہو سکتی ہیں۔ ہنگامی صورت میں فوراً Willing Ways کی 24/7 helpline سے رابطہ کریں۔"
+                  : "AI generated responses may contain inaccuracies. In emergencies, contact the 24/7 Willing Ways helpline immediately."}
               </span>
             </div>
           ) : null}

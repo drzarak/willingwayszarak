@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 
+import { useSiteLanguage } from "@/components/site-language-provider";
+
 interface LibraryItem {
   path: string;
   title: string;
@@ -19,7 +21,15 @@ interface LibraryBrowserProps {
   items: LibraryItem[];
 }
 
-const filters = ["All", "About", "Services", "Treatments", "Articles", "Videos", "Resources"];
+const filters = [
+  { id: "All", english: "All", urdu: "تمام" },
+  { id: "About", english: "About", urdu: "تعارف" },
+  { id: "Services", english: "Services", urdu: "خدمات" },
+  { id: "Treatments", english: "Treatments", urdu: "علاج" },
+  { id: "Articles", english: "Articles", urdu: "مضامین" },
+  { id: "Videos", english: "Videos", urdu: "ویڈیوز" },
+  { id: "Resources", english: "Resources", urdu: "وسائل" },
+];
 
 function formatUpdatedDate(value: string | null) {
   if (!value) {
@@ -43,6 +53,7 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const deferredQuery = useDeferredValue(query);
+  const { isUrdu } = useSiteLanguage();
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredItems = items.filter((item) => {
@@ -61,27 +72,36 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search pages, treatments, articles, or services"
+              placeholder={
+                isUrdu
+                  ? "pages، treatments، articles یا services تلاش کریں"
+                  : "Search pages, treatments, articles, or services"
+              }
               className="h-12 w-full rounded-2xl border border-[#ead6dc] bg-white pl-11 pr-4 text-base text-[#3b1725] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+              dir={isUrdu ? "rtl" : "ltr"}
             />
           </label>
 
           <div className="flex flex-wrap gap-2">
             {filters.map((entry) => (
               <button
-                key={entry}
+                key={entry.id}
                 type="button"
-                className={entry === filter ? "filter-chip-active" : "filter-chip"}
-                onClick={() => setFilter(entry)}
+                className={entry.id === filter ? "filter-chip-active" : "filter-chip"}
+                onClick={() => setFilter(entry.id)}
               >
-                {entry}
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {isUrdu ? entry.urdu : entry.english}
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="text-base text-[#7a5a64]">
-          Showing {filteredItems.length} of {items.length} imported pages.
+        <div className={`text-base text-[#7a5a64] ${isUrdu ? "font-urdu text-right" : ""}`} dir={isUrdu ? "rtl" : "ltr"}>
+          {isUrdu
+            ? `${items.length} میں سے ${filteredItems.length} درآمد شدہ صفحات دکھائے جا رہے ہیں۔`
+            : `Showing ${filteredItems.length} of ${items.length} imported pages.`}
         </div>
       </div>
 
@@ -107,13 +127,29 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
 
             <div className="space-y-3 px-5 py-5">
               <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                <span>{item.group}</span>
-                <span className="text-[#8b6772]">{item.kind === "post" ? "Article" : "Page"}</span>
+                <span className={isUrdu ? "font-urdu normal-case" : ""}>
+                  {isUrdu
+                    ? item.group === "Articles"
+                      ? "مضامین"
+                      : item.group === "About"
+                        ? "تعارف"
+                        : item.group === "Services"
+                          ? "خدمات"
+                          : item.group === "Treatments"
+                            ? "علاج"
+                            : item.group === "Videos"
+                              ? "ویڈیوز"
+                              : "وسائل"
+                    : item.group}
+                </span>
+                <span className={`text-[#8b6772] ${isUrdu ? "font-urdu normal-case" : ""}`}>
+                  {isUrdu ? (item.kind === "post" ? "مضمون" : "صفحہ") : item.kind === "post" ? "Article" : "Page"}
+                </span>
               </div>
               <div className="text-xl font-semibold leading-tight text-[#3b1725]">{item.title}</div>
               <p className="text-base leading-8 text-[#5a3743]">{item.description}</p>
-              <div className="text-xs uppercase tracking-[0.18em] text-[#8b6772]">
-                {formatUpdatedDate(item.updatedAt) ?? "Willing Ways library"}
+              <div className={`text-xs tracking-[0.18em] text-[#8b6772] ${isUrdu ? "font-urdu text-right normal-case" : "uppercase"}`}>
+                {formatUpdatedDate(item.updatedAt) ?? (isUrdu ? "ولنگ ویز لائبریری" : "Willing Ways library")}
               </div>
             </div>
           </Link>

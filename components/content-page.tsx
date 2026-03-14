@@ -5,6 +5,7 @@ import { ArrowRight, Clock3, MapPin, MessageSquareHeart, PhoneCall } from "lucid
 import { BRANCH_CONTACTS } from "@/lib/chat";
 import { getPreferredPageImage, getRelatedPages, getSectionTitle, type SitePage } from "@/lib/site-data";
 
+import { LocalizedText } from "@/components/localized-text";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SiteMarkdown } from "@/components/site-markdown";
@@ -45,8 +46,21 @@ export function ContentPage({ page }: ContentPageProps) {
         <section className="border-b border-[#ead6dc] bg-white/70">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-16">
             <div>
-              <div className="section-kicker">{getSectionTitle(page)}</div>
-              <h1 className="mt-4 max-w-4xl font-serif text-3xl font-semibold leading-tight text-[#3b1725] sm:text-5xl">
+              <div className="section-kicker">
+                <LocalizedText
+                  english={getSectionTitle(page)}
+                  urdu={
+                    getSectionTitle(page) === "Services"
+                      ? "خدمات"
+                      : getSectionTitle(page) === "Treatments"
+                        ? "علاج"
+                        : getSectionTitle(page) === "Article"
+                          ? "مضمون"
+                          : "ولنگ ویز"
+                  }
+                />
+              </div>
+              <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-tight text-[#3b1725] sm:text-5xl">
                 {page.title}
               </h1>
               <p className="mt-5 max-w-3xl text-xl leading-9 text-[#5a3743]">{page.description}</p>
@@ -62,11 +76,11 @@ export function ContentPage({ page }: ContentPageProps) {
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="tel:+923007413639" className="site-cta-button">
                   <PhoneCall className="h-4 w-4" />
-                  Call admissions
+                  <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
                 </a>
                 <Link href="/ai" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
-                  Ask Willing Ways AI
+                  <LocalizedText english="Ask Willing Ways AI" urdu="ولنگ ویز اے آئی سے پوچھیں" />
                 </Link>
               </div>
             </div>
@@ -102,11 +116,23 @@ export function ContentPage({ page }: ContentPageProps) {
 
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-[30px] border border-[#ead6dc] bg-white p-6 shadow-soft">
-              <div className="section-kicker">Admissions</div>
-              <div className="mt-4 text-2xl font-semibold text-[#3b1725]">Need immediate guidance?</div>
+              <div className="section-kicker">
+                <LocalizedText english="Admissions" urdu="داخلہ" />
+              </div>
+              <div className="mt-4 text-2xl font-semibold text-[#3b1725]">
+                <LocalizedText
+                  english="Need immediate guidance?"
+                  urdu="فوری رہنمائی درکار ہے؟"
+                  urduClassName="font-urdu text-right"
+                />
+              </div>
               <p className="mt-3 text-base leading-8 text-[#5a3743]">
-                Speak to the intake team for rehab, psychiatric consultation, family intervention,
-                or follow-up planning.
+                <LocalizedText
+                  as="span"
+                  english="Speak to the intake team for rehab, psychiatric consultation, family intervention, or follow-up planning."
+                  urdu="rehab، psychiatric consultation، family intervention یا follow-up planning کے لئے intake team سے بات کریں۔"
+                  urduClassName="font-urdu text-right"
+                />
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <a href="tel:+923007413639" className="site-cta-button justify-center">
@@ -114,17 +140,19 @@ export function ContentPage({ page }: ContentPageProps) {
                   0300 7413639
                 </a>
                 <Link href="/contact-us" className="site-action-link justify-center">
-                  Contact branches
+                  <LocalizedText english="Contact branches" urdu="برانچز سے رابطہ کریں" />
                 </Link>
                 <Link href="/ai" className="site-action-link justify-center">
                   <MessageSquareHeart className="h-4 w-4" />
-                  Ask the AI assistant
+                  <LocalizedText english="Ask the AI assistant" urdu="اے آئی معاون سے پوچھیں" />
                 </Link>
               </div>
             </div>
 
             <div className="rounded-[30px] border border-[#ead6dc] bg-white p-6 shadow-soft">
-              <div className="section-kicker">Branches</div>
+              <div className="section-kicker">
+                <LocalizedText english="Branches" urdu="برانچز" />
+              </div>
               <div className="mt-4 space-y-4">
                 {[BRANCH_CONTACTS[0], BRANCH_CONTACTS[1], BRANCH_CONTACTS[3]].map((branch) => (
                   <div key={branch.name} className="rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-4">
@@ -140,7 +168,9 @@ export function ContentPage({ page }: ContentPageProps) {
 
             {relatedPages.length > 0 ? (
               <div className="rounded-[30px] border border-[#ead6dc] bg-white p-6 shadow-soft">
-                <div className="section-kicker">Keep exploring</div>
+                <div className="section-kicker">
+                  <LocalizedText english="Keep exploring" urdu="مزید دیکھیں" />
+                </div>
                 <div className="mt-4 space-y-3">
                   {relatedPages.map((entry) => (
                     <Link

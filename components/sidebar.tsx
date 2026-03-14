@@ -27,6 +27,7 @@ import {
 import { SITE_MEDIA } from "@/lib/site-assets";
 import { cn } from "@/lib/utils";
 
+import { useSiteLanguage } from "@/components/site-language-provider";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -50,6 +51,8 @@ export function Sidebar({
   onOpenChange,
   onSelectChat,
 }: SidebarProps) {
+  const { isUrdu } = useSiteLanguage();
+
   return (
     <>
       {open ? (
@@ -82,12 +85,25 @@ export function Sidebar({
                 </span>
                 <div className="sidebar-chip">Willing Ways AI</div>
               </div>
-              <h1 className="mt-3 font-serif text-2xl font-semibold leading-tight">
-                Compassionate intake support for patients, families, and doctors
+              <h1
+                className={`mt-3 text-2xl font-semibold leading-tight ${
+                  isUrdu ? "font-urdu text-right" : "font-serif"
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu
+                  ? "مریضوں، خاندانوں اور ڈاکٹروں کے لئے باوقار intake support"
+                  : "Compassionate intake support for patients, families, and doctors"}
               </h1>
-              <p className="mt-2 text-sm leading-6 text-white/70">
-                Ask about admissions, interventions, treatment tracks, branch contacts, relapse,
-                psychiatric support, or family guidance.
+              <p
+                className={`mt-2 text-sm leading-6 text-white/70 ${
+                  isUrdu ? "font-urdu text-right" : ""
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu
+                  ? "داخلہ، intervention، treatment tracks، branch contacts، relapse، psychiatric support یا family guidance کے بارے میں پوچھیں۔"
+                  : "Ask about admissions, interventions, treatment tracks, branch contacts, relapse, psychiatric support, or family guidance."}
               </p>
               <div className="mt-4 overflow-hidden rounded-[22px] border border-white/12 bg-white/8 p-3">
                 <Image
@@ -119,14 +135,16 @@ export function Sidebar({
 
           <Button variant="accent" className="w-full justify-center" onClick={onNewChat}>
             <MessageSquarePlus className="h-4 w-4" />
-            New conversation
+            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+              {isUrdu ? "نئی گفتگو" : "New conversation"}
+            </span>
           </Button>
 
           <ScrollArea className="mt-5 flex-1 pr-2">
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                  Chat history
+                  {isUrdu ? "گفتگو کی تاریخ" : "Chat history"}
                 </div>
                 <Menu className="h-4 w-4 text-white/35" />
               </div>
@@ -177,7 +195,7 @@ export function Sidebar({
 
             <section id="about">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                About
+                {isUrdu ? "تعارف" : "About"}
               </div>
               <div className="mt-4 grid gap-3">
                 <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
@@ -185,9 +203,15 @@ export function Sidebar({
                     <Building2 className="h-4 w-4 text-white/80" />
                   </div>
                   <div className="text-base font-semibold">Willing Ways Pakistan</div>
-                  <p className="mt-2 text-sm leading-6 text-white/70">
-                    Founded by Dr. Sadaqat Ali, with 50+ years of addiction treatment and mental
-                    health rehabilitation experience across Lahore, Karachi, and Islamabad.
+                  <p
+                    className={`mt-2 text-sm leading-6 text-white/70 ${
+                      isUrdu ? "font-urdu text-right" : ""
+                    }`}
+                    dir={isUrdu ? "rtl" : "ltr"}
+                  >
+                    {isUrdu
+                      ? "ڈاکٹر صداقت علی کے قائم کردہ ادارے کے طور پر، لاہور، کراچی اور اسلام آباد میں 50+ سالہ addiction treatment اور mental health rehabilitation کا تجربہ۔"
+                      : "Founded by Dr. Sadaqat Ali, with 50+ years of addiction treatment and mental health rehabilitation experience across Lahore, Karachi, and Islamabad."}
                   </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
@@ -202,8 +226,8 @@ export function Sidebar({
                     />
                     <div>
                       <div className="text-sm font-semibold text-white">Dr. Sadaqat Ali</div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/50">
-                        Founder
+                      <div className={`mt-1 text-xs tracking-[0.18em] text-white/50 ${isUrdu ? "font-urdu normal-case" : "uppercase"}`}>
+                        {isUrdu ? "بانی" : "Founder"}
                       </div>
                     </div>
                   </div>
@@ -233,15 +257,17 @@ export function Sidebar({
 
             <section id="services">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                Services
+                {isUrdu ? "خدمات" : "Services"}
               </div>
               <div className="mt-4 space-y-3">
                 {SERVICE_HIGHLIGHTS.map((service) => (
                   <div
-                    key={service}
+                    key={service.english}
                     className="rounded-[22px] border border-white/10 bg-white/8 px-4 py-3 text-sm leading-6 text-white/72"
                   >
-                    {service}
+                    <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                      {isUrdu ? service.urdu : service.english}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -251,7 +277,7 @@ export function Sidebar({
 
             <section>
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                Quick links
+                {isUrdu ? "فوری لنکس" : "Quick links"}
               </div>
               <div className="flex flex-wrap gap-2">
                 {QUICK_LINKS.map((link) => (
@@ -264,7 +290,13 @@ export function Sidebar({
                       document.getElementById(link.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }
                   >
-                    {link.label}
+                    {isUrdu
+                      ? link.label === "Services"
+                        ? "خدمات"
+                        : link.label === "About"
+                          ? "تعارف"
+                          : "رابطہ"
+                      : link.label}
                   </Button>
                 ))}
               </div>
@@ -274,7 +306,7 @@ export function Sidebar({
 
             <section id="contact">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                Contact
+                {isUrdu ? "رابطہ" : "Contact"}
               </div>
 
               <div className="mt-4 space-y-3">
@@ -291,7 +323,13 @@ export function Sidebar({
                       </span>
                       <div className="min-w-0">
                         <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
-                          {contact.label}
+                          {isUrdu
+                            ? contact.label === "Email"
+                              ? "ای میل"
+                              : contact.label === "Website"
+                                ? "ویب سائٹ"
+                                : "ہیلپ لائن"
+                            : contact.label}
                         </div>
                         <div className="truncate text-sm text-white">{contact.value}</div>
                       </div>

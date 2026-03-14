@@ -49,7 +49,7 @@ export function MessageBubble({
             isUser ? "text-white/70" : "text-slate-400",
           )}
         >
-          {isUser ? "You" : "Willing Ways AI"}
+          {isUser ? (isUrdu ? "آپ" : "You") : isUrdu ? "ولنگ ویز اے آئی" : "Willing Ways AI"}
         </div>
 
         {isUser ? (
@@ -64,13 +64,13 @@ export function MessageBubble({
           <div className="mt-4 flex flex-wrap gap-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
             <Button variant="ghost" size="sm" onClick={() => onCopy(text)}>
               <Copy className="h-3.5 w-3.5" />
-              Copy
+              {isUrdu ? "کاپی" : "Copy"}
             </Button>
 
             {isLatestAssistant && canRegenerate ? (
               <Button variant="ghost" size="sm" onClick={onRegenerate}>
                 <RotateCcw className="h-3.5 w-3.5" />
-                Regenerate
+                {isUrdu ? "دوبارہ جواب" : "Regenerate"}
               </Button>
             ) : null}
           </div>

@@ -4,86 +4,139 @@ import {
   ArrowRight,
   BookOpenText,
   Brain,
-  Building2,
+  CheckCircle2,
   HeartHandshake,
+  MapPin,
   MessageSquareHeart,
+  Mic,
   PhoneCall,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
 } from "lucide-react";
 
 import { BRANCH_CONTACTS } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
-import {
-  featuredPages,
-  latestArticles,
-  siteMedia,
-  treatmentTracks,
-} from "@/lib/site-data";
+import { treatmentTracks } from "@/lib/site-data";
 
+import { LocalizedText } from "@/components/localized-text";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 const serviceCards = [
   {
-    title: "Rehab Services",
+    title: { english: "Rehab Services", urdu: "ریحاب خدمات" },
+    description: {
+      english:
+        "Medically supervised detox, residential treatment, structured recovery planning, and ongoing support.",
+      urdu:
+        "میڈیکلی سپروائزڈ detox، رہائشی علاج، منظم recovery planning اور مسلسل سپورٹ۔",
+    },
     href: "/our-services/rehab-services",
-    image: siteMedia.services.rehab,
-    description:
-      featuredPages.rehabServices?.description ??
-      "Medically supervised detox and structured residential care for addiction recovery.",
+    image: SITE_MEDIA.services.rehab,
     icon: ShieldCheck,
   },
   {
-    title: "Counseling Services",
+    title: { english: "Counseling Services", urdu: "کاؤنسلنگ خدمات" },
+    description: {
+      english:
+        "Core, supportive, family, situational, and follow-up counseling for patients and loved ones.",
+      urdu:
+        "مریضوں اور خاندانوں کے لئے core، supportive، family، situational اور follow-up counseling۔",
+    },
     href: "/our-services/counseling-services",
-    image: siteMedia.services.counseling,
-    description:
-      featuredPages.counselingServices?.description ??
-      "Core, supportive, personal development, situational, and family counseling pathways.",
+    image: SITE_MEDIA.services.counseling,
     icon: HeartHandshake,
   },
   {
-    title: "Psychiatric Services",
+    title: { english: "Psychiatric Services", urdu: "نفسیاتی خدمات" },
+    description: {
+      english:
+        "Psychiatric assessments, medication management, crisis support, and treatment planning.",
+      urdu:
+        "نفسیاتی assessment، medication management، crisis support اور treatment planning۔",
+    },
     href: "/our-services/psychiatric-services",
-    image: siteMedia.services.psychiatric,
-    description:
-      featuredPages.psychiatricServices?.description ??
-      "Psychiatric consultations, medication management, and crisis support with experienced clinicians.",
+    image: SITE_MEDIA.services.psychiatric,
     icon: Stethoscope,
   },
 ];
 
-const branchCards = [
+const visibleServices = [
   {
-    name: "Lahore",
-    href: "/about-us/our-branches/willingways-lahore",
-    image: siteMedia.branches.lahore,
-    details: BRANCH_CONTACTS[0],
+    english: "Admissions guidance for patients and families",
+    urdu: "مریضوں اور خاندانوں کے لئے داخلے کی رہنمائی",
   },
   {
-    name: "Karachi",
-    href: "/about-us/our-branches/willingways-karachi",
-    image: siteMedia.branches.karachi,
-    details: BRANCH_CONTACTS[1],
+    english: "Drug addiction and alcoholism treatment",
+    urdu: "منشیات اور الکحل کے علاج کے پروگرام",
   },
   {
-    name: "Islamabad",
-    href: "/about-us/our-branches/willing-ways-islamabad",
-    image: siteMedia.branches.islamabad,
-    details: BRANCH_CONTACTS[3],
+    english: "Psychiatric care and medication review",
+    urdu: "نفسیاتی نگہداشت اور ادویات کا جائزہ",
+  },
+  {
+    english: "Family intervention and co-dependency support",
+    urdu: "فیملی intervention اور co-dependency سپورٹ",
+  },
+  {
+    english: "Relapse prevention and follow-up care",
+    urdu: "relapse prevention اور follow-up care",
+  },
+  {
+    english: "Doctor referral support and clinical navigation",
+    urdu: "ڈاکٹر referral support اور clinical navigation",
   },
 ];
 
-const resourceCards = [
-  { title: "FAQs", href: "/faqs", description: featuredPages.faq?.description },
-  { title: "Publications", href: "/publications", description: featuredPages.publications?.description },
-  { title: "Success Stories", href: "/success-stories", description: featuredPages.successStories?.description },
-  { title: "Videos", href: "/videos", description: featuredPages.videos?.description },
-  { title: "Treatment Costs", href: "/treatment-costs", description: featuredPages.costs?.description },
-  { title: "You Asked For It", href: "/you-asked-for-it", description: featuredPages.youAskedForIt?.description },
+const conditions = [
+  {
+    english: "Drug addiction, ICE, and alcoholism",
+    urdu: "منشیات، آئس اور الکحل کی لت",
+  },
+  {
+    english: "Depression, anxiety, OCD, and bipolar disorder",
+    urdu: "ڈپریشن، اینگزائٹی، OCD اور bipolar disorder",
+  },
+  {
+    english: "ADHD, PTSD, schizophrenia, and behavioral disorders",
+    urdu: "ADHD، PTSD، schizophrenia اور behavioral disorders",
+  },
+  {
+    english: "Marital conflict, grief, stress, and anger issues",
+    urdu: "ازدواجی تنازع، grief، stress اور anger issues",
+  },
 ];
+
+const treatmentTrackTranslations: Record<
+  string,
+  { summaryUrdu: string; titleUrdu: string }
+> = {
+  "Core Counseling": {
+    titleUrdu: "کور کاؤنسلنگ",
+    summaryUrdu:
+      "addiction، alcoholism، OCD، ADHD، PTSD، schizophrenia اور related behavioral conditions پر رہنمائی۔",
+  },
+  "Supportive Counseling": {
+    titleUrdu: "سپورٹو کاؤنسلنگ",
+    summaryUrdu:
+      "cravings management، denial management، emotional regulation اور relapse support کی عملی تربیت۔",
+  },
+  "Personal Development": {
+    titleUrdu: "ذاتی نشوونما",
+    summaryUrdu:
+      "communication، emotional intelligence، discipline، resilience اور بہتر زندگی کی ترقی۔",
+  },
+  "Situational Counseling": {
+    titleUrdu: "سیچویشنل کاؤنسلنگ",
+    summaryUrdu:
+      "crisis intervention، family intervention اور resistant patient situations میں منظم مدد۔",
+  },
+  "Follow-Up Care": {
+    titleUrdu: "فالو اپ نگہداشت",
+    summaryUrdu:
+      "relapse prevention، continuing care اور discharge کے بعد long-term support۔",
+  },
+};
 
 export function HomePage() {
   return (
@@ -91,49 +144,109 @@ export function HomePage() {
       <SiteHeader />
 
       <main>
-        <section className="overflow-hidden border-b border-[#ead6dc]">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:px-8 lg:py-16">
-            <div className="relative">
-              <div className="section-kicker">Pakistan’s Leading Rehabilitation Center</div>
-              <h1 className="mt-5 max-w-4xl font-serif text-4xl font-semibold leading-[1.08] text-[#3b1725] sm:text-5xl lg:text-6xl">
-                Addiction treatment, psychiatric care, and family guidance in one modern digital front door.
+        <section className="border-b border-[#ead6dc]">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:px-8 lg:py-14">
+            <div className="space-y-6">
+              <div className="section-kicker">
+                <LocalizedText
+                  english="Willing Ways Pakistan"
+                  urdu="ولنگ ویز پاکستان"
+                />
+              </div>
+
+              <h1 className="max-w-4xl text-4xl font-semibold leading-[1.08] text-[#3b1725] sm:text-5xl lg:text-6xl">
+                <LocalizedText
+                  as="span"
+                  className="block"
+                  english="Simple, clear access to addiction treatment, psychiatric care, and family help."
+                  urdu="نشے کے علاج، نفسیاتی نگہداشت اور خاندانی مدد تک سادہ اور واضح رسائی"
+                  urduClassName="font-urdu text-right"
+                />
               </h1>
-              <p className="mt-6 max-w-3xl text-xl leading-9 text-[#5a3743]">
-                {featuredPages.home?.description ??
-                  "Willing Ways is the most trusted addiction treatment and mental health rehabilitation center in Pakistan."}
+
+              <p className="max-w-3xl text-xl leading-9 text-[#5a3743]">
+                <LocalizedText
+                  as="span"
+                  english="Use the website to understand services, branches, and treatment tracks. Use the AI assistant for intake questions, Urdu support, and realtime voice guidance."
+                  urdu="ویب سائٹ کے ذریعے خدمات، برانچز اور علاج کے مراحل سمجھیں۔ داخلے کے سوالات، اردو سپورٹ اور realtime voice guidance کے لئے اے آئی معاون استعمال کریں۔"
+                  urduClassName="font-urdu text-right"
+                />
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3">
                 <a href="tel:+923007413639" className="site-cta-button">
                   <PhoneCall className="h-4 w-4" />
-                  Call admissions
+                  <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
                 </a>
                 <Link href="/ai" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
-                  Start with AI intake
+                  <LocalizedText english="Open AI assistant" urdu="اے آئی معاون کھولیں" />
                 </Link>
                 <Link href="/contact-us" className="site-action-link">
-                  Visit branches
+                  <MapPin className="h-4 w-4" />
+                  <LocalizedText english="View branches" urdu="برانچز دیکھیں" />
                 </Link>
               </div>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  ["50+", "years of addiction treatment leadership"],
-                  ["5000+", "clients supported across programs"],
-                  ["24/7", "crisis and intake pathways"],
-                ].map(([value, label]) => (
-                  <div key={label} className="stat-card">
-                    <div className="text-3xl font-semibold text-[#3b1725]">{value}</div>
-                    <div className="mt-2 text-base leading-7 text-[#5a3743]">{label}</div>
+                  {
+                    value: "50+",
+                    english: "years of addiction treatment leadership",
+                    urdu: "سالہ علاجی قیادت",
+                  },
+                  {
+                    value: "5,000+",
+                    english: "clients supported",
+                    urdu: "کلائنٹس کی مدد",
+                  },
+                  {
+                    value: "24/7",
+                    english: "help pathways available",
+                    urdu: "مدد کے راستے دستیاب",
+                  },
+                ].map((item) => (
+                  <div key={item.english} className="stat-card">
+                    <div className="text-3xl font-semibold text-[#3b1725]">{item.value}</div>
+                    <div className="mt-2 text-base leading-7 text-[#5a3743]">
+                      <LocalizedText english={item.english} urdu={item.urdu} />
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="rounded-[30px] border border-[#ead6dc] bg-white p-5 shadow-soft">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </span>
+                  <div className="text-lg font-semibold text-[#3b1725]">
+                    <LocalizedText english="Services provided" urdu="فراہم کردہ خدمات" />
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {visibleServices.map((service) => (
+                    <div
+                      key={service.english}
+                      className="flex items-start gap-3 rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-4"
+                    >
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <LocalizedText
+                        as="div"
+                        className="text-base leading-7 text-[#5a3743]"
+                        english={service.english}
+                        urdu={service.urdu}
+                        urduClassName="font-urdu text-right"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             <div className="grid gap-5">
               <div className="overflow-hidden rounded-[34px] border border-[#ead6dc] bg-white shadow-soft">
-                <div className="relative h-[240px] sm:h-[300px]">
+                <div className="relative h-[280px] sm:h-[360px]">
                   <Image
                     src={SITE_MEDIA.facilities.islamabadCampus}
                     alt="Willing Ways Islamabad campus"
@@ -141,24 +254,16 @@ export function HomePage() {
                     className="object-cover"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#4d1122]/82 via-[#4d1122]/32 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-6">
-                    <div>
-                      <div className="inline-flex rounded-full border border-white/16 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/85">
-                        Since 1975
-                      </div>
-                      <div className="mt-3 text-2xl font-semibold leading-tight text-white sm:text-3xl">
-                        Trusted facilities for rehabilitation and psychiatric care.
-                      </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#4d1122]/86 via-[#4d1122]/26 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                    <div className="inline-flex rounded-full border border-white/18 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/85">
+                      <LocalizedText english="Official Willing Ways Facility" urdu="ولنگ ویز کی آفیشل سہولت" />
                     </div>
-                    <div className="hidden rounded-[22px] bg-white/10 p-3 backdrop-blur sm:block">
-                      <Image
-                        src={SITE_MEDIA.logo}
-                        alt="Willing Ways"
-                        width={220}
-                        height={60}
-                        className="h-12 w-auto object-contain"
-                        unoptimized
+                    <div className="mt-3 max-w-xl text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                      <LocalizedText
+                        english="Professional rehabilitation facilities for patients, families, and doctors."
+                        urdu="مریضوں، خاندانوں اور ڈاکٹروں کے لئے پیشہ ور rehabilitation سہولیات"
+                        urduClassName="font-urdu text-right"
                       />
                     </div>
                   </div>
@@ -166,69 +271,73 @@ export function HomePage() {
               </div>
 
               <div className="hero-panel">
-                <div className="section-kicker border-white/20 bg-white/10 text-white/80">Admissions first</div>
-                <div className="mt-4 text-2xl font-semibold leading-tight text-white sm:text-3xl">
-                  Built for patients, families, referral doctors, and clinical teams.
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={220}
+                    height={60}
+                    className="h-10 w-auto object-contain"
+                    unoptimized
+                  />
                 </div>
+
                 <div className="mt-5 grid gap-3">
                   {[
                     {
                       icon: HeartHandshake,
-                      title: "Patient / Family",
-                      description:
-                        "Warm, guided support for admissions, intervention, relapse, and treatment questions.",
+                      english: "Patient and family guidance in English and Urdu",
+                      urdu: "انگریزی اور اردو میں مریض اور خاندان کی رہنمائی",
                     },
                     {
                       icon: Brain,
-                      title: "Doctor / Clinical",
-                      description:
-                        "Structured intake assistance, treatment overview, and service navigation for referring clinicians.",
+                      english: "Doctor mode for more structured clinical context",
+                      urdu: "زیادہ منظم کلینیکل رہنمائی کے لئے ڈاکٹر موڈ",
                     },
                     {
-                      icon: Sparkles,
-                      title: "AI + Human Team",
-                      description:
-                        "The AI assistant handles first contact while branch teams take over for assessment and scheduling.",
+                      icon: Mic,
+                      english: "Realtime voice support using OpenAI Realtime",
+                      urdu: "OpenAI Realtime کے ساتھ لائیو صوتی رہنمائی",
                     },
                   ].map((item) => (
-                    <div key={item.title} className="rounded-[24px] border border-white/12 bg-white/10 p-4">
+                    <div key={item.english} className="rounded-[24px] border border-white/12 bg-white/10 p-4">
                       <div className="flex items-center gap-3">
                         <span className="inline-flex rounded-2xl bg-white/12 p-2.5">
                           <item.icon className="h-5 w-5 text-white" />
                         </span>
-                        <div className="text-lg font-semibold text-white">{item.title}</div>
+                        <LocalizedText
+                          as="div"
+                          className="text-base font-semibold text-white"
+                          english={item.english}
+                          urdu={item.urdu}
+                          urduClassName="font-urdu text-right"
+                        />
                       </div>
-                      <p className="mt-3 text-base leading-8 text-white/82">{item.description}</p>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {BRANCH_CONTACTS.slice(0, 2).map((branch) => (
-                  <div key={branch.name} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft">
-                    <div className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-                      {branch.name}
-                    </div>
-                    <div className="mt-3 text-base leading-8 text-[#5a3743]">{branch.address}</div>
-                    <div className="mt-4 text-base font-semibold text-[#3b1725]">{branch.phones[0]}</div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <div className="section-kicker">Services</div>
-              <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
-                Treatment structure clients can actually understand.
+              <div className="section-kicker">
+                <LocalizedText english="Core Services" urdu="بنیادی خدمات" />
+              </div>
+              <h2 className="mt-4 text-3xl font-semibold text-[#3b1725] sm:text-4xl">
+                <LocalizedText
+                  as="span"
+                  english="The main services should be visible immediately. They are."
+                  urdu="اہم خدمات فوری طور پر نظر آنی چاہئیں، اور اب ہیں"
+                  urduClassName="font-urdu text-right"
+                />
               </h2>
             </div>
             <Link href="/our-services" className="site-inline-link">
-              Explore all services
+              <LocalizedText english="Explore all services" urdu="تمام خدمات دیکھیں" />
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -238,7 +347,7 @@ export function HomePage() {
               <Link key={card.href} href={card.href} className="service-card group">
                 <Image
                   src={card.image}
-                  alt={card.title}
+                  alt={card.title.english}
                   width={1200}
                   height={900}
                   className="h-60 w-full object-cover"
@@ -248,10 +357,22 @@ export function HomePage() {
                   <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
                     <card.icon className="h-5 w-5" />
                   </div>
-                  <div className="text-2xl font-semibold text-[#3b1725]">{card.title}</div>
-                  <p className="text-base leading-8 text-[#5a3743]">{card.description}</p>
+                  <LocalizedText
+                    as="div"
+                    className="text-2xl font-semibold text-[#3b1725]"
+                    english={card.title.english}
+                    urdu={card.title.urdu}
+                    urduClassName="font-urdu text-right"
+                  />
+                  <LocalizedText
+                    as="p"
+                    className="text-base leading-8 text-[#5a3743]"
+                    english={card.description.english}
+                    urdu={card.description.urdu}
+                    urduClassName="font-urdu text-right"
+                  />
                   <div className="site-inline-link">
-                    Learn more
+                    <LocalizedText english="Learn more" urdu="مزید جانیں" />
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
@@ -261,226 +382,193 @@ export function HomePage() {
         </section>
 
         <section className="border-y border-[#ead6dc] bg-white/65">
-          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
-              <div>
-                <div className="section-kicker">Treatment Tracks</div>
-                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
-                  Imported from the live Willing Ways treatment library.
-                </h2>
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
+            <div className="rounded-[30px] border border-[#ead6dc] bg-white p-6 shadow-soft sm:p-8">
+              <div className="section-kicker">
+                <LocalizedText english="Treatment Tracks" urdu="علاج کے مراحل" />
               </div>
-              <Link href="/treatments" className="site-inline-link">
-                View treatment pages
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <h2 className="mt-4 text-3xl font-semibold text-[#3b1725] sm:text-4xl">
+                <LocalizedText
+                  as="span"
+                  english="Structured counseling and recovery pathways."
+                  urdu="منظم counseling اور recovery pathways"
+                  urduClassName="font-urdu text-right"
+                />
+              </h2>
+              <div className="mt-6 grid gap-4">
+                {treatmentTracks.map((track) => (
+                  <Link
+                    key={track.href}
+                    href={track.href}
+                    className="flex items-start gap-4 rounded-[24px] border border-[#ead6dc] bg-[#fff8fa] p-4 transition hover:border-primary/30"
+                  >
+                    <Image
+                      src={track.image}
+                      alt={track.title}
+                      width={64}
+                      height={64}
+                      className="h-14 w-14 object-contain"
+                      unoptimized
+                    />
+                    <div>
+                      <LocalizedText
+                        as="div"
+                        className="text-lg font-semibold text-[#3b1725]"
+                        english={track.title}
+                        urdu={treatmentTrackTranslations[track.title]?.titleUrdu ?? track.title}
+                        urduClassName="font-urdu text-right"
+                      />
+                      <LocalizedText
+                        as="div"
+                        className="mt-2 text-base leading-7 text-[#5a3743]"
+                        english={track.summary}
+                        urdu={treatmentTrackTranslations[track.title]?.summaryUrdu ?? track.summary}
+                        urduClassName="font-urdu text-right"
+                      />
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-              {treatmentTracks.map((track) => (
-                <Link key={track.href} href={track.href} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
-                  <Image
-                    src={track.image}
-                    alt={track.title}
-                    width={256}
-                    height={256}
-                    className="h-16 w-16 object-contain"
-                    unoptimized
+            <div className="grid gap-5">
+              <div className="overflow-hidden rounded-[30px] border border-[#ead6dc] bg-white shadow-soft">
+                <Image
+                  src={SITE_MEDIA.facilities.islamabadGroup}
+                  alt="Willing Ways group session"
+                  width={1200}
+                  height={900}
+                  className="h-56 w-full object-cover"
+                  unoptimized
+                />
+                <div className="p-6">
+                  <div className="section-kicker">
+                    <LocalizedText english="Conditions Treated" urdu="جن مسائل کا علاج کیا جاتا ہے" />
+                  </div>
+                  <div className="mt-5 grid gap-3">
+                    {conditions.map((condition) => (
+                      <div
+                        key={condition.english}
+                        className="flex items-start gap-3 rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-4"
+                      >
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                        <LocalizedText
+                          as="div"
+                          className="text-base leading-7 text-[#5a3743]"
+                          english={condition.english}
+                          urdu={condition.urdu}
+                          urduClassName="font-urdu text-right"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[30px] border border-[#ead6dc] bg-white p-6 shadow-soft">
+                <div className="section-kicker">
+                  <LocalizedText english="Library" urdu="لائبریری" />
+                </div>
+                <h3 className="mt-4 text-2xl font-semibold text-[#3b1725]">
+                  <LocalizedText
+                    as="span"
+                    english="Browse imported Willing Ways pages, videos, articles, and FAQs."
+                    urdu="درآمد شدہ Willing Ways pages، videos، articles اور FAQs دیکھیں"
+                    urduClassName="font-urdu text-right"
                   />
-                  <div className="mt-4 text-xl font-semibold text-[#3b1725]">{track.title}</div>
-                  <p className="mt-3 text-base leading-8 text-[#5a3743]">{track.summary}</p>
-                </Link>
-              ))}
+                </h3>
+                <p className="mt-3 text-base leading-8 text-[#5a3743]">
+                  <LocalizedText
+                    as="span"
+                    english="The content library is available inside the same app for staff, clients, and referral doctors."
+                    urdu="مواد کی لائبریری اسی ایپ کے اندر عملے، کلائنٹس اور referral doctors کے لئے دستیاب ہے۔"
+                    urduClassName="font-urdu text-right"
+                  />
+                </p>
+                <div className="mt-5">
+                  <Link href="/library" className="site-action-link">
+                    <BookOpenText className="h-4 w-4" />
+                    <LocalizedText english="Open library" urdu="لائبریری کھولیں" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
             <div className="rounded-[34px] border border-[#ead6dc] bg-white p-6 shadow-soft sm:p-8">
-              <div className="mb-6 flex items-center gap-4">
+              <div className="flex items-center gap-4">
                 <Image
                   src={SITE_MEDIA.founder}
                   alt="Dr. Sadaqat Ali"
                   width={112}
                   height={112}
-                  className="h-20 w-20 rounded-[24px] object-cover sm:h-24 sm:w-24"
+                  className="h-24 w-24 rounded-[24px] object-cover"
                   unoptimized
                 />
                 <div>
-                  <div className="section-kicker">Founder</div>
+                  <div className="section-kicker">
+                    <LocalizedText english="Founder" urdu="بانی" />
+                  </div>
                   <div className="mt-3 text-2xl font-semibold text-[#3b1725]">Dr. Sadaqat Ali</div>
                 </div>
               </div>
-              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">Dr. Sadaqat Ali’s treatment philosophy</h2>
-              <p className="mt-5 text-lg leading-9 text-[#5a3743]">
-                Addiction is treated here as a chronic, progressive condition rather than a moral
-                failure. The emphasis is not only on stopping the substance, but on learning how to
-                regulate mood, repair relationships, and build a recovery structure that can hold.
+
+              <p className="mt-6 text-lg leading-9 text-[#5a3743]">
+                <LocalizedText
+                  as="span"
+                  english="Willing Ways follows Dr. Sadaqat Ali’s long-standing approach: addiction is a chronic disease, family involvement matters, and recovery requires structure beyond simply stopping the substance."
+                  urdu="ولنگ ویز ڈاکٹر صداقت علی کے دیرینہ طریقہ علاج پر عمل کرتا ہے: addiction ایک chronic disease ہے، family involvement اہم ہے، اور recovery کے لئے صرف substance چھوڑ دینا کافی نہیں بلکہ ایک منظم structure بھی ضروری ہے۔"
+                  urduClassName="font-urdu text-right"
+                />
               </p>
-              <p className="mt-4 text-lg leading-9 text-[#5a3743]">
-                That makes the family part of treatment, not a bystander. The app now reflects
-                that approach directly through branch routing, family-focused guidance, and the AI
-                intake flow for both patient and doctor use cases.
-              </p>
+
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="/about-us" className="site-action-link">
-                  About Willing Ways
+                  <LocalizedText english="About Willing Ways" urdu="ولنگ ویز کے بارے میں" />
                 </Link>
-                <Link href="/ai" className="site-action-link">
-                  Ask a treatment question
+                <Link href="/ai" className="site-cta-button">
+                  <Mic className="h-4 w-4" />
+                  <LocalizedText english="Try voice and chat" urdu="voice اور chat آزمائیں" />
                 </Link>
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-3">
               {[
-                { title: "Executives", image: siteMedia.teams.executives, href: "/about-us/our-team/executives" },
-                { title: "Medical Specialists", image: siteMedia.teams.medical, href: "/about-us/our-team/medical-specialists" },
-                { title: "Mental Health Care Specialists", image: siteMedia.teams.mentalHealth, href: "/about-us/our-team/mental-health-care-specialists" },
-                { title: "Psychiatrists", image: siteMedia.teams.psychiatrists, href: "/about-us/our-team/psychiatrists" },
-              ].map((team) => (
-                <Link key={team.title} href={team.href} className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
-                  <Image
-                    src={team.image}
-                    alt={team.title}
-                    width={1200}
-                    height={900}
-                    className="h-48 w-full object-cover"
-                    unoptimized
-                  />
-                  <div className="p-5">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
-                        <Building2 className="h-5 w-5" />
-                      </span>
-                      <div className="text-lg font-semibold text-[#3b1725]">{team.title}</div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-[#ead6dc] bg-white/65">
-          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
-              <div>
-                <div className="section-kicker">Branches</div>
-                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
-                  Admissions and treatment access across three major cities.
-                </h2>
-              </div>
-              <Link href="/contact-us" className="site-inline-link">
-                Full contact page
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="mt-8 grid gap-6 lg:grid-cols-3">
-              {branchCards.map((branch) => (
-                <Link key={branch.name} href={branch.href} className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
-                  <Image
-                    src={branch.image}
-                    alt={branch.name}
-                    width={1200}
-                    height={900}
-                    className="h-60 w-full object-cover"
-                    unoptimized
-                  />
-                  <div className="space-y-3 p-6">
-                    <div className="text-2xl font-semibold text-[#3b1725]">{branch.name}</div>
-                    <div className="text-base leading-8 text-[#5a3743]">{branch.details.address}</div>
-                    <div className="text-base font-semibold text-[#3b1725]">{branch.details.phones[0]}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="hero-panel">
-              <div className="section-kicker border-white/20 bg-white/10 text-white/75">Willing Ways AI</div>
-              <h2 className="mt-4 font-serif text-3xl font-semibold text-white sm:text-4xl">
-                A dedicated intake assistant for patients, families, and doctors.
-              </h2>
-              <p className="mt-5 text-lg leading-9 text-white/86">
-                The existing chat experience remains intact, but it now runs alongside the full
-                site content, local media, and Willing Ways branch routing. Use it to guide
-                consultations, interventions, or treatment-specific questions.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/ai" className="site-cta-button bg-white text-slate-950 hover:bg-slate-100">
-                  <MessageSquareHeart className="h-4 w-4" />
-                  Open AI assistant
-                </Link>
-                <Link href="/library" className="site-action-link border-white/20 bg-white/10 text-white hover:bg-white/16">
-                  <BookOpenText className="h-4 w-4" />
-                  Browse imported library
-                </Link>
-              </div>
-              <div className="mt-6 overflow-hidden rounded-[24px] border border-white/12">
-                <Image
-                  src={SITE_MEDIA.facilities.karachiReception}
-                  alt="Willing Ways facility interior"
-                  width={1200}
-                  height={800}
-                  className="h-52 w-full object-cover"
-                  unoptimized
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {resourceCards.map((card) => (
-                <Link key={card.href} href={card.href} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
-                  <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
-                    <BookOpenText className="h-5 w-5" />
-                  </div>
-                  <div className="mt-4 text-xl font-semibold text-[#3b1725]">{card.title}</div>
-                  <p className="mt-3 text-base leading-8 text-[#5a3743]">
-                    {card.description ?? "Browse the imported Willing Ways material in a faster modern shell."}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-[#ead6dc] bg-white/65">
-          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
-              <div>
-                <div className="section-kicker">Latest Articles</div>
-                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
-                  Educational content imported into the new library.
-                </h2>
-              </div>
-              <Link href="/library" className="site-inline-link">
-                Open library
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="mt-8 grid gap-5 lg:grid-cols-3">
-              {latestArticles.slice(0, 3).map((article) => (
-                <Link
-                  key={article.path}
-                  href={article.path}
-                  className="rounded-[30px] border border-slate-200/80 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30"
+                {
+                  branch: BRANCH_CONTACTS[0],
+                  image: SITE_MEDIA.facilities.lahoreCampus,
+                },
+                {
+                  branch: BRANCH_CONTACTS[1],
+                  image: SITE_MEDIA.facilities.karachiExterior,
+                },
+                {
+                  branch: BRANCH_CONTACTS[3],
+                  image: SITE_MEDIA.facilities.islamabadCampus,
+                },
+              ].map(({ branch, image }) => (
+                <div
+                  key={branch.name}
+                  className="overflow-hidden rounded-[30px] border border-[#ead6dc] bg-white shadow-soft"
                 >
-                  <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
-                    <BookOpenText className="h-5 w-5" />
+                  <Image
+                    src={image}
+                    alt={branch.name}
+                    width={900}
+                    height={900}
+                    className="h-44 w-full object-cover"
+                    unoptimized
+                  />
+                  <div className="space-y-3 p-5">
+                    <div className="text-xl font-semibold text-[#3b1725]">{branch.name}</div>
+                    <div className="text-base leading-8 text-[#5a3743]">{branch.address}</div>
+                    <div className="text-base font-semibold text-[#3b1725]">{branch.phones[0]}</div>
                   </div>
-                  <div className="mt-4 text-2xl font-semibold leading-tight text-[#3b1725]">{article.title}</div>
-                  <p className="mt-4 text-base leading-8 text-[#5a3743]">{article.description}</p>
-                  <div className="mt-5 site-inline-link">
-                    Read article
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>

@@ -26,6 +26,10 @@ body {
   line-height: 1.65;
 }
 
+.font-urdu {
+  font-family: var(--font-urdu), var(--font-manrope), sans-serif;
+}
+
 * {
   border-color: hsl(var(--border));
 }

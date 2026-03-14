@@ -7,17 +7,21 @@ import { useState } from "react";
 
 import { SITE_MEDIA } from "@/lib/site-assets";
 
+import { SiteLanguageSwitcher } from "@/components/site-language-switcher";
+import { useSiteLanguage } from "@/components/site-language-provider";
+
 const navigation = [
-  { href: "/", label: "Home" },
-  { href: "/about-us", label: "About" },
-  { href: "/our-services", label: "Services" },
-  { href: "/treatments", label: "Treatments" },
-  { href: "/library", label: "Library" },
-  { href: "/contact-us", label: "Contact" },
+  { href: "/", english: "Home", urdu: "ہوم" },
+  { href: "/about-us", english: "About", urdu: "تعارف" },
+  { href: "/our-services", english: "Services", urdu: "خدمات" },
+  { href: "/treatments", english: "Treatments", urdu: "علاج" },
+  { href: "/library", english: "Library", urdu: "لائبریری" },
+  { href: "/contact-us", english: "Contact", urdu: "رابطہ" },
 ];
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { isUrdu } = useSiteLanguage();
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#ead6dc] bg-[#fffaf8]/95 backdrop-blur-xl">
@@ -34,14 +38,31 @@ export function SiteHeader() {
             />
           </span>
           <span className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-primary sm:text-xs">
-              Willing Ways Pakistan
+            <span
+              className={`block text-[10px] font-semibold tracking-[0.24em] text-primary sm:text-xs ${
+                isUrdu ? "font-urdu text-right normal-case" : "uppercase"
+              }`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              {isUrdu ? "ولنگ ویز پاکستان" : "Willing Ways Pakistan"}
             </span>
-            <span className="block font-serif text-base font-semibold leading-tight text-[#3b1725] sm:text-xl">
-              Addiction Treatment & Mental Health Rehabilitation
+            <span
+              className={`block text-base font-semibold leading-tight text-[#3b1725] sm:text-xl ${
+                isUrdu ? "font-urdu text-right" : "font-serif"
+              }`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              {isUrdu
+                ? "نشے کے علاج اور ذہنی صحت کی بحالی"
+                : "Addiction Treatment & Mental Health Rehabilitation"}
             </span>
-            <span className="mt-1 hidden text-sm text-[#714853] sm:block">
-              Lahore, Karachi, Islamabad
+            <span
+              className={`mt-1 hidden text-sm text-[#714853] sm:block ${
+                isUrdu ? "font-urdu text-right" : ""
+              }`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              {isUrdu ? "لاہور، کراچی، اسلام آباد" : "Lahore, Karachi, Islamabad"}
             </span>
           </span>
         </Link>
@@ -49,19 +70,24 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-2 lg:flex">
           {navigation.map((item) => (
             <Link key={item.href} href={item.href} className="site-nav-link">
-              {item.label}
+              <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                {isUrdu ? item.urdu : item.english}
+              </span>
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <SiteLanguageSwitcher />
           <a href="tel:+923007413639" className="site-action-link">
             <PhoneCall className="h-4 w-4" />
             0300 7413639
           </a>
           <Link href="/ai" className="site-cta-button">
             <MessageSquareHeart className="h-4 w-4" />
-            Talk to Willing Ways AI
+            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+              {isUrdu ? "ولنگ ویز اے آئی سے بات کریں" : "Talk to Willing Ways AI"}
+            </span>
           </Link>
         </div>
 
@@ -95,16 +121,23 @@ export function SiteHeader() {
                 className="rounded-2xl px-4 py-3 text-sm font-medium text-[#58323f] hover:bg-white"
                 onClick={() => setOpen(false)}
               >
-                {item.label}
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {isUrdu ? item.urdu : item.english}
+                </span>
               </Link>
             ))}
+            <div className="pt-2">
+              <SiteLanguageSwitcher />
+            </div>
             <a href="tel:+923007413639" className="site-action-link justify-center">
               <PhoneCall className="h-4 w-4" />
               0300 7413639
             </a>
             <Link href="/ai" className="site-cta-button justify-center" onClick={() => setOpen(false)}>
               <MessageSquareHeart className="h-4 w-4" />
-              Talk to Willing Ways AI
+              <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                {isUrdu ? "ولنگ ویز اے آئی سے بات کریں" : "Talk to Willing Ways AI"}
+              </span>
             </Link>
           </div>
         </div>

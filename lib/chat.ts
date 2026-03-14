@@ -21,6 +21,7 @@ export interface ChatSession {
 }
 
 export interface RuntimeStatus {
+  realtimeConfigured: boolean;
   serverKeyConfigured: boolean;
 }
 
@@ -61,10 +62,22 @@ export const QUICK_LINKS = [
 ];
 
 export const SERVICE_HIGHLIGHTS = [
-  "Rehabilitation services with medically supervised detox and residential treatment",
-  "Psychiatric evaluations, medication management, and crisis intervention",
-  "Core, supportive, personal development, situational, and follow-up counseling",
-  "Family intervention, relapse prevention, and long-term continuing care",
+  {
+    english: "Rehabilitation services with medically supervised detox and residential treatment",
+    urdu: "میڈیکلی سپروائزڈ detox اور رہائشی علاج کے ساتھ rehabilitation services",
+  },
+  {
+    english: "Psychiatric evaluations, medication management, and crisis intervention",
+    urdu: "psychiatric evaluations، medication management اور crisis intervention",
+  },
+  {
+    english: "Core, supportive, personal development, situational, and follow-up counseling",
+    urdu: "core، supportive، personal development، situational اور follow-up counseling",
+  },
+  {
+    english: "Family intervention, relapse prevention, and long-term continuing care",
+    urdu: "family intervention، relapse prevention اور long-term continuing care",
+  },
 ];
 
 export const PRIMARY_CONTACTS = [

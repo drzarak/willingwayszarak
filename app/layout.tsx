@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Manrope, Merriweather } from "next/font/google";
+import { Manrope, Merriweather, Noto_Naskh_Arabic } from "next/font/google";
 
 import { SITE_MEDIA } from "@/lib/site-assets";
+
+import { SiteLanguageProvider } from "@/components/site-language-provider";
 
 import "./globals.css";
 
@@ -14,6 +16,11 @@ const merriweather = Merriweather({
   subsets: ["latin"],
   weight: ["300", "400", "700"],
   variable: "--font-merriweather",
+});
+
+const notoNaskhArabic = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-urdu",
 });
 
 export const metadata: Metadata = {
@@ -39,9 +46,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${manrope.variable} ${merriweather.variable} font-sans antialiased`}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${manrope.variable} ${merriweather.variable} ${notoNaskhArabic.variable} font-sans antialiased`}
+      >
+        <SiteLanguageProvider>
+          {children}
+        </SiteLanguageProvider>
       </body>
     </html>
   );

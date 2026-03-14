@@ -25,10 +25,12 @@ import { ChatPane } from "@/components/chat-pane";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { useSiteLanguage } from "@/components/site-language-provider";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 
 export function ChatApp() {
+  const { isUrdu, language: siteLanguage, hydrated: siteLanguageHydrated } = useSiteLanguage();
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
@@ -36,9 +38,16 @@ export function ChatApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsRevision, setSettingsRevision] = useState(0);
-  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({ serverKeyConfigured: false });
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
+    realtimeConfigured: false,
+    serverKeyConfigured: false,
+  });
 
   useEffect(() => {
+    if (!siteLanguageHydrated || hydrated) {
+      return;
+    }
+
     const storedSettings = window.localStorage.getItem(APP_SETTINGS_STORAGE_KEY);
     const storedSessions = window.localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
     const storedActiveChatId = window.localStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
@@ -47,7 +56,9 @@ export function ChatApp() {
     const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
 
     const nextSessions =
-      parsedSessions.length > 0 ? normalizeChatSessions(parsedSessions) : [createChatSession("patient")];
+      parsedSessions.length > 0
+        ? normalizeChatSessions(parsedSessions)
+        : [createChatSession("patient", siteLanguage)];
     const nextActiveChatId =
       storedActiveChatId && nextSessions.some((session) => session.id === storedActiveChatId)
         ? storedActiveChatId
@@ -60,7 +71,7 @@ export function ChatApp() {
     setSessions(nextSessions);
     setActiveChatId(nextActiveChatId);
     setHydrated(true);
-  }, []);
+  }, [hydrated, siteLanguage, siteLanguageHydrated]);
 
   useEffect(() => {
     void fetch("/api/runtime")
@@ -73,7 +84,7 @@ export function ChatApp() {
       })
       .then((status) => setRuntimeStatus(status))
       .catch(() => {
-        setRuntimeStatus({ serverKeyConfigured: false });
+        setRuntimeStatus({ realtimeConfigured: false, serverKeyConfigured: false });
       });
   }, []);
 
@@ -95,7 +106,7 @@ export function ChatApp() {
   function handleNewChat() {
     const nextSession = createChatSession(
       activeSession?.mode ?? "patient",
-      activeSession?.language ?? "english",
+      activeSession?.language ?? siteLanguage,
     );
 
     startTransition(() => {
@@ -239,10 +250,17 @@ export function ChatApp() {
                   </span>
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary sm:text-xs">
-                      Willing Ways AI
+                      {isUrdu ? "ولنگ ویز اے آئی" : "Willing Ways AI"}
                     </div>
-                    <div className="font-serif text-base font-semibold leading-tight text-[#3b1725] sm:text-2xl">
-                      Addiction Treatment & Mental Health Rehabilitation
+                    <div
+                      className={`text-base font-semibold leading-tight text-[#3b1725] sm:text-2xl ${
+                        isUrdu ? "font-urdu text-right" : "font-serif"
+                      }`}
+                      dir={isUrdu ? "rtl" : "ltr"}
+                    >
+                      {isUrdu
+                        ? "نشے کے علاج اور ذہنی صحت کی بحالی"
+                        : "Addiction Treatment & Mental Health Rehabilitation"}
                     </div>
                   </div>
                 </Link>
@@ -255,8 +273,15 @@ export function ChatApp() {
             </div>
 
             <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="hidden text-sm text-[#6d4452] lg:block">
-                Chat with the Willing Ways intake assistant using the live server-side OpenAI setup.
+              <div
+                className={`hidden text-sm text-[#6d4452] lg:block ${
+                  isUrdu ? "font-urdu text-right" : ""
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu
+                  ? "ولنگ ویز intake assistant کے ساتھ server-side OpenAI setup پر گفتگو کریں۔"
+                  : "Chat with the Willing Ways intake assistant using the live server-side OpenAI setup."}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:ml-auto">
@@ -275,6 +300,7 @@ export function ChatApp() {
               modelId={settings.modelId}
               onMessagesChange={handleMessagesChange}
               onOpenSettings={() => setSettingsOpen(true)}
+              realtimeConfigured={runtimeStatus.realtimeConfigured}
               serverKeyConfigured={runtimeStatus.serverKeyConfigured}
               session={activeSession}
             />

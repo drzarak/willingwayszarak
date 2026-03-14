@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { AppSettings, ModelId } from "@/lib/chat";
 import { MODEL_OPTIONS } from "@/lib/chat";
 
+import { useSiteLanguage } from "@/components/site-language-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +34,7 @@ export function SettingsDialog({
   settings,
   onSave,
 }: SettingsDialogProps) {
+  const { isUrdu } = useSiteLanguage();
   const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
   const [draftModelId, setDraftModelId] = useState<ModelId>(settings.modelId);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -52,13 +54,19 @@ export function SettingsDialog({
         <DialogHeader>
           <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#fff4f7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            Runtime settings
+            {isUrdu ? "runtime settings" : "Runtime settings"}
           </div>
-          <DialogTitle>OpenAI key and model</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className={isUrdu ? "font-urdu text-right" : ""}>
+            {isUrdu ? "OpenAI key اور model" : "OpenAI key and model"}
+          </DialogTitle>
+          <DialogDescription className={isUrdu ? "font-urdu text-right" : ""}>
             {serverKeyConfigured
-              ? "This deployment already has a server-side OPENAI_API_KEY. The browser key below is optional and only useful as a local override."
-              : "Add a browser key for local testing, or leave this blank after you configure OPENAI_API_KEY on the deployed server."}
+              ? isUrdu
+                ? "اس deployment میں پہلے سے server-side OPENAI_API_KEY موجود ہے۔ نیچے browser key صرف local override کے لئے اختیاری ہے۔"
+                : "This deployment already has a server-side OPENAI_API_KEY. The browser key below is optional and only useful as a local override."
+              : isUrdu
+                ? "local testing کے لئے browser key شامل کریں، یا deployed server پر OPENAI_API_KEY configure کرنے کے بعد اسے خالی چھوڑ دیں۔"
+                : "Add a browser key for local testing, or leave this blank after you configure OPENAI_API_KEY on the deployed server."}
           </DialogDescription>
         </DialogHeader>
 
@@ -71,12 +79,20 @@ export function SettingsDialog({
             }`}
           >
             {serverKeyConfigured
-              ? "Server-side OpenAI access is configured. Users on this deployment can chat without entering a browser key."
-              : "Server-side OpenAI access is not configured yet. For Vercel, add OPENAI_API_KEY in the project dashboard and redeploy, or paste a browser key temporarily."}
+              ? isUrdu
+                ? "Server-side OpenAI access configured ہے۔ اس deployment پر صارف browser key دیے بغیر chat کر سکتے ہیں۔"
+                : "Server-side OpenAI access is configured. Users on this deployment can chat without entering a browser key."
+              : isUrdu
+                ? "Server-side OpenAI access ابھی configured نہیں ہے۔ Vercel پر project dashboard میں OPENAI_API_KEY شامل کریں اور redeploy کریں، یا عارضی طور پر browser key paste کریں۔"
+                : "Server-side OpenAI access is not configured yet. For Vercel, add OPENAI_API_KEY in the project dashboard and redeploy, or paste a browser key temporarily."}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="api-key">OpenAI API key {serverKeyConfigured ? "(optional override)" : ""}</Label>
+            <Label htmlFor="api-key" className={isUrdu ? "font-urdu" : ""}>
+              {isUrdu
+                ? `OpenAI API key ${serverKeyConfigured ? "(optional override)" : ""}`
+                : `OpenAI API key ${serverKeyConfigured ? "(optional override)" : ""}`}
+            </Label>
             <div className="relative">
               <Input
                 id="api-key"
@@ -102,7 +118,9 @@ export function SettingsDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="model-id">Model</Label>
+            <Label htmlFor="model-id" className={isUrdu ? "font-urdu" : ""}>
+              {isUrdu ? "Model" : "Model"}
+            </Label>
             <select
               id="model-id"
               className="flex h-12 w-full rounded-2xl border border-slate-200/90 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none ring-0 transition focus:border-primary/35"
@@ -118,14 +136,17 @@ export function SettingsDialog({
           </div>
 
           <div className="rounded-[24px] border border-[#ead6dc] bg-[#fff4f7] p-4 text-sm leading-6 text-[#5a3743]">
-            Chat history, selected model, and language/mode preferences stay in local storage so
-            the current UX remains intact across refreshes on the same browser.
+            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+              {isUrdu
+                ? "Chat history، منتخب model اور language/mode preferences local storage میں محفوظ رہتے ہیں تاکہ اسی browser پر refresh کے بعد بھی موجودہ UX برقرار رہے۔"
+                : "Chat history, selected model, and language/mode preferences stay in local storage so the current UX remains intact across refreshes on the same browser."}
+            </span>
           </div>
         </div>
 
         <DialogFooter className="mt-7">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {isUrdu ? "منسوخ" : "Cancel"}
           </Button>
           <Button
             onClick={() =>
@@ -135,7 +156,7 @@ export function SettingsDialog({
               })
             }
           >
-            Save settings
+            {isUrdu ? "settings محفوظ کریں" : "Save settings"}
           </Button>
         </DialogFooter>
       </DialogContent>
