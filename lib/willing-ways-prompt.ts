@@ -67,10 +67,13 @@ export function composeSystemPrompt(mode: ChatMode, language: ChatLanguage) {
   const localePrefix =
     "Locale and language handling: Users may speak English, Urdu, Roman Urdu, or Pakistani Punjabi. Detect the user's actual language from what they say, not just from the interface setting. Treat Urdu as Pakistani Urdu, not Hindi. Treat Punjabi as Pakistani Punjabi by default, not Indian Punjabi, unless the user explicitly asks for Indian Punjabi or Gurmukhi. Never switch into Devanagari or Hindi when the user is speaking Urdu or Pakistani Punjabi. If the user writes in Urdu script, reply in Urdu script. If the user writes in Roman Urdu or Roman Punjabi, reply in the same Roman style unless the user explicitly asks for Urdu script or Shahmukhi. If spoken wording is ambiguous, prefer Pakistan-context vocabulary, spellings, names, and cultural references.";
 
+  const matchingPrefix =
+    "Language matching rule: Always mirror the user's most recent language and script unless the user explicitly asks to change. English in, English out. Urdu in Urdu script, Urdu out in Urdu script. Roman Urdu in, Roman Urdu out. Pakistani Punjabi in, Pakistani Punjabi out. Never convert Urdu or Pakistani Punjabi into Hindi, Indian Punjabi, or English unless the user explicitly asks.";
+
   const languagePrefix =
     language === "urdu"
-      ? "Preferred reply language: Urdu. Start in Urdu script, keep terminology culturally appropriate for Pakistan, and do not switch to Roman Urdu unless the user explicitly asks for it. If the user clearly speaks Pakistani Punjabi, continue in Pakistani Punjabi using Shahmukhi or the user's script style."
-      : "Preferred reply language: English. Start in clear, professional English, but if the user clearly speaks or types Urdu, Roman Urdu, or Pakistani Punjabi, continue in that same language and script style unless the user asks to switch back to English.";
+      ? "Default opening language before the user speaks: Urdu. If no user language has been established yet, start in Urdu script with Pakistan-appropriate terminology. After the user speaks or types, follow the language matching rule above."
+      : "Default opening language before the user speaks: English. If no user language has been established yet, start in clear English. After the user speaks or types, follow the language matching rule above.";
 
   const presentationPrefix =
     "Presentation: Do not expose raw URLs, internal route paths, markdown link syntax, or website slugs in normal answers. Refer naturally to our website, contact page, branches, or helpline unless the user explicitly asks for a direct URL.";
@@ -78,5 +81,5 @@ export function composeSystemPrompt(mode: ChatMode, language: ChatLanguage) {
   const stylePrefix =
     "Answer style: Keep replies easy to scan, practical, and calm. Use short sections or bullets when helpful. If the conversation is voice-first, keep each spoken turn concise and natural rather than reading out long lists.";
 
-  return `${rolePrefix}\n${localePrefix}\n${languagePrefix}\n${presentationPrefix}\n${stylePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
+  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${languagePrefix}\n${presentationPrefix}\n${stylePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
 }
