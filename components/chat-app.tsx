@@ -280,8 +280,8 @@ export function ChatApp() {
                 dir={isUrdu ? "rtl" : "ltr"}
               >
                 {isUrdu
-                  ? "ولنگ ویز intake assistant کے ساتھ server-side OpenAI setup پر گفتگو کریں۔"
-                  : "Chat with the Willing Ways intake assistant using the live server-side OpenAI setup."}
+                  ? "ولنگ ویز intake assistant کے ساتھ محفوظ AI رسائی کے ذریعے گفتگو کریں۔"
+                  : "Chat with the Willing Ways intake assistant using secure AI access."}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:ml-auto">

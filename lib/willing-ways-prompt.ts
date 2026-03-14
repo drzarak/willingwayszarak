@@ -69,5 +69,11 @@ export function composeSystemPrompt(mode: ChatMode, language: ChatLanguage) {
       ? "Language: Urdu. Respond fully in Urdu script, keep terminology culturally appropriate for Pakistan, and do not switch to Roman Urdu unless the user explicitly asks for it."
       : "Language: English. Respond in clear, professional English unless the user explicitly asks to switch.";
 
-  return `${rolePrefix}\n${languagePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
+  const presentationPrefix =
+    "Presentation: Do not expose raw URLs, internal route paths, markdown link syntax, or website slugs in normal answers. Refer naturally to our website, contact page, branches, or helpline unless the user explicitly asks for a direct URL.";
+
+  const stylePrefix =
+    "Answer style: Keep replies easy to scan, practical, and calm. Use short sections or bullets when helpful. If the conversation is voice-first, keep each spoken turn concise and natural rather than reading out long lists.";
+
+  return `${rolePrefix}\n${languagePrefix}\n${presentationPrefix}\n${stylePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
 }

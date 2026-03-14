@@ -3,6 +3,15 @@ import type { UIMessage } from "ai";
 export type ChatMode = "patient" | "doctor";
 export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
+export type RealtimeVoiceId =
+  | "alloy"
+  | "ash"
+  | "ballad"
+  | "coral"
+  | "echo"
+  | "sage"
+  | "shimmer"
+  | "verse";
 
 export interface AppSettings {
   apiKey: string;
@@ -28,11 +37,23 @@ export interface RuntimeStatus {
 export const APP_SETTINGS_STORAGE_KEY = "willing-ways-ai:settings";
 export const CHAT_SESSIONS_STORAGE_KEY = "willing-ways-ai:sessions";
 export const ACTIVE_CHAT_STORAGE_KEY = "willing-ways-ai:active-chat";
+export const REALTIME_VOICE_STORAGE_KEY = "willing-ways-ai:realtime-voice";
 
 export const MODEL_OPTIONS: Array<{ id: ModelId; label: string }> = [
   { id: "gpt-4o-mini", label: "gpt-4o-mini" },
   { id: "gpt-4o", label: "gpt-4o" },
   { id: "gpt-4-turbo", label: "gpt-4-turbo" },
+];
+
+export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
+  { id: "alloy", label: "Alloy" },
+  { id: "ash", label: "Ash" },
+  { id: "ballad", label: "Ballad" },
+  { id: "coral", label: "Coral" },
+  { id: "echo", label: "Echo" },
+  { id: "sage", label: "Sage" },
+  { id: "shimmer", label: "Shimmer" },
+  { id: "verse", label: "Verse" },
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {

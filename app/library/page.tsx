@@ -18,13 +18,13 @@ export default function LibraryPage() {
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <section className="max-w-4xl">
           <div className="section-kicker">
-            <LocalizedText english="Imported Willing Ways Library" urdu="درآمد شدہ ولنگ ویز لائبریری" />
+            <LocalizedText english="Willing Ways Library" urdu="ولنگ ویز لائبریری" />
           </div>
           <h1 className="mt-4 text-5xl font-semibold leading-tight text-slate-950">
             <LocalizedText
               as="span"
-              english="Browse the imported pages, treatments, articles, and media in one place."
-              urdu="درآمد شدہ صفحات، treatments، articles اور media ایک ہی جگہ دیکھیں"
+              english="Browse Willing Ways pages, treatments, articles, and media in one place."
+              urdu="ولنگ ویز کے صفحات، treatments، articles اور media ایک ہی جگہ دیکھیں"
               englishClassName="font-serif"
               urduClassName="font-urdu text-right"
             />
@@ -32,8 +32,8 @@ export default function LibraryPage() {
           <p className="mt-5 text-lg leading-8 text-slate-600">
             <LocalizedText
               as="span"
-              english="This index is generated from the live Willing Ways site and bundled into this app so staff, clients, and doctors can navigate the material without leaving the new experience."
-              urdu="یہ index live Willing Ways site سے تیار کیا گیا ہے اور اسی app میں شامل ہے تاکہ staff، clients اور doctors نئے تجربے سے باہر گئے بغیر مواد دیکھ سکیں۔"
+              english="This library brings Willing Ways knowledge, treatments, and educational content into one clean browsing experience."
+              urdu="یہ لائبریری ولنگ ویز کے علمی مواد، treatments اور تعلیمی content کو ایک صاف browsing experience میں لاتی ہے۔"
               urduClassName="font-urdu text-right"
             />
           </p>

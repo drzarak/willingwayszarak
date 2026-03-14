@@ -1,13 +1,33 @@
 "use client";
 
-import { AlertTriangle, LoaderCircle, Mic, Radio, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  LoaderCircle,
+  Mic,
+  Radio,
+  Square,
+  Volume2,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type ChatLanguage, type ChatMode } from "@/lib/chat";
+import {
+  REALTIME_VOICE_OPTIONS,
+  REALTIME_VOICE_STORAGE_KEY,
+  type ChatLanguage,
+  type ChatMode,
+  type RealtimeVoiceId,
+} from "@/lib/chat";
 
 import { Button } from "@/components/ui/button";
 
-type VoiceStatus = "idle" | "requesting" | "connecting" | "connected" | "listening" | "responding" | "error";
+type VoiceStatus =
+  | "idle"
+  | "requesting"
+  | "connecting"
+  | "connected"
+  | "listening"
+  | "responding"
+  | "error";
 
 interface TranscriptEntry {
   id: string;
@@ -21,6 +41,33 @@ interface RealtimeVoicePanelProps {
   mode: ChatMode;
 }
 
+function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("<!doctype html") || lowerMessage.includes("<html")) {
+    return language === "urdu"
+      ? "OpenAI voice service نے جواب دینے میں بہت زیادہ وقت لیا۔ چند لمحوں بعد دوبارہ کوشش کریں۔"
+      : "OpenAI voice service timed out. Please try again in a moment.";
+  }
+
+  if (
+    lowerMessage.includes("api version mismatch") ||
+    lowerMessage.includes("api_version_mismatch")
+  ) {
+    return language === "urdu"
+      ? "Realtime voice سیشن پرانا اور نیا API flow ملانے کی وجہ سے شروع نہیں ہو سکا۔ صفحہ refresh کر کے دوبارہ کوشش کریں۔"
+      : "Realtime voice could not start because the session used mismatched Realtime API versions. Refresh and try again.";
+  }
+
+  if (!message.trim()) {
+    return language === "urdu"
+      ? "Realtime voice اس وقت شروع نہیں ہو سکی۔"
+      : "Realtime voice could not be started right now.";
+  }
+
+  return message;
+}
+
 export function RealtimeVoicePanel({
   enabled,
   language,
@@ -29,11 +76,24 @@ export function RealtimeVoicePanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [voiceId, setVoiceId] = useState<RealtimeVoiceId>("alloy");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
+
+    if (storedVoice && REALTIME_VOICE_OPTIONS.some((voice) => voice.id === storedVoice)) {
+      setVoiceId(storedVoice as RealtimeVoiceId);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, voiceId);
+  }, [voiceId]);
 
   useEffect(() => () => cleanupSession(), []);
 
@@ -138,24 +198,34 @@ export function RealtimeVoicePanel({
 
     if (type === "error") {
       const error =
-        typeof payload.error === "object" && payload.error && "message" in payload.error
+        typeof payload.error === "object" &&
+        payload.error &&
+        "message" in payload.error
           ? String((payload.error as { message?: string }).message ?? "Realtime voice failed.")
           : "Realtime voice failed.";
 
-      setErrorMessage(error);
+      setErrorMessage(normalizeRealtimeClientError(error, language));
       setStatus("error");
     }
   }
 
   async function startSession() {
     if (!enabled) {
-      setErrorMessage("Realtime voice is not available until the server OpenAI key is configured.");
+      setErrorMessage(
+        language === "urdu"
+          ? "جب تک server OpenAI key configured نہیں ہوتی، realtime voice دستیاب نہیں ہو گی۔"
+          : "Realtime voice is not available until the server OpenAI key is configured.",
+      );
       setStatus("error");
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setErrorMessage("This browser does not support microphone access.");
+      setErrorMessage(
+        language === "urdu"
+          ? "یہ browser microphone access کو support نہیں کرتا۔"
+          : "This browser does not support microphone access.",
+      );
       setStatus("error");
       return;
     }
@@ -165,24 +235,6 @@ export function RealtimeVoicePanel({
     setStatus("requesting");
 
     try {
-      const tokenResponse = await fetch("/api/realtime/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ language, mode }),
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error(await tokenResponse.text());
-      }
-
-      const tokenPayload = (await tokenResponse.json()) as { clientSecret?: string };
-
-      if (!tokenPayload.clientSecret) {
-        throw new Error("Realtime client secret was not returned by the server.");
-      }
-
       const localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const peerConnection = new RTCPeerConnection();
       const dataChannel = peerConnection.createDataChannel("oai-events");
@@ -200,7 +252,11 @@ export function RealtimeVoicePanel({
       };
 
       dataChannel.onerror = () => {
-        setErrorMessage("The realtime data channel closed unexpectedly.");
+        setErrorMessage(
+          language === "urdu"
+            ? "Realtime data channel غیر متوقع طور پر بند ہو گیا۔"
+            : "The realtime data channel closed unexpectedly.",
+        );
         setStatus("error");
       };
 
@@ -223,14 +279,16 @@ export function RealtimeVoicePanel({
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
 
-      const realtimeResponse = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokenPayload.clientSecret}`,
-          "Content-Type": "application/sdp",
+      const realtimeResponse = await fetch(
+        `/api/realtime/session?mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}&voice=${encodeURIComponent(voiceId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/sdp",
+          },
+          body: offer.sdp,
         },
-        body: offer.sdp,
-      });
+      );
 
       if (!realtimeResponse.ok) {
         throw new Error(await realtimeResponse.text());
@@ -244,7 +302,12 @@ export function RealtimeVoicePanel({
       await peerConnection.setRemoteDescription(answer);
     } catch (error) {
       cleanupSession();
-      setErrorMessage(error instanceof Error ? error.message : "Realtime voice could not start.");
+      setErrorMessage(
+        normalizeRealtimeClientError(
+          error instanceof Error ? error.message : "Realtime voice could not start.",
+          language,
+        ),
+      );
       setStatus("error");
     }
   }
@@ -253,6 +316,23 @@ export function RealtimeVoicePanel({
     cleanupSession();
     setStatus("idle");
   }
+
+  const selectedVoiceLabel = useMemo(
+    () =>
+      REALTIME_VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? voiceId,
+    [voiceId],
+  );
+
+  const voiceSelectionLocked =
+    status === "connecting" ||
+    status === "connected" ||
+    status === "listening" ||
+    status === "responding";
+
+  const voiceSelectionHint =
+    language === "urdu"
+      ? "آواز تبدیل کرنے کے لئے نیا آوازی سیشن شروع کریں۔"
+      : "Start a new voice session to switch voices.";
 
   const statusLabel =
     status === "requesting"
@@ -294,7 +374,10 @@ export function RealtimeVoicePanel({
             {language === "urdu" ? "لائیو آواز" : "Realtime voice"}
           </div>
           <div className="text-2xl font-semibold text-[#3b1725]">
-            <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
+            <span
+              className={language === "urdu" ? "font-urdu" : ""}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
               {language === "urdu"
                 ? "اب آپ بول کر بھی ولنگ ویز اے آئی سے بات کر سکتے ہیں"
                 : "You can now talk to Willing Ways AI with live voice."}
@@ -307,12 +390,47 @@ export function RealtimeVoicePanel({
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
             {language === "urdu"
-              ? "یہ سہولت سرور پر محفوظ OpenAI key استعمال کرتی ہے۔ ڈاکٹر موڈ اور اردو موڈ دونوں یہاں بھی کام کرتے ہیں۔"
-              : "This uses the deployment’s server-side OpenAI key. Doctor mode and Urdu mode both carry through into the voice session."}
+              ? "یہ voice feature محفوظ سرور سائیڈ AI access استعمال کرتی ہے۔ ڈاکٹر موڈ، اردو موڈ اور منتخب آواز ہر نئے session پر لاگو ہوتے ہیں۔"
+              : "This voice feature uses secure server-side AI access. Doctor mode, Urdu mode, and the selected OpenAI voice apply to each new session."}
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:min-w-[240px]">
+        <div className="flex flex-col gap-3 sm:min-w-[280px]">
+          <label className="space-y-2">
+            <div
+              className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5a64] ${
+                language === "urdu" ? "font-urdu justify-end normal-case" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              <Volume2 className="h-4 w-4 text-primary" />
+              {language === "urdu" ? "آواز منتخب کریں" : "Choose voice"}
+            </div>
+            <select
+              className="flex h-12 w-full rounded-2xl border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#3b1725] shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={voiceSelectionLocked}
+              value={voiceId}
+              onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
+            >
+              {REALTIME_VOICE_OPTIONS.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div
+            className={`rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-3 text-sm text-[#5a3743] ${
+              language === "urdu" ? "font-urdu text-right" : ""
+            }`}
+            dir={language === "urdu" ? "rtl" : "ltr"}
+          >
+            {language === "urdu"
+              ? `منتخب آواز: ${selectedVoiceLabel}. ${voiceSelectionHint}`
+              : `Selected voice: ${selectedVoiceLabel}. ${voiceSelectionHint}`}
+          </div>
+
           {status === "idle" || status === "error" ? (
             <Button onClick={startSession}>
               <Mic className="h-4 w-4" />

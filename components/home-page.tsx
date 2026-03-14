@@ -1,12 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowRight,
-  BookOpenText,
   Brain,
   CheckCircle2,
   HeartHandshake,
-  MapPin,
   MessageSquareHeart,
   Mic,
   PhoneCall,
@@ -182,10 +179,6 @@ export function HomePage() {
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Open AI assistant" urdu="اے آئی معاون کھولیں" />
                 </Link>
-                <Link href="/contact-us" className="site-action-link">
-                  <MapPin className="h-4 w-4" />
-                  <LocalizedText english="View branches" urdu="برانچز دیکھیں" />
-                </Link>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -322,7 +315,7 @@ export function HomePage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
             <div>
               <div className="section-kicker">
                 <LocalizedText english="Core Services" urdu="بنیادی خدمات" />
@@ -330,16 +323,12 @@ export function HomePage() {
               <h2 className="mt-4 text-3xl font-semibold text-[#3b1725] sm:text-4xl">
                 <LocalizedText
                   as="span"
-                  english="The main services should be visible immediately. They are."
-                  urdu="اہم خدمات فوری طور پر نظر آنی چاہئیں، اور اب ہیں"
+                  english="Core services for addiction treatment and mental health care."
+                  urdu="نشے کے علاج اور ذہنی صحت کی نگہداشت کی بنیادی خدمات"
                   urduClassName="font-urdu text-right"
                 />
               </h2>
             </div>
-            <Link href="/our-services" className="site-inline-link">
-              <LocalizedText english="Explore all services" urdu="تمام خدمات دیکھیں" />
-              <ArrowRight className="h-4 w-4" />
-            </Link>
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -371,10 +360,6 @@ export function HomePage() {
                     urdu={card.description.urdu}
                     urduClassName="font-urdu text-right"
                   />
-                  <div className="site-inline-link">
-                    <LocalizedText english="Learn more" urdu="مزید جانیں" />
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
                 </div>
               </Link>
             ))}
@@ -472,25 +457,19 @@ export function HomePage() {
                 <h3 className="mt-4 text-2xl font-semibold text-[#3b1725]">
                   <LocalizedText
                     as="span"
-                    english="Browse imported Willing Ways pages, videos, articles, and FAQs."
-                    urdu="درآمد شدہ Willing Ways pages، videos، articles اور FAQs دیکھیں"
+                    english="Browse Willing Ways resources, videos, articles, and FAQs."
+                    urdu="ولنگ ویز کے وسائل، ویڈیوز، مضامین اور FAQs دیکھیں"
                     urduClassName="font-urdu text-right"
                   />
                 </h3>
                 <p className="mt-3 text-base leading-8 text-[#5a3743]">
                   <LocalizedText
                     as="span"
-                    english="The content library is available inside the same app for staff, clients, and referral doctors."
-                    urdu="مواد کی لائبریری اسی ایپ کے اندر عملے، کلائنٹس اور referral doctors کے لئے دستیاب ہے۔"
+                    english="Patients, families, staff, and referral doctors can review the same Willing Ways knowledge base in one place."
+                    urdu="مریض، خاندان، عملہ اور referral doctors ایک ہی جگہ ولنگ ویز کا علمی مواد دیکھ سکتے ہیں۔"
                     urduClassName="font-urdu text-right"
                   />
                 </p>
-                <div className="mt-5">
-                  <Link href="/library" className="site-action-link">
-                    <BookOpenText className="h-4 w-4" />
-                    <LocalizedText english="Open library" urdu="لائبریری کھولیں" />
-                  </Link>
-                </div>
               </div>
             </div>
           </div>
@@ -526,9 +505,6 @@ export function HomePage() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/about-us" className="site-action-link">
-                  <LocalizedText english="About Willing Ways" urdu="ولنگ ویز کے بارے میں" />
-                </Link>
                 <Link href="/ai" className="site-cta-button">
                   <Mic className="h-4 w-4" />
                   <LocalizedText english="Try voice and chat" urdu="voice اور chat آزمائیں" />
