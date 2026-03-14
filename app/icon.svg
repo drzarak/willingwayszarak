@@ -1,15 +1,1 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="18" fill="url(#paint0_linear_2_3)"/>
-  <path d="M18 23C18 20.7909 19.7909 19 22 19H42C44.2091 19 46 20.7909 46 23V41C46 43.2091 44.2091 45 42 45H31.5L24 50V45H22C19.7909 45 18 43.2091 18 41V23Z" fill="white" fill-opacity="0.16"/>
-  <path d="M22 28H30.25V36.25H22V28Z" fill="white"/>
-  <path d="M33.75 28H42V36.25H33.75V28Z" fill="white" fill-opacity="0.84"/>
-  <path d="M27.5 22.5H36.5V41.5H27.5V22.5Z" fill="white"/>
-  <path d="M22.5 27.5H41.5V36.5H22.5V27.5Z" fill="white"/>
-  <defs>
-    <linearGradient id="paint0_linear_2_3" x1="8" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0D6EFD"/>
-      <stop offset="1" stop-color="#14B8A6"/>
-    </linearGradient>
-  </defs>
-</svg>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" viewBox="0 0 64 64"><rect width="64" height="64" fill="url(#paint0_linear_2_3)" rx="18"/><path fill="#fff" fill-opacity=".16" d="M18 23C18 20.7909 19.7909 19 22 19H42C44.2091 19 46 20.7909 46 23V41C46 43.2091 44.2091 45 42 45H31.5L24 50V45H22C19.7909 45 18 43.2091 18 41V23Z"/><path fill="#fff" d="M22 28H30.25V36.25H22V28Z"/><path fill="#fff" fill-opacity=".84" d="M33.75 28H42V36.25H33.75V28Z"/><path fill="#fff" d="M27.5 22.5H36.5V41.5H27.5V22.5Z"/><path fill="#fff" d="M22.5 27.5H41.5V36.5H22.5V27.5Z"/><defs><linearGradient id="paint0_linear_2_3" x1="8" x2="58" y1="6" y2="58" gradientUnits="userSpaceOnUse"><stop stop-color="#0D6EFD"/><stop offset="1" stop-color="#14B8A6"/></linearGradient></defs></svg>
