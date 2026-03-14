@@ -4,6 +4,8 @@ export type ChatMode = "patient" | "doctor";
 export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
 export type RealtimeVoiceId =
+  | "cedar"
+  | "marin"
   | "alloy"
   | "ash"
   | "ballad"
@@ -38,6 +40,7 @@ export const APP_SETTINGS_STORAGE_KEY = "willing-ways-ai:settings";
 export const CHAT_SESSIONS_STORAGE_KEY = "willing-ways-ai:sessions";
 export const ACTIVE_CHAT_STORAGE_KEY = "willing-ways-ai:active-chat";
 export const REALTIME_VOICE_STORAGE_KEY = "willing-ways-ai:realtime-voice";
+export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "cedar";
 
 export const MODEL_OPTIONS: Array<{ id: ModelId; label: string }> = [
   { id: "gpt-4o-mini", label: "gpt-4o-mini" },
@@ -46,6 +49,8 @@ export const MODEL_OPTIONS: Array<{ id: ModelId; label: string }> = [
 ];
 
 export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
+  { id: "cedar", label: "Cedar" },
+  { id: "marin", label: "Marin (Marine)" },
   { id: "alloy", label: "Alloy" },
   { id: "ash", label: "Ash" },
   { id: "ballad", label: "Ballad" },
@@ -55,6 +60,20 @@ export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string 
   { id: "shimmer", label: "Shimmer" },
   { id: "verse", label: "Verse" },
 ];
+
+export function normalizeRealtimeVoiceId(
+  value: string | null | undefined,
+): RealtimeVoiceId {
+  if (value === "marine") {
+    return "marin";
+  }
+
+  if (value && REALTIME_VOICE_OPTIONS.some((voice) => voice.id === value)) {
+    return value as RealtimeVoiceId;
+  }
+
+  return DEFAULT_REALTIME_VOICE_ID;
+}
 
 export const DEFAULT_SETTINGS: AppSettings = {
   apiKey: "",

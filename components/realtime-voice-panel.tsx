@@ -11,8 +11,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  DEFAULT_REALTIME_VOICE_ID,
   REALTIME_VOICE_OPTIONS,
   REALTIME_VOICE_STORAGE_KEY,
+  normalizeRealtimeVoiceId,
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
@@ -76,7 +78,7 @@ export function RealtimeVoicePanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [voiceId, setVoiceId] = useState<RealtimeVoiceId>("alloy");
+  const [voiceId, setVoiceId] = useState<RealtimeVoiceId>(DEFAULT_REALTIME_VOICE_ID);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -86,9 +88,7 @@ export function RealtimeVoicePanel({
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
 
-    if (storedVoice && REALTIME_VOICE_OPTIONS.some((voice) => voice.id === storedVoice)) {
-      setVoiceId(storedVoice as RealtimeVoiceId);
-    }
+    setVoiceId(normalizeRealtimeVoiceId(storedVoice));
   }, []);
 
   useEffect(() => {

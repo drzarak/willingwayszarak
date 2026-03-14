@@ -1,4 +1,6 @@
 import {
+  DEFAULT_REALTIME_VOICE_ID,
+  normalizeRealtimeVoiceId,
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
@@ -10,6 +12,8 @@ export const maxDuration = 30;
 const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
+  "cedar",
+  "marin",
   "alloy",
   "ash",
   "ballad",
@@ -19,6 +23,8 @@ const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
   "shimmer",
   "verse",
 ]);
+const PRIMARY_REALTIME_MODEL = "gpt-realtime-1.5";
+const FALLBACK_REALTIME_MODEL = "gpt-realtime";
 
 function normalizeRealtimeError(status: number, body: string) {
   const trimmedBody = body.trim();
@@ -59,11 +65,16 @@ function normalizeRealtimeError(status: number, body: string) {
 
 async function postRealtimeCall(
   apiKey: string,
-  formData: FormData,
+  sdp: string,
+  session: string,
 ): Promise<Response> {
   let lastResponse: Response | null = null;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const formData = new FormData();
+    formData.set("sdp", sdp);
+    formData.set("session", session);
+
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
       headers: {
@@ -86,6 +97,46 @@ async function postRealtimeCall(
   );
 }
 
+function shouldFallbackToDocumentedModel(status: number, body: string) {
+  if (status < 400 || status >= 500) {
+    return false;
+  }
+
+  const lowerBody = body.toLowerCase();
+
+  return (
+    lowerBody.includes(PRIMARY_REALTIME_MODEL.toLowerCase()) &&
+    (lowerBody.includes("model") ||
+      lowerBody.includes("unsupported") ||
+      lowerBody.includes("not found") ||
+      lowerBody.includes("does not exist") ||
+      lowerBody.includes("invalid_value"))
+  );
+}
+
+function buildRealtimeSession(
+  mode: ChatMode,
+  language: ChatLanguage,
+  voice: RealtimeVoiceId,
+  model: string,
+) {
+  return JSON.stringify({
+    type: "realtime",
+    model,
+    instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
+    audio: {
+      input: {
+        turn_detection: {
+          type: "server_vad",
+        },
+      },
+      output: {
+        voice,
+      },
+    },
+  });
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
 
@@ -96,7 +147,7 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const mode = (url.searchParams.get("mode") ?? "patient") as ChatMode;
   const language = (url.searchParams.get("language") ?? "english") as ChatLanguage;
-  const voice = (url.searchParams.get("voice") ?? "alloy") as RealtimeVoiceId;
+  const voice = normalizeRealtimeVoiceId(url.searchParams.get("voice") ?? DEFAULT_REALTIME_VOICE_ID);
 
   if (!ALLOWED_MODES.has(mode)) {
     return new Response("Unsupported realtime mode selected.", { status: 400 });
@@ -116,28 +167,26 @@ export async function POST(request: Request) {
     return new Response("Missing SDP offer for realtime voice.", { status: 400 });
   }
 
-  const formData = new FormData();
-  formData.set("sdp", sdp);
-  formData.set(
-    "session",
-    JSON.stringify({
-      type: "realtime",
-      model: "gpt-realtime",
-      instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
-      audio: {
-        input: {
-          turn_detection: {
-            type: "server_vad",
-          },
-        },
-        output: {
-          voice,
-        },
-      },
-    }),
+  let response = await postRealtimeCall(
+    apiKey,
+    sdp,
+    buildRealtimeSession(mode, language, voice, PRIMARY_REALTIME_MODEL),
   );
 
-  const response = await postRealtimeCall(apiKey, formData);
+  if (!response.ok) {
+    const primaryBody = await response.text();
+
+    if (shouldFallbackToDocumentedModel(response.status, primaryBody)) {
+      response = await postRealtimeCall(
+        apiKey,
+        sdp,
+        buildRealtimeSession(mode, language, voice, FALLBACK_REALTIME_MODEL),
+      );
+    } else {
+      const message = normalizeRealtimeError(response.status, primaryBody);
+      return new Response(message, { status: response.status });
+    }
+  }
 
   if (!response.ok) {
     const message = normalizeRealtimeError(response.status, await response.text());
