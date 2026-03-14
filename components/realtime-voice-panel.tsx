@@ -278,6 +278,15 @@ export function RealtimeVoicePanel({
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
+      const localSdp = peerConnection.localDescription?.sdp ?? offer.sdp ?? "";
+
+      if (!localSdp.trim()) {
+        throw new Error(
+          language === "urdu"
+            ? "مقامی آڈیو offer تیار نہیں ہو سکی۔"
+            : "The local audio offer could not be created.",
+        );
+      }
 
       const realtimeResponse = await fetch(
         `/api/realtime/session?mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}&voice=${encodeURIComponent(voiceId)}`,
@@ -286,7 +295,7 @@ export function RealtimeVoicePanel({
           headers: {
             "Content-Type": "application/sdp",
           },
-          body: offer.sdp,
+          body: localSdp,
         },
       );
 

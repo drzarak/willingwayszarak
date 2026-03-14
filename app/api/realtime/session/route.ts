@@ -110,9 +110,9 @@ export async function POST(request: Request) {
     return new Response("Unsupported realtime voice selected.", { status: 400 });
   }
 
-  const sdp = (await request.text()).trim();
+  const sdp = await request.text();
 
-  if (!sdp) {
+  if (!sdp.trim()) {
     return new Response("Missing SDP offer for realtime voice.", { status: 400 });
   }
 
