@@ -142,5 +142,69 @@ body {
   .chat-shell {
     min-height: calc(100vh - 8rem);
   }
-}
 
+  .section-kicker {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary;
+    border: 1px solid rgba(13, 110, 253, 0.16);
+    background: rgba(13, 110, 253, 0.08);
+  }
+
+  .site-nav-link {
+    @apply rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950;
+  }
+
+  .site-action-link {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white;
+  }
+
+  .site-cta-button {
+    @apply inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-[#0b61e0];
+  }
+
+  .site-inline-link {
+    @apply inline-flex items-center gap-2 text-sm font-semibold text-primary transition hover:text-[#0b61e0];
+  }
+
+  .stat-card {
+    @apply rounded-[28px] border border-slate-200/80 bg-white px-5 py-5 shadow-soft;
+  }
+
+  .hero-panel {
+    background:
+      radial-gradient(circle at top left, rgba(20, 184, 166, 0.24), transparent 30%),
+      linear-gradient(135deg, rgba(7, 15, 40, 0.98) 0%, rgba(12, 38, 77, 0.95) 56%, rgba(20, 184, 166, 0.88) 100%);
+    @apply rounded-[34px] border border-slate-900/5 px-6 py-6 shadow-soft sm:px-8 sm:py-8;
+  }
+
+  .service-card {
+    @apply overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-slate-300;
+  }
+
+  .info-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600;
+  }
+
+  .filter-chip {
+    @apply rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:border-slate-300 hover:text-primary;
+  }
+
+  .filter-chip-active {
+    @apply rounded-full bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-card;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+  }
+
+  .footer-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white transition;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .footer-link {
+    @apply rounded-2xl px-3 py-2 text-sm text-slate-300 transition hover:text-white;
+  }
+
+  .footer-pill:hover,
+  .footer-link:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}

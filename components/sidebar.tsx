@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   Building2,
   Globe,
@@ -69,12 +70,18 @@ export function Sidebar({
             <div>
               <div className="sidebar-chip">Willing Ways AI</div>
               <h1 className="mt-3 font-serif text-2xl font-semibold leading-tight">
-                Pakistan’s leading addiction treatment support companion
+                Compassionate intake support for patients, families, and doctors
               </h1>
               <p className="mt-2 text-sm leading-6 text-white/70">
-                Keep the current chat workflow intact while shifting the entire knowledge base,
-                contact routing, and brand voice to Willing Ways.
+                Ask about admissions, interventions, treatment tracks, branch contacts, relapse,
+                psychiatric support, or family guidance.
               </p>
+              <Link
+                href="/"
+                className="mt-4 inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/12 hover:text-white"
+              >
+                Back to website
+              </Link>
             </div>
 
             <Button

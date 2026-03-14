@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, Merriweather } from "next/font/google";
 
+import { SITE_MEDIA } from "@/lib/site-assets";
+
 import "./globals.css";
 
 const manrope = Manrope({
@@ -15,9 +17,23 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: "Willing Ways AI",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://drzarak.org"),
+  title: {
+    default: "Willing Ways Pakistan",
+    template: "%s | Willing Ways Pakistan",
+  },
   description:
-    "Official Willing Ways AI assistant for addiction treatment, rehabilitation, and mental health support inquiries.",
+    "Willing Ways Pakistan offers addiction treatment, rehabilitation, psychiatric care, family intervention, and AI-assisted intake support.",
+  icons: {
+    icon: SITE_MEDIA.favicon,
+    apple: SITE_MEDIA.favicon,
+  },
+  openGraph: {
+    title: "Willing Ways Pakistan",
+    description:
+      "Addiction treatment, rehabilitation, psychiatric care, family intervention, and AI-assisted intake support.",
+    images: [{ url: SITE_MEDIA.logo }],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -29,4 +45,3 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-
