@@ -159,7 +159,7 @@ body {
   }
 
   .site-nav-link {
-    @apply rounded-full px-4 py-2 text-[15px] font-medium text-[#58323f] transition hover:bg-[#f5e8ec] hover:text-[#3b1725];
+    @apply rounded-full px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#58323f] transition hover:bg-[#f7ecef] hover:text-[#3b1725];
   }
 
   .site-action-link {

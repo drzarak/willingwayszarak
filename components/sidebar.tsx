@@ -72,18 +72,18 @@ export function Sidebar({
         <div className="sidebar-panel relative flex h-full flex-col border-r border-white/10 px-5 py-5 text-white shadow-2xl shadow-slate-950/30">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/14 bg-white/10">
-                  <Image
-                    src={SITE_MEDIA.brandMark}
-                    alt="Willing Ways"
-                    width={48}
-                    height={48}
-                    className="h-7 w-7 object-contain"
-                    unoptimized
-                  />
-                </span>
-                <div className="sidebar-chip">Willing Ways AI</div>
+              <div className="inline-flex rounded-[20px] border border-white/12 bg-white/95 px-3 py-3 shadow-soft">
+                <Image
+                  src={SITE_MEDIA.logo}
+                  alt="Willing Ways"
+                  width={280}
+                  height={70}
+                  className="h-11 w-auto object-contain"
+                  unoptimized
+                />
+              </div>
+              <div className="mt-3 inline-flex rounded-full border border-white/14 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
+                Willing Ways AI
               </div>
               <h1
                 className={`mt-3 text-2xl font-semibold leading-tight ${
@@ -105,16 +105,6 @@ export function Sidebar({
                   ? "داخلہ، intervention، treatment tracks، branch contacts، relapse، psychiatric support یا family guidance کے بارے میں پوچھیں۔"
                   : "Ask about admissions, interventions, treatment tracks, branch contacts, relapse, psychiatric support, or family guidance."}
               </p>
-              <div className="mt-4 overflow-hidden rounded-[22px] border border-white/12 bg-white/8 p-3">
-                <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={280}
-                  height={70}
-                  className="h-10 w-auto object-contain"
-                  unoptimized
-                />
-              </div>
               <Link
                 href="/"
                 className="mt-4 inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/12 hover:text-white"
