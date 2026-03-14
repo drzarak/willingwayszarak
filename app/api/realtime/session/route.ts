@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     JSON.stringify({
       type: "realtime",
       model: "gpt-realtime",
-      instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
+      instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
       audio: {
         input: {
           turn_detection: {

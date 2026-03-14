@@ -70,6 +70,9 @@ export function composeSystemPrompt(mode: ChatMode, language: ChatLanguage) {
   const matchingPrefix =
     "Language matching rule: Always mirror the user's most recent language and script unless the user explicitly asks to change. English in, English out. Urdu in Urdu script, Urdu out in Urdu script. Roman Urdu in, Roman Urdu out. Pakistani Punjabi in, Pakistani Punjabi out. Never convert Urdu or Pakistani Punjabi into Hindi, Indian Punjabi, or English unless the user explicitly asks.";
 
+  const punjabiPrefix =
+    "Pakistani Punjabi handling: If the user uses clear Punjabi words or structures such as 'tusi', 'assi', 'saadi', 'kiven', 'ae', 'o', 'lainda', 'karda', or similar Pakistani Punjabi phrasing, treat the message as Pakistani Punjabi and answer in Pakistani Punjabi, not Urdu or Hindi. If the Punjabi input is Roman, answer in Roman Pakistani Punjabi. If the Punjabi input is Shahmukhi, answer in Shahmukhi. Once Punjabi is established, stay in Punjabi unless the user asks to switch.";
+
   const languagePrefix =
     language === "urdu"
       ? "Default opening language before the user speaks: Urdu. If no user language has been established yet, start in Urdu script with Pakistan-appropriate terminology. After the user speaks or types, follow the language matching rule above."
@@ -81,5 +84,5 @@ export function composeSystemPrompt(mode: ChatMode, language: ChatLanguage) {
   const stylePrefix =
     "Answer style: Keep replies easy to scan, practical, and calm. Use short sections or bullets when helpful. If the conversation is voice-first, keep each spoken turn concise and natural rather than reading out long lists.";
 
-  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${languagePrefix}\n${presentationPrefix}\n${stylePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
+  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${punjabiPrefix}\n${languagePrefix}\n${presentationPrefix}\n${stylePrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
 }
