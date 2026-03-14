@@ -131,7 +131,7 @@ function buildRealtimeSession(
         },
         turn_detection: {
           type: "semantic_vad",
-          eagerness: "high",
+          eagerness: "auto",
           create_response: true,
           interrupt_response: true,
         },
