@@ -126,8 +126,14 @@ function buildRealtimeSession(
     instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
     audio: {
       input: {
+        noise_reduction: {
+          type: "near_field",
+        },
         turn_detection: {
-          type: "server_vad",
+          type: "semantic_vad",
+          eagerness: "high",
+          create_response: true,
+          interrupt_response: true,
         },
       },
       output: {
