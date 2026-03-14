@@ -12,10 +12,10 @@ interface ModeToggleProps {
 
 export function ModeToggle({ mode, onChange }: ModeToggleProps) {
   return (
-    <div className="relative grid h-12 w-full min-w-[280px] grid-cols-2 rounded-full border border-white/70 bg-white/80 p-1 shadow-sm backdrop-blur sm:min-w-[320px]">
+    <div className="relative grid h-12 w-full min-w-0 grid-cols-2 rounded-full border border-[#ead6dc] bg-white p-1 shadow-sm backdrop-blur sm:min-w-[320px]">
       <div
         className={cn(
-          "absolute inset-y-1 rounded-full bg-slate-950 shadow-sm transition-all duration-300",
+          "absolute inset-y-1 rounded-full bg-primary shadow-sm transition-all duration-300",
           mode === "patient" ? "left-1 right-1/2 mr-1" : "left-1/2 right-1 ml-1",
         )}
       />
@@ -23,8 +23,8 @@ export function ModeToggle({ mode, onChange }: ModeToggleProps) {
       <button
         type="button"
         className={cn(
-          "relative z-10 inline-flex items-center justify-center gap-2 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em] transition-colors",
-          mode === "patient" ? "text-white" : "text-slate-600",
+          "relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors sm:gap-2 sm:px-4 sm:text-xs sm:tracking-[0.18em]",
+          mode === "patient" ? "text-white" : "text-[#6d4452]",
         )}
         onClick={() => onChange("patient")}
       >
@@ -35,8 +35,8 @@ export function ModeToggle({ mode, onChange }: ModeToggleProps) {
       <button
         type="button"
         className={cn(
-          "relative z-10 inline-flex items-center justify-center gap-2 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em] transition-colors",
-          mode === "doctor" ? "text-white" : "text-slate-600",
+          "relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors sm:gap-2 sm:px-4 sm:text-xs sm:tracking-[0.18em]",
+          mode === "doctor" ? "text-white" : "text-[#6d4452]",
         )}
         onClick={() => onChange("doctor")}
       >
@@ -46,4 +46,3 @@ export function ModeToggle({ mode, onChange }: ModeToggleProps) {
     </div>
   );
 }
-

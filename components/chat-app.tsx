@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { Menu, Settings2 } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -17,6 +19,7 @@ import {
   type ChatSession,
   type RuntimeStatus,
 } from "@/lib/chat";
+import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { ChatPane } from "@/components/chat-pane";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -24,7 +27,6 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { WelcomeDialog } from "@/components/welcome-dialog";
 
 export function ChatApp() {
   const [hydrated, setHydrated] = useState(false);
@@ -32,7 +34,6 @@ export function ChatApp() {
   const [activeChatId, setActiveChatId] = useState("");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsRevision, setSettingsRevision] = useState(0);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({ serverKeyConfigured: false });
@@ -90,14 +91,6 @@ export function ChatApp() {
     () => sessions.find((session) => session.id === activeChatId) ?? null,
     [activeChatId, sessions],
   );
-
-  useEffect(() => {
-    if (!hydrated || !activeSession) {
-      return;
-    }
-
-    setWelcomeOpen(!activeSession.welcomed);
-  }, [activeSession, hydrated]);
 
   function handleNewChat() {
     const nextSession = createChatSession(
@@ -175,19 +168,6 @@ export function ChatApp() {
     );
   }
 
-  function handleWelcomeConfirm() {
-    if (!activeSession) {
-      return;
-    }
-
-    setSessions((current) =>
-      current.map((session) =>
-        session.id === activeSession.id ? { ...session, welcomed: true } : session,
-      ),
-    );
-    setWelcomeOpen(false);
-  }
-
   function handleSaveSettings(nextSettings: AppSettings) {
     setSettings(nextSettings);
     setSettingsRevision((current) => current + 1);
@@ -197,8 +177,8 @@ export function ChatApp() {
   if (!hydrated || !activeSession) {
     return (
       <div className="relative min-h-screen overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <div className="absolute -left-24 top-16 h-64 w-64 rounded-full bg-blue-200/35 blur-3xl" />
-        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-teal-200/40 blur-3xl" />
+        <div className="absolute -left-24 top-16 h-64 w-64 rounded-full bg-[#d7b3bf]/35 blur-3xl" />
+        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#f0dce2]/40 blur-3xl" />
         <div className="mx-auto max-w-7xl animate-fade-up">
           <div className="glass-panel h-[88vh] rounded-[36px] p-6" />
         </div>
@@ -213,14 +193,14 @@ export function ChatApp() {
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.12]"
         style={{
-          backgroundImage: "url('/images/medical-bg.png')",
+          backgroundImage: `url('${SITE_MEDIA.facilities.karachiExterior}')`,
           backgroundPosition: "center",
           backgroundSize: "cover",
         }}
       />
-      <div className="pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-blue-200/35 blur-3xl animate-float" />
-      <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-teal-200/40 blur-3xl animate-float" />
-      <div className="pointer-events-none absolute bottom-10 right-[24%] h-56 w-56 rounded-full bg-sky-200/30 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-[#d7b3bf]/35 blur-3xl animate-float" />
+      <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-[#f2dee4]/40 blur-3xl animate-float" />
+      <div className="pointer-events-none absolute bottom-10 right-[24%] h-56 w-56 rounded-full bg-[#ecd1d9]/28 blur-3xl" />
 
       <Sidebar
         activeChatId={activeChatId}
@@ -233,40 +213,61 @@ export function ChatApp() {
       />
 
       <div className="lg:pl-[320px]">
-        <header className="sticky top-0 z-20 border-b border-white/60 bg-white/70 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <Button
-                variant="surface"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+        <header className="sticky top-0 z-20 border-b border-[#ead6dc] bg-[#fffaf8]/92 backdrop-blur-xl">
+          <div className="px-3 py-3 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <Button
+                  variant="surface"
+                  size="icon"
+                  className="lg:hidden"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
 
-              <div className="min-w-0">
-                <div className="truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                  Willing Ways AI
-                </div>
-                <div className="truncate font-serif text-xl font-semibold text-slate-950 sm:text-2xl">
-                  Pakistan’s Leading Addiction Treatment & Mental Health Rehabilitation Center
-                </div>
+                <Link href="/" className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-[#ead6dc] bg-white shadow-soft">
+                    <Image
+                      src={SITE_MEDIA.brandMark}
+                      alt="Willing Ways"
+                      width={48}
+                      height={48}
+                      className="h-7 w-7 object-contain"
+                      unoptimized
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary sm:text-xs">
+                      Willing Ways AI
+                    </div>
+                    <div className="font-serif text-base font-semibold leading-tight text-[#3b1725] sm:text-2xl">
+                      Addiction Treatment & Mental Health Rehabilitation
+                    </div>
+                  </div>
+                </Link>
               </div>
-            </div>
 
-            <div className="flex flex-col items-stretch gap-3 xl:flex-row xl:items-center">
-              <ModeToggle mode={activeSession.mode} onChange={handleModeChange} />
-              <LanguageToggle language={activeSession.language} onChange={handleLanguageChange} />
               <Button variant="surface" size="icon" onClick={() => setSettingsOpen(true)}>
                 <Settings2 className="h-5 w-5" />
                 <span className="sr-only">Open settings</span>
               </Button>
             </div>
+
+            <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="hidden text-sm text-[#6d4452] lg:block">
+                Chat with the Willing Ways intake assistant using the live server-side OpenAI setup.
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:ml-auto">
+                <ModeToggle mode={activeSession.mode} onChange={handleModeChange} />
+                <LanguageToggle language={activeSession.language} onChange={handleLanguageChange} />
+              </div>
+            </div>
           </div>
         </header>
 
-        <main className="px-4 pb-4 pt-4 sm:px-6 lg:px-8">
+        <main className="px-3 pb-3 pt-3 sm:px-6 lg:px-8">
           <div className="surface-panel chat-shell overflow-hidden">
             <ChatPane
               key={chatPaneKey}
@@ -287,13 +288,6 @@ export function ChatApp() {
         serverKeyConfigured={runtimeStatus.serverKeyConfigured}
         settings={settings}
         onSave={handleSaveSettings}
-      />
-
-      <WelcomeDialog
-        mode={activeSession.mode}
-        open={welcomeOpen}
-        onConfirm={handleWelcomeConfirm}
-        serverKeyConfigured={runtimeStatus.serverKeyConfigured}
       />
     </div>
   );

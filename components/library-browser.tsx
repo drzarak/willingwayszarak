@@ -57,12 +57,12 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
       <div className="surface-panel space-y-5 px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <label className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b6772]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search pages, treatments, articles, or services"
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-800 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+              className="h-12 w-full rounded-2xl border border-[#ead6dc] bg-white pl-11 pr-4 text-base text-[#3b1725] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </label>
 
@@ -80,7 +80,7 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
           </div>
         </div>
 
-        <div className="text-sm text-slate-500">
+        <div className="text-base text-[#7a5a64]">
           Showing {filteredItems.length} of {items.length} imported pages.
         </div>
       </div>
@@ -90,7 +90,7 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
           <Link
             key={item.path}
             href={item.path}
-            className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30"
+            className="group overflow-hidden rounded-[30px] border border-[#ead6dc] bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30"
           >
             {item.image ? (
               <Image
@@ -102,17 +102,17 @@ export function LibraryBrowser({ items }: LibraryBrowserProps) {
                 unoptimized
               />
             ) : (
-              <div className="h-48 bg-[radial-gradient(circle_at_top_left,_rgba(13,110,253,0.16),_transparent_35%),linear-gradient(135deg,_rgba(7,15,40,0.95),_rgba(12,38,77,0.9)_60%,_rgba(20,184,166,0.72))]" />
+              <div className="h-48 bg-[radial-gradient(circle_at_top_left,_rgba(255,217,224,0.16),_transparent_35%),linear-gradient(135deg,_rgba(72,10,28,0.95),_rgba(101,19,40,0.9)_60%,_rgba(143,64,88,0.72))]" />
             )}
 
             <div className="space-y-3 px-5 py-5">
               <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                 <span>{item.group}</span>
-                <span className="text-slate-400">{item.kind === "post" ? "Article" : "Page"}</span>
+                <span className="text-[#8b6772]">{item.kind === "post" ? "Article" : "Page"}</span>
               </div>
-              <div className="text-xl font-semibold leading-tight text-slate-950">{item.title}</div>
-              <p className="text-sm leading-7 text-slate-600">{item.description}</p>
-              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+              <div className="text-xl font-semibold leading-tight text-[#3b1725]">{item.title}</div>
+              <p className="text-base leading-8 text-[#5a3743]">{item.description}</p>
+              <div className="text-xs uppercase tracking-[0.18em] text-[#8b6772]">
                 {formatUpdatedDate(item.updatedAt) ?? "Willing Ways library"}
               </div>
             </div>

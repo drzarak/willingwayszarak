@@ -50,7 +50,7 @@ export function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#fff4f7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Runtime settings
           </div>
@@ -67,7 +67,7 @@ export function SettingsDialog({
             className={`rounded-[24px] border p-4 text-sm leading-6 ${
               serverKeyConfigured
                 ? "border-emerald-200 bg-emerald-50/90 text-emerald-900"
-                : "border-blue-100 bg-blue-50/80 text-slate-600"
+                : "border-[#ead6dc] bg-[#fff4f7] text-[#5a3743]"
             }`}
           >
             {serverKeyConfigured
@@ -117,7 +117,7 @@ export function SettingsDialog({
             </select>
           </div>
 
-          <div className="rounded-[24px] border border-blue-100 bg-blue-50/80 p-4 text-sm leading-6 text-slate-600">
+          <div className="rounded-[24px] border border-[#ead6dc] bg-[#fff4f7] p-4 text-sm leading-6 text-[#5a3743]">
             Chat history, selected model, and language/mode preferences stay in local storage so
             the current UX remains intact across refreshes on the same browser.
           </div>

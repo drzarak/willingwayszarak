@@ -21,6 +21,7 @@ import {
   type ChatSession,
   type ModelId,
 } from "@/lib/chat";
+import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { MessageBubble } from "@/components/message-bubble";
 import { Button } from "@/components/ui/button";
@@ -169,16 +170,24 @@ export function ChatPane({
           {deferredMessages.length === 0 ? (
             <div className="animate-fade-up py-10">
               <div className="mx-auto max-w-3xl text-center">
-                <div className="mx-auto inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary shadow-sm">
+                <div className="mx-auto inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary shadow-sm">
+                  <Image
+                    src={SITE_MEDIA.brandMark}
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="mr-2 h-4 w-4 object-contain"
+                    unoptimized
+                  />
                   <Sparkles className="mr-2 h-3.5 w-3.5" />
                   Willing Ways AI
                 </div>
-                <h2 className="gradient-heading mt-6 font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+                <h2 className="gradient-heading mt-6 font-serif text-3xl font-semibold leading-tight sm:text-5xl">
                   {session.language === "urdu"
                     ? "پرسکون، باوقار اور رہنمائی پر مبنی گفتگو"
                     : "Calm, clinical support with the same chat workflow you already have."}
                 </h2>
-                <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600">
+                <p className="mx-auto mt-5 max-w-2xl text-lg leading-9 text-[#5a3743]">
                   {session.language === "urdu"
                     ? "ریحاب پروگرامز، نفسیاتی خدمات، فیملی انٹروینشن، داخلے، relapse support یا برانچ contacts کے بارے میں پوچھیں۔"
                     : "Ask about rehab programs, psychiatric services, family intervention, admissions, relapse support, or branch contacts. The interface stays familiar while the content now routes entirely through Willing Ways."}
@@ -189,7 +198,7 @@ export function ChatPane({
                     <button
                       key={chip}
                       type="button"
-                      className="rounded-full border border-slate-200 bg-white/90 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary"
+                      className="rounded-full border border-[#ead6dc] bg-white px-4 py-3 text-base font-medium text-[#4b2934] shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary"
                       onClick={() => submitPrompt(chip)}
                     >
                       {chip}
@@ -197,13 +206,14 @@ export function ChatPane({
                   ))}
                 </div>
 
-                <div className="mt-10 rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-card backdrop-blur-xl sm:flex sm:items-center sm:gap-5">
+                <div className="mt-10 rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl sm:flex sm:items-center sm:gap-5">
                   <Image
-                    src="/images/dr-sadaqat-ali.png"
+                    src={SITE_MEDIA.founder}
                     alt="Dr. Sadaqat Ali"
                     width={96}
                     height={96}
                     className="mx-auto h-24 w-24 rounded-[24px] object-cover sm:mx-0"
+                    unoptimized
                   />
                   <div className="mt-4 text-left sm:mt-0">
                     <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
@@ -212,7 +222,7 @@ export function ChatPane({
                     <div className="mt-2 font-serif text-2xl font-semibold text-slate-950">
                       Dr. Sadaqat Ali
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-slate-600">
+                    <p className="mt-2 text-base leading-8 text-[#5a3743]">
                       50+ years of addiction psychiatry leadership in Pakistan, now reflected in the
                       same chat UX through a Willing Ways-first support experience.
                     </p>
@@ -235,7 +245,7 @@ export function ChatPane({
 
           {isGenerating ? (
             <div className="flex justify-start">
-              <div className="max-w-[88%] rounded-[30px] border border-white/70 bg-white/90 px-5 py-4 shadow-card backdrop-blur-xl">
+              <div className="max-w-[88%] rounded-[30px] border border-[#ead6dc] bg-white/95 px-5 py-4 shadow-card backdrop-blur-xl">
                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Willing Ways AI
                 </div>
@@ -249,10 +259,10 @@ export function ChatPane({
         </div>
       </div>
 
-      <div className="border-t border-slate-200/80 bg-white/70 px-4 py-4 backdrop-blur sm:px-6">
+      <div className="border-t border-[#ead6dc] bg-white/88 px-4 py-4 backdrop-blur sm:px-6">
         <div className="mx-auto max-w-4xl">
           {currentError ? (
-            <div className="mb-4 flex items-start gap-3 rounded-[24px] border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900">
+            <div className="mb-4 flex items-start gap-3 rounded-[24px] border border-[#e7c8d1] bg-[#fff3f6] px-4 py-3 text-sm text-[#651328]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{currentError}</span>
             </div>
@@ -294,11 +304,11 @@ export function ChatPane({
                   void submitPrompt(input);
                 }
               }}
-              className="min-h-[124px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+              className="min-h-[124px] resize-none border-0 bg-transparent text-[16px] leading-8 shadow-none focus-visible:ring-0"
             />
 
-            <div className="mt-3 flex flex-col gap-3 border-t border-slate-200/80 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+            <div className="mt-3 flex flex-col gap-3 border-t border-[#ead6dc] px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#7a5a64]">
                 {session.mode === "doctor" ? (
                   <ShieldAlert className="h-4 w-4 text-primary" />
                 ) : (
@@ -326,7 +336,7 @@ export function ChatPane({
           </form>
 
           {latestAssistantMessage && !isGenerating ? (
-            <div className="mt-3 flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3 flex flex-col gap-2 text-xs text-[#7a5a64] sm:flex-row sm:items-center sm:justify-between">
               <span>
                 Last reply length: {getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length}{" "}
                 words

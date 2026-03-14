@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { BRANCH_CONTACTS } from "@/lib/chat";
+import { SITE_MEDIA } from "@/lib/site-assets";
 import {
   featuredPages,
   latestArticles,
@@ -90,14 +91,14 @@ export function HomePage() {
       <SiteHeader />
 
       <main>
-        <section className="overflow-hidden border-b border-slate-200/70">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-16">
+        <section className="overflow-hidden border-b border-[#ead6dc]">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:px-8 lg:py-16">
             <div className="relative">
               <div className="section-kicker">Pakistan’s Leading Rehabilitation Center</div>
-              <h1 className="mt-5 max-w-4xl font-serif text-5xl font-semibold leading-[1.04] text-slate-950 sm:text-6xl">
+              <h1 className="mt-5 max-w-4xl font-serif text-4xl font-semibold leading-[1.08] text-[#3b1725] sm:text-5xl lg:text-6xl">
                 Addiction treatment, psychiatric care, and family guidance in one modern digital front door.
               </h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
+              <p className="mt-6 max-w-3xl text-xl leading-9 text-[#5a3743]">
                 {featuredPages.home?.description ??
                   "Willing Ways is the most trusted addiction treatment and mental health rehabilitation center in Pakistan."}
               </p>
@@ -123,17 +124,50 @@ export function HomePage() {
                   ["24/7", "crisis and intake pathways"],
                 ].map(([value, label]) => (
                   <div key={label} className="stat-card">
-                    <div className="text-3xl font-semibold text-slate-950">{value}</div>
-                    <div className="mt-2 text-sm leading-6 text-slate-600">{label}</div>
+                    <div className="text-3xl font-semibold text-[#3b1725]">{value}</div>
+                    <div className="mt-2 text-base leading-7 text-[#5a3743]">{label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="grid gap-5">
+              <div className="overflow-hidden rounded-[34px] border border-[#ead6dc] bg-white shadow-soft">
+                <div className="relative h-[240px] sm:h-[300px]">
+                  <Image
+                    src={SITE_MEDIA.facilities.islamabadCampus}
+                    alt="Willing Ways Islamabad campus"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#4d1122]/82 via-[#4d1122]/32 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-6">
+                    <div>
+                      <div className="inline-flex rounded-full border border-white/16 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/85">
+                        Since 1975
+                      </div>
+                      <div className="mt-3 text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                        Trusted facilities for rehabilitation and psychiatric care.
+                      </div>
+                    </div>
+                    <div className="hidden rounded-[22px] bg-white/10 p-3 backdrop-blur sm:block">
+                      <Image
+                        src={SITE_MEDIA.logo}
+                        alt="Willing Ways"
+                        width={220}
+                        height={60}
+                        className="h-12 w-auto object-contain"
+                        unoptimized
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="hero-panel">
-                <div className="section-kicker border-white/20 bg-white/10 text-white/75">Admissions first</div>
-                <div className="mt-4 text-3xl font-semibold leading-tight text-white">
+                <div className="section-kicker border-white/20 bg-white/10 text-white/80">Admissions first</div>
+                <div className="mt-4 text-2xl font-semibold leading-tight text-white sm:text-3xl">
                   Built for patients, families, referral doctors, and clinical teams.
                 </div>
                 <div className="mt-5 grid gap-3">
@@ -164,7 +198,7 @@ export function HomePage() {
                         </span>
                         <div className="text-lg font-semibold text-white">{item.title}</div>
                       </div>
-                      <p className="mt-3 text-sm leading-7 text-white/80">{item.description}</p>
+                      <p className="mt-3 text-base leading-8 text-white/82">{item.description}</p>
                     </div>
                   ))}
                 </div>
@@ -172,12 +206,12 @@ export function HomePage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {BRANCH_CONTACTS.slice(0, 2).map((branch) => (
-                  <div key={branch.name} className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-soft">
+                  <div key={branch.name} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft">
                     <div className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                       {branch.name}
                     </div>
-                    <div className="mt-3 text-sm leading-7 text-slate-600">{branch.address}</div>
-                    <div className="mt-4 text-base font-semibold text-slate-900">{branch.phones[0]}</div>
+                    <div className="mt-3 text-base leading-8 text-[#5a3743]">{branch.address}</div>
+                    <div className="mt-4 text-base font-semibold text-[#3b1725]">{branch.phones[0]}</div>
                   </div>
                 ))}
               </div>
@@ -186,10 +220,10 @@ export function HomePage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between gap-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
             <div>
               <div className="section-kicker">Services</div>
-              <h2 className="mt-4 font-serif text-4xl font-semibold text-slate-950">
+              <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
                 Treatment structure clients can actually understand.
               </h2>
             </div>
@@ -214,8 +248,8 @@ export function HomePage() {
                   <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
                     <card.icon className="h-5 w-5" />
                   </div>
-                  <div className="text-2xl font-semibold text-slate-950">{card.title}</div>
-                  <p className="text-sm leading-7 text-slate-600">{card.description}</p>
+                  <div className="text-2xl font-semibold text-[#3b1725]">{card.title}</div>
+                  <p className="text-base leading-8 text-[#5a3743]">{card.description}</p>
                   <div className="site-inline-link">
                     Learn more
                     <ArrowRight className="h-4 w-4" />
@@ -226,12 +260,12 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="border-y border-slate-200/70 bg-white/65">
+        <section className="border-y border-[#ead6dc] bg-white/65">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between gap-6">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div>
                 <div className="section-kicker">Treatment Tracks</div>
-                <h2 className="mt-4 font-serif text-4xl font-semibold text-slate-950">
+                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
                   Imported from the live Willing Ways treatment library.
                 </h2>
               </div>
@@ -243,7 +277,7 @@ export function HomePage() {
 
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
               {treatmentTracks.map((track) => (
-                <Link key={track.href} href={track.href} className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
+                <Link key={track.href} href={track.href} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
                   <Image
                     src={track.image}
                     alt={track.title}
@@ -252,8 +286,8 @@ export function HomePage() {
                     className="h-16 w-16 object-contain"
                     unoptimized
                   />
-                  <div className="mt-4 text-xl font-semibold text-slate-950">{track.title}</div>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{track.summary}</p>
+                  <div className="mt-4 text-xl font-semibold text-[#3b1725]">{track.title}</div>
+                  <p className="mt-3 text-base leading-8 text-[#5a3743]">{track.summary}</p>
                 </Link>
               ))}
             </div>
@@ -262,15 +296,28 @@ export function HomePage() {
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="rounded-[34px] border border-slate-200/80 bg-white p-6 shadow-soft sm:p-8">
-              <div className="section-kicker">Founder</div>
-              <h2 className="mt-4 font-serif text-4xl font-semibold text-slate-950">Dr. Sadaqat Ali’s treatment philosophy</h2>
-              <p className="mt-5 text-base leading-8 text-slate-600">
+            <div className="rounded-[34px] border border-[#ead6dc] bg-white p-6 shadow-soft sm:p-8">
+              <div className="mb-6 flex items-center gap-4">
+                <Image
+                  src={SITE_MEDIA.founder}
+                  alt="Dr. Sadaqat Ali"
+                  width={112}
+                  height={112}
+                  className="h-20 w-20 rounded-[24px] object-cover sm:h-24 sm:w-24"
+                  unoptimized
+                />
+                <div>
+                  <div className="section-kicker">Founder</div>
+                  <div className="mt-3 text-2xl font-semibold text-[#3b1725]">Dr. Sadaqat Ali</div>
+                </div>
+              </div>
+              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">Dr. Sadaqat Ali’s treatment philosophy</h2>
+              <p className="mt-5 text-lg leading-9 text-[#5a3743]">
                 Addiction is treated here as a chronic, progressive condition rather than a moral
                 failure. The emphasis is not only on stopping the substance, but on learning how to
                 regulate mood, repair relationships, and build a recovery structure that can hold.
               </p>
-              <p className="mt-4 text-base leading-8 text-slate-600">
+              <p className="mt-4 text-lg leading-9 text-[#5a3743]">
                 That makes the family part of treatment, not a bystander. The app now reflects
                 that approach directly through branch routing, family-focused guidance, and the AI
                 intake flow for both patient and doctor use cases.
@@ -306,7 +353,7 @@ export function HomePage() {
                       <span className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
                         <Building2 className="h-5 w-5" />
                       </span>
-                      <div className="text-lg font-semibold text-slate-950">{team.title}</div>
+                      <div className="text-lg font-semibold text-[#3b1725]">{team.title}</div>
                     </div>
                   </div>
                 </Link>
@@ -315,12 +362,12 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="border-y border-slate-200/70 bg-white/65">
+        <section className="border-y border-[#ead6dc] bg-white/65">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between gap-6">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div>
                 <div className="section-kicker">Branches</div>
-                <h2 className="mt-4 font-serif text-4xl font-semibold text-slate-950">
+                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
                   Admissions and treatment access across three major cities.
                 </h2>
               </div>
@@ -342,9 +389,9 @@ export function HomePage() {
                     unoptimized
                   />
                   <div className="space-y-3 p-6">
-                    <div className="text-2xl font-semibold text-slate-950">{branch.name}</div>
-                    <div className="text-sm leading-7 text-slate-600">{branch.details.address}</div>
-                    <div className="text-sm font-semibold text-slate-900">{branch.details.phones[0]}</div>
+                    <div className="text-2xl font-semibold text-[#3b1725]">{branch.name}</div>
+                    <div className="text-base leading-8 text-[#5a3743]">{branch.details.address}</div>
+                    <div className="text-base font-semibold text-[#3b1725]">{branch.details.phones[0]}</div>
                   </div>
                 </Link>
               ))}
@@ -356,10 +403,10 @@ export function HomePage() {
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="hero-panel">
               <div className="section-kicker border-white/20 bg-white/10 text-white/75">Willing Ways AI</div>
-              <h2 className="mt-4 font-serif text-4xl font-semibold text-white">
+              <h2 className="mt-4 font-serif text-3xl font-semibold text-white sm:text-4xl">
                 A dedicated intake assistant for patients, families, and doctors.
               </h2>
-              <p className="mt-5 text-base leading-8 text-white/82">
+              <p className="mt-5 text-lg leading-9 text-white/86">
                 The existing chat experience remains intact, but it now runs alongside the full
                 site content, local media, and Willing Ways branch routing. Use it to guide
                 consultations, interventions, or treatment-specific questions.
@@ -374,16 +421,26 @@ export function HomePage() {
                   Browse imported library
                 </Link>
               </div>
+              <div className="mt-6 overflow-hidden rounded-[24px] border border-white/12">
+                <Image
+                  src={SITE_MEDIA.facilities.karachiReception}
+                  alt="Willing Ways facility interior"
+                  width={1200}
+                  height={800}
+                  className="h-52 w-full object-cover"
+                  unoptimized
+                />
+              </div>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {resourceCards.map((card) => (
-                <Link key={card.href} href={card.href} className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
+                <Link key={card.href} href={card.href} className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-primary/30">
                   <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
                     <BookOpenText className="h-5 w-5" />
                   </div>
-                  <div className="mt-4 text-xl font-semibold text-slate-950">{card.title}</div>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                  <div className="mt-4 text-xl font-semibold text-[#3b1725]">{card.title}</div>
+                  <p className="mt-3 text-base leading-8 text-[#5a3743]">
                     {card.description ?? "Browse the imported Willing Ways material in a faster modern shell."}
                   </p>
                 </Link>
@@ -392,12 +449,12 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="border-t border-slate-200/70 bg-white/65">
+        <section className="border-t border-[#ead6dc] bg-white/65">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between gap-6">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div>
                 <div className="section-kicker">Latest Articles</div>
-                <h2 className="mt-4 font-serif text-4xl font-semibold text-slate-950">
+                <h2 className="mt-4 font-serif text-3xl font-semibold text-[#3b1725] sm:text-4xl">
                   Educational content imported into the new library.
                 </h2>
               </div>
@@ -417,8 +474,8 @@ export function HomePage() {
                   <div className="inline-flex rounded-2xl bg-primary/10 p-2.5 text-primary">
                     <BookOpenText className="h-5 w-5" />
                   </div>
-                  <div className="mt-4 text-2xl font-semibold leading-tight text-slate-950">{article.title}</div>
-                  <p className="mt-4 text-sm leading-7 text-slate-600">{article.description}</p>
+                  <div className="mt-4 text-2xl font-semibold leading-tight text-[#3b1725]">{article.title}</div>
+                  <p className="mt-4 text-base leading-8 text-[#5a3743]">{article.description}</p>
                   <div className="mt-5 site-inline-link">
                     Read article
                     <ArrowRight className="h-4 w-4" />

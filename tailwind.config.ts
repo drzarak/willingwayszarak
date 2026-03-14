@@ -11,12 +11,12 @@ const config: Config = {
         border: "hsl(var(--border))",
         ring: "hsl(var(--ring))",
         primary: {
-          DEFAULT: "#0d6efd",
-          foreground: "#f8fbff",
+          DEFAULT: "#651328",
+          foreground: "#fff8fa",
         },
         accent: {
-          DEFAULT: "#14b8a6",
-          foreground: "#f4fffd",
+          DEFAULT: "#2f5b2d",
+          foreground: "#f6fff4",
         },
       },
       fontFamily: {
@@ -53,4 +53,3 @@ const config: Config = {
 };
 
 export default config;
-

@@ -20,25 +20,28 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-[#ead6dc] bg-[#fffaf8]/95 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <span className="flex h-14 w-14 items-center justify-center rounded-[22px] border border-slate-200 bg-white shadow-soft">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-[#ead6dc] bg-white shadow-soft sm:h-14 sm:w-14 sm:rounded-[22px]">
             <Image
-              src={SITE_MEDIA.logo}
+              src={SITE_MEDIA.brandMark}
               alt="Willing Ways"
               width={80}
               height={80}
-              className="h-10 w-auto object-contain"
+              className="h-8 w-8 object-contain sm:h-10 sm:w-10"
               unoptimized
             />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-primary sm:text-xs">
               Willing Ways Pakistan
             </span>
-            <span className="block truncate font-serif text-lg font-semibold text-slate-950 sm:text-xl">
+            <span className="block font-serif text-base font-semibold leading-tight text-[#3b1725] sm:text-xl">
               Addiction Treatment & Mental Health Rehabilitation
+            </span>
+            <span className="mt-1 hidden text-sm text-[#714853] sm:block">
+              Lahore, Karachi, Islamabad
             </span>
           </span>
         </Link>
@@ -64,7 +67,7 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="inline-flex rounded-2xl border border-slate-200 bg-white p-3 text-slate-700 shadow-soft lg:hidden"
+          className="inline-flex rounded-2xl border border-[#ead6dc] bg-white p-3 text-[#58323f] shadow-soft lg:hidden"
           onClick={() => setOpen((current) => !current)}
           aria-label="Toggle navigation"
         >
@@ -73,13 +76,23 @@ export function SiteHeader() {
       </div>
 
       {open ? (
-        <div className="border-t border-slate-200/70 bg-white lg:hidden">
+        <div className="border-t border-[#ead6dc] bg-[#fffaf8] lg:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 sm:px-6">
+            <div className="rounded-[22px] border border-[#ead6dc] bg-white px-4 py-4 shadow-soft">
+              <Image
+                src={SITE_MEDIA.logo}
+                alt="Willing Ways"
+                width={340}
+                height={80}
+                className="h-10 w-auto object-contain"
+                unoptimized
+              />
+            </div>
             {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-2xl px-4 py-3 text-sm font-medium text-[#58323f] hover:bg-white"
                 onClick={() => setOpen(false)}
               >
                 {item.label}

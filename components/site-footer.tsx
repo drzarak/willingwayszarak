@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 import { BRANCH_CONTACTS } from "@/lib/chat";
+import { SITE_MEDIA } from "@/lib/site-assets";
 
 const footerLinks = [
   { href: "/about-us", label: "About" },
@@ -14,16 +16,26 @@ const footerLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200/70 bg-slate-950 text-white">
+    <footer className="border-t border-[#ead6dc] bg-[#4d1122] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr_1.2fr] lg:px-8">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/70">
+          <div className="flex items-center gap-3">
+            <Image
+              src={SITE_MEDIA.logo}
+              alt="Willing Ways"
+              width={320}
+              height={90}
+              className="h-10 w-auto object-contain"
+              unoptimized
+            />
+          </div>
+          <div className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c6d2]">
             Willing Ways Pakistan
           </div>
           <h2 className="mt-4 font-serif text-3xl font-semibold leading-tight">
             Addiction treatment, psychiatric care, family guidance, and AI-assisted intake.
           </h2>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
+          <p className="mt-4 max-w-xl text-base leading-8 text-[#f3e7ea]">
             Built to support patients, families, referral partners, and clinical teams with clear
             pathways to treatment in Lahore, Karachi, and Islamabad.
           </p>
@@ -40,7 +52,7 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/70">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c6d2]">
             Explore
           </div>
           <div className="mt-4 grid gap-2">
@@ -53,19 +65,19 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/70">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c6d2]">
             Branches
           </div>
           <div className="mt-4 grid gap-4">
             {BRANCH_CONTACTS.map((branch) => (
-              <div key={branch.name} className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <div key={branch.name} className="rounded-[24px] border border-white/12 bg-white/6 p-4">
                 <div className="font-semibold text-white">{branch.name}</div>
-                <div className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-300">
-                  <MapPin className="mt-1 h-4 w-4 shrink-0 text-sky-200/80" />
+                <div className="mt-2 flex items-start gap-2 text-sm leading-6 text-[#f3e7ea]">
+                  <MapPin className="mt-1 h-4 w-4 shrink-0 text-[#f3c6d2]" />
                   <span>{branch.address}</span>
                 </div>
-                <div className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-300">
-                  <Phone className="mt-1 h-4 w-4 shrink-0 text-sky-200/80" />
+                <div className="mt-2 flex items-start gap-2 text-sm leading-6 text-[#f3e7ea]">
+                  <Phone className="mt-1 h-4 w-4 shrink-0 text-[#f3c6d2]" />
                   <span>{branch.phones.join(" • ")}</span>
                 </div>
               </div>

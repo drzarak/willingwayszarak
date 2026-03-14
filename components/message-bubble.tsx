@@ -37,10 +37,10 @@ export function MessageBubble({
     <div className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")} dir={isUrdu ? "rtl" : "ltr"}>
       <div
         className={cn(
-          "max-w-[92%] rounded-[30px] px-5 py-4 shadow-sm sm:max-w-[85%]",
+          "max-w-[94%] rounded-[30px] px-5 py-4 shadow-sm sm:max-w-[85%]",
           isUser
-            ? "bg-gradient-to-br from-primary to-[#0b4ab5] text-white shadow-card"
-            : "border border-white/70 bg-white/90 text-slate-700 shadow-card backdrop-blur-xl",
+            ? "bg-gradient-to-br from-primary to-[#8e3a52] text-white shadow-card"
+            : "border border-[#ead6dc] bg-white/95 text-slate-800 shadow-card backdrop-blur-xl",
         )}
       >
         <div
@@ -53,7 +53,7 @@ export function MessageBubble({
         </div>
 
         {isUser ? (
-          <div className="whitespace-pre-wrap text-[15px] leading-7">{text}</div>
+          <div className="whitespace-pre-wrap text-[16px] leading-8">{text}</div>
         ) : (
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>

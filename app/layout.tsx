@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     "Willing Ways Pakistan offers addiction treatment, rehabilitation, psychiatric care, family intervention, and AI-assisted intake support.",
   icons: {
     icon: SITE_MEDIA.favicon,
+    shortcut: SITE_MEDIA.favicon,
     apple: SITE_MEDIA.favicon,
   },
   openGraph: {
