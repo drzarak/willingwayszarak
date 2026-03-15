@@ -2,18 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, Settings2 } from "lucide-react";
+import { Menu, PhoneCall } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ACTIVE_CHAT_STORAGE_KEY,
   APP_SETTINGS_STORAGE_KEY,
   CHAT_SESSIONS_STORAGE_KEY,
-  DEFAULT_SETTINGS,
+  DEFAULT_CHAT_MODEL_ID,
   createChatSession,
   deriveChatTitle,
   normalizeChatSessions,
-  type AppSettings,
   type ChatLanguage,
   type ChatMode,
   type ChatSession,
@@ -24,7 +23,6 @@ import { SITE_MEDIA } from "@/lib/site-assets";
 import { ChatPane } from "@/components/chat-pane";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
-import { SettingsDialog } from "@/components/settings-dialog";
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -34,10 +32,7 @@ export function ChatApp() {
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState("");
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [settingsRevision, setSettingsRevision] = useState(0);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
     realtimeConfigured: false,
     serverKeyConfigured: false,
@@ -48,11 +43,9 @@ export function ChatApp() {
       return;
     }
 
-    const storedSettings = window.localStorage.getItem(APP_SETTINGS_STORAGE_KEY);
     const storedSessions = window.localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
     const storedActiveChatId = window.localStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
 
-    const parsedSettings = storedSettings ? (JSON.parse(storedSettings) as AppSettings) : DEFAULT_SETTINGS;
     const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
 
     const nextSessions =
@@ -64,10 +57,8 @@ export function ChatApp() {
         ? storedActiveChatId
         : nextSessions[0].id;
 
-    setSettings({
-      apiKey: parsedSettings.apiKey ?? DEFAULT_SETTINGS.apiKey,
-      modelId: parsedSettings.modelId ?? DEFAULT_SETTINGS.modelId,
-    });
+    // Remove any legacy browser-side OpenAI key storage now that the app is server-key only.
+    window.localStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
     setSessions(nextSessions);
     setActiveChatId(nextActiveChatId);
     setHydrated(true);
@@ -93,10 +84,9 @@ export function ChatApp() {
       return;
     }
 
-    window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     window.localStorage.setItem(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
     window.localStorage.setItem(ACTIVE_CHAT_STORAGE_KEY, activeChatId);
-  }, [activeChatId, hydrated, sessions, settings]);
+  }, [activeChatId, hydrated, sessions]);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeChatId) ?? null,
@@ -179,12 +169,6 @@ export function ChatApp() {
     );
   }
 
-  function handleSaveSettings(nextSettings: AppSettings) {
-    setSettings(nextSettings);
-    setSettingsRevision((current) => current + 1);
-    setSettingsOpen(false);
-  }
-
   if (!hydrated || !activeSession) {
     return (
       <div className="relative min-h-screen overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
@@ -197,7 +181,7 @@ export function ChatApp() {
     );
   }
 
-  const chatPaneKey = `${activeSession.id}:${activeSession.mode}:${activeSession.language}:${settingsRevision}`;
+  const chatPaneKey = `${activeSession.id}:${activeSession.mode}:${activeSession.language}`;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -266,11 +250,14 @@ export function ChatApp() {
                   </div>
                 </Link>
               </div>
-
-              <Button variant="surface" size="icon" onClick={() => setSettingsOpen(true)}>
-                <Settings2 className="h-5 w-5" />
-                <span className="sr-only">Open settings</span>
-              </Button>
+              <div
+                className={`hidden rounded-full border border-[#ead6dc] bg-[#fff8f9] px-4 py-2 text-xs font-semibold text-[#651328] md:flex ${
+                  isUrdu ? "font-urdu text-right" : ""
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+              </div>
             </div>
 
             <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -281,8 +268,8 @@ export function ChatApp() {
                 dir={isUrdu ? "rtl" : "ltr"}
               >
                 {isUrdu
-                  ? "داخلہ، intervention، family guidance، یا psychiatric support کے لیے بات کریں۔"
-                  : "Use chat for admissions, interventions, family guidance, and psychiatric support questions."}
+                  ? "داخلے، فیملی رہنمائی، علاج کے بارے میں سوالات یا اے آئی کال کے لئے بات کریں۔"
+                  : "Ask about admissions, family support, treatment options, or place an AI call."}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:ml-auto">
@@ -297,25 +284,37 @@ export function ChatApp() {
           <div className="surface-panel chat-shell overflow-hidden">
             <ChatPane
               key={chatPaneKey}
-              apiKey={settings.apiKey}
-              modelId={settings.modelId}
+              modelId={DEFAULT_CHAT_MODEL_ID}
               onMessagesChange={handleMessagesChange}
-              onOpenSettings={() => setSettingsOpen(true)}
               realtimeConfigured={runtimeStatus.realtimeConfigured}
               serverKeyConfigured={runtimeStatus.serverKeyConfigured}
               session={activeSession}
             />
           </div>
         </main>
-      </div>
 
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        serverKeyConfigured={runtimeStatus.serverKeyConfigured}
-        settings={settings}
-        onSave={handleSaveSettings}
-      />
+        <footer className="px-3 pb-4 sm:px-6 lg:px-8">
+          <div className="surface-panel flex flex-col gap-3 rounded-[28px] px-4 py-4 text-sm text-[#6d4452] sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className={`flex items-center gap-2 ${isUrdu ? "font-urdu text-right" : ""}`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              <PhoneCall className="h-4 w-4 text-primary" />
+              {isUrdu
+                ? "یہ اے آئی کال اور چیٹ مدد کے لئے تیار ہے۔ ہنگامی صورت میں فوراً ہیلپ لائن سے رابطہ کریں۔"
+                : "This AI line is ready for chat and voice support. In emergencies, contact the helpline immediately."}
+            </div>
+            <div
+              className={`text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d] ${
+                isUrdu ? "font-urdu normal-case text-right" : ""
+              }`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

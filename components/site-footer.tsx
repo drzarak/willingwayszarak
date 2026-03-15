@@ -63,6 +63,16 @@ export function SiteFooter() {
               ? "یہ ویب ایپ مریضوں، خاندانوں، ریفرل پارٹنرز اور کلینیکل ٹیموں کو لاہور، کراچی اور اسلام آباد میں علاج تک واضح رسائی دینے کے لئے بنائی گئی ہے۔"
               : "Built to support patients, families, referral partners, and clinical teams with clear pathways to treatment in Lahore, Karachi, and Islamabad."}
           </p>
+          <div
+            className={`mt-4 text-sm font-semibold text-[#f3c6d2] ${
+              isUrdu ? "font-urdu text-right" : ""
+            }`}
+            dir={isUrdu ? "rtl" : "ltr"}
+          >
+            {isUrdu
+              ? "یہ اے آئی ڈاکٹر زارک خان کی محبت سے تیار کی گئی ہے۔"
+              : "This AI is built with love by Dr Zarak Khan."}
+          </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href="tel:+923007413639" className="footer-pill">
               <Phone className="h-4 w-4" />

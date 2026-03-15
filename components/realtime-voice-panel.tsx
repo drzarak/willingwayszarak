@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import {
   AlertTriangle,
   LoaderCircle,
-  Mic,
-  Radio,
-  Square,
+  PhoneCall,
+  PhoneOff,
   Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import {
   type ChatMode,
   type RealtimeVoiceId,
 } from "@/lib/chat";
+import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { Button } from "@/components/ui/button";
 
@@ -48,8 +49,8 @@ function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
 
   if (lowerMessage.includes("<!doctype html") || lowerMessage.includes("<html")) {
     return language === "urdu"
-      ? "OpenAI voice service نے جواب دینے میں بہت زیادہ وقت لیا۔ چند لمحوں بعد دوبارہ کوشش کریں۔"
-      : "OpenAI voice service timed out. Please try again in a moment.";
+      ? "کال ملانے میں بہت زیادہ وقت لگ گیا۔ براہ کرم چند لمحوں بعد دوبارہ کوشش کریں۔"
+      : "The AI call line took too long to respond. Please try again in a moment.";
   }
 
   if (
@@ -57,14 +58,14 @@ function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
     lowerMessage.includes("api_version_mismatch")
   ) {
     return language === "urdu"
-      ? "Realtime voice سیشن پرانا اور نیا API flow ملانے کی وجہ سے شروع نہیں ہو سکا۔ صفحہ refresh کر کے دوبارہ کوشش کریں۔"
-      : "Realtime voice could not start because the session used mismatched Realtime API versions. Refresh and try again.";
+      ? "کال لائن کو تازہ کرنے کی ضرورت ہے۔ صفحہ refresh کر کے دوبارہ کوشش کریں۔"
+      : "The AI call line needs a quick refresh. Please reload the page and try again.";
   }
 
   if (!message.trim()) {
     return language === "urdu"
-      ? "Realtime voice اس وقت شروع نہیں ہو سکی۔"
-      : "Realtime voice could not be started right now.";
+      ? "اے آئی کال اس وقت شروع نہیں ہو سکی۔"
+      : "The AI call could not be started right now.";
   }
 
   return message;
@@ -213,8 +214,8 @@ export function RealtimeVoicePanel({
     if (!enabled) {
       setErrorMessage(
         language === "urdu"
-          ? "جب تک server OpenAI key configured نہیں ہوتی، realtime voice دستیاب نہیں ہو گی۔"
-          : "Realtime voice is not available until the server OpenAI key is configured.",
+          ? "اے آئی کال اس وقت عارضی طور پر دستیاب نہیں۔"
+          : "AI calling is temporarily unavailable right now.",
       );
       setStatus("error");
       return;
@@ -223,8 +224,8 @@ export function RealtimeVoicePanel({
     if (!navigator.mediaDevices?.getUserMedia) {
       setErrorMessage(
         language === "urdu"
-          ? "یہ browser microphone access کو support نہیں کرتا۔"
-          : "This browser does not support microphone access.",
+          ? "اس کال کے لئے مائیکروفون درکار ہے، لیکن یہ browser اسے support نہیں کرتا۔"
+          : "This call needs microphone access, but this browser does not support it.",
       );
       setStatus("error");
       return;
@@ -254,8 +255,8 @@ export function RealtimeVoicePanel({
       dataChannel.onerror = () => {
         setErrorMessage(
           language === "urdu"
-            ? "Realtime data channel غیر متوقع طور پر بند ہو گیا۔"
-            : "The realtime data channel closed unexpectedly.",
+            ? "کال غیر متوقع طور پر منقطع ہو گئی۔"
+            : "The call disconnected unexpectedly.",
         );
         setStatus("error");
       };
@@ -283,8 +284,8 @@ export function RealtimeVoicePanel({
       if (!localSdp.trim()) {
         throw new Error(
           language === "urdu"
-            ? "مقامی آڈیو offer تیار نہیں ہو سکی۔"
-            : "The local audio offer could not be created.",
+            ? "کال شروع کرنے کے لئے آڈیو تیار نہیں ہو سکی۔"
+            : "The browser could not prepare audio for the call.",
         );
       }
 
@@ -313,7 +314,7 @@ export function RealtimeVoicePanel({
       cleanupSession();
       setErrorMessage(
         normalizeRealtimeClientError(
-          error instanceof Error ? error.message : "Realtime voice could not start.",
+          error instanceof Error ? error.message : "The AI call could not be started.",
           language,
         ),
       );
@@ -340,134 +341,208 @@ export function RealtimeVoicePanel({
 
   const voiceSelectionHint =
     language === "urdu"
-      ? "آواز تبدیل کرنے کے لئے نیا آوازی سیشن شروع کریں۔"
-      : "Start a new voice session to switch voices.";
+      ? "آواز بدلنے کے لئے موجودہ کال ختم کر کے نئی کال کریں۔"
+      : "End this call and start a new one to switch voices.";
 
   const statusLabel =
     status === "requesting"
       ? language === "urdu"
-        ? "آوازی سیشن تیار کیا جا رہا ہے"
-        : "Requesting a voice session"
+        ? "آپ کی کال ملائی جا رہی ہے"
+        : "Placing your call"
       : status === "connecting"
         ? language === "urdu"
-          ? "مائیکروفون اور آڈیو connect ہو رہے ہیں"
-          : "Connecting microphone and audio"
+          ? "فون بج رہا ہے"
+          : "Phone is ringing"
         : status === "listening"
           ? language === "urdu"
             ? "ہم سن رہے ہیں"
-            : "Listening"
+            : "We are listening"
           : status === "responding"
             ? language === "urdu"
-              ? "اے آئی جواب دے رہی ہے"
-              : "Assistant is responding"
+              ? "ولنگ ویز اے آئی بات کر رہی ہے"
+              : "Willing Ways AI is speaking"
             : status === "connected"
               ? language === "urdu"
-                ? "آوازی سیشن تیار ہے، بولنا شروع کریں"
-                : "Voice session ready, start speaking"
+                ? "ولنگ ویز اے آئی نے کال اٹھا لی ہے"
+                : "Willing Ways AI picked up"
               : status === "error"
                 ? language === "urdu"
-                  ? "آوازی سیشن میں مسئلہ آیا"
-                  : "Voice session hit an error"
+                  ? "کال میں مسئلہ آیا"
+                  : "The call ran into a problem"
                 : language === "urdu"
-                  ? "لائیو آواز بند ہے"
-                  : "Realtime voice is idle";
+                  ? "کال کے لئے تیار"
+                  : "Ready for your call";
+
+  const statusDescription =
+    status === "requesting"
+      ? language === "urdu"
+        ? "ہم ولنگ ویز اے آئی کے ساتھ آپ کی کال شروع کر رہے ہیں۔"
+        : "We are starting your call with Willing Ways AI."
+      : status === "connecting"
+        ? language === "urdu"
+          ? "براہ کرم ایک لمحہ رکیں، کال بج رہی ہے۔"
+          : "Please hold for a moment while the line rings."
+        : status === "connected"
+          ? language === "urdu"
+            ? "کال جڑ چکی ہے، اب آپ بات شروع کر سکتے ہیں۔"
+            : "The call is connected. You can start speaking now."
+          : status === "listening"
+            ? language === "urdu"
+              ? "اپنی بات قدرتی انداز میں کہیں، ہم غور سے سن رہے ہیں۔"
+              : "Speak naturally. We are listening carefully."
+            : status === "responding"
+              ? language === "urdu"
+                ? "ولنگ ویز اے آئی آپ کو جواب دے رہی ہے۔"
+                : "Willing Ways AI is replying to you."
+              : status === "error"
+                ? language === "urdu"
+                  ? "دوبارہ کال کرنے سے مسئلہ اکثر حل ہو جاتا ہے۔"
+                  : "Starting a fresh call usually fixes this."
+                : language === "urdu"
+                  ? "انگریزی، اردو یا پاکستانی پنجابی میں بات کریں۔"
+                  : "Speak in English, Urdu, or Pakistani Punjabi.";
+
+  const callIsStarting = status === "requesting" || status === "connecting";
+  const callIsLive =
+    status === "connected" || status === "listening" || status === "responding";
+  const showCallPulse = callIsStarting || callIsLive;
+  const callBadgeClass = callIsLive
+    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+    : status === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-900"
+      : "border-[#ead6dc] bg-[#fff4f7] text-primary";
 
   return (
     <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl">
       <audio ref={audioRef} autoPlay />
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
-          <div className="inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            <Radio className="mr-2 h-3.5 w-3.5" />
-            {language === "urdu" ? "لائیو آواز" : "Realtime voice"}
+      <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 sm:p-6">
+          <div className="inline-flex items-center rounded-full border border-[#ead6dc] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <PhoneCall className="mr-2 h-3.5 w-3.5" />
+            {language === "urdu" ? "ولنگ ویز اے آئی کال" : "Willing Ways AI call"}
           </div>
-          <div className="text-2xl font-semibold text-[#3b1725]">
-            <span
-              className={language === "urdu" ? "font-urdu" : ""}
-              dir={language === "urdu" ? "rtl" : "ltr"}
-            >
-              {language === "urdu"
-                ? "اب آپ بول کر بھی ولنگ ویز اے آئی سے بات کر سکتے ہیں"
-                : "You can now talk to Willing Ways AI with live voice."}
-            </span>
-          </div>
-          <p
-            className={`max-w-2xl text-base leading-8 text-[#5a3743] ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {language === "urdu"
-              ? "یہ voice feature محفوظ سرور سائیڈ AI access استعمال کرتی ہے۔ ڈاکٹر موڈ، اردو موڈ اور منتخب آواز ہر نئے session پر لاگو ہوتے ہیں۔"
-              : "This voice feature uses secure server-side AI access. Doctor mode, Urdu mode, and the selected OpenAI voice apply to each new session."}
-          </p>
-        </div>
 
-        <div className="flex flex-col gap-3 sm:min-w-[280px]">
-          <label className="space-y-2">
-            <div
-              className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5a64] ${
-                language === "urdu" ? "font-urdu justify-end normal-case" : ""
+          <div className="mt-6 flex flex-col items-center text-center">
+            <div className="relative flex h-32 w-32 items-center justify-center">
+              {showCallPulse ? (
+                <>
+                  <span className="absolute h-28 w-28 rounded-full bg-primary/12 animate-ping" />
+                  <span className="absolute h-32 w-32 rounded-full border border-primary/20" />
+                </>
+              ) : null}
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[#ead6dc] bg-white shadow-soft">
+                <Image
+                  src={SITE_MEDIA.brandMark}
+                  alt="Willing Ways AI"
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                  unoptimized
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 text-2xl font-semibold text-[#3b1725]">Willing Ways AI</div>
+            <p
+              className={`mt-2 max-w-xl text-base leading-8 text-[#5a3743] ${
+                language === "urdu" ? "font-urdu text-right" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              <Volume2 className="h-4 w-4 text-primary" />
-              {language === "urdu" ? "آواز منتخب کریں" : "Choose voice"}
-            </div>
-            <select
-              className="flex h-12 w-full rounded-2xl border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#3b1725] shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={voiceSelectionLocked}
-              value={voiceId}
-              onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
+              {language === "urdu"
+                ? "انگریزی، اردو یا پاکستانی پنجابی میں قدرتی انداز میں بات کریں۔ یہ تجربہ ایسے محسوس ہوگا جیسے آپ ولنگ ویز کی معاون ٹیم سے پرسکون کال پر ہوں۔"
+                : "Speak naturally in English, Urdu, or Pakistani Punjabi. The experience is designed to feel like a calm support call with the Willing Ways team."}
+            </p>
+
+            <div
+              className={`mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${callBadgeClass} ${
+                language === "urdu" ? "font-urdu" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              {REALTIME_VOICE_OPTIONS.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {callIsStarting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : status === "error" ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <PhoneCall className="h-4 w-4" />
+              )}
+              {statusLabel}
+            </div>
+
+            <p
+              className={`mt-3 text-sm leading-7 text-[#6d4452] ${
+                language === "urdu" ? "font-urdu text-right" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {statusDescription}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft">
+            <label className="space-y-2">
+              <div
+                className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5a64] ${
+                  language === "urdu" ? "font-urdu justify-end normal-case" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                <Volume2 className="h-4 w-4 text-primary" />
+                {language === "urdu" ? "کال کی آواز منتخب کریں" : "Choose the voice for the call"}
+              </div>
+              <select
+                className="flex h-12 w-full rounded-2xl border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#3b1725] shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={voiceSelectionLocked}
+                value={voiceId}
+                onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
+              >
+                {REALTIME_VOICE_OPTIONS.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div
+              className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-3 text-sm text-[#5a3743] ${
+                language === "urdu" ? "font-urdu text-right" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {language === "urdu"
+                ? `منتخب آواز: ${selectedVoiceLabel}. ${voiceSelectionHint}`
+                : `Selected voice: ${selectedVoiceLabel}. ${voiceSelectionHint}`}
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {status === "idle" || status === "error" ? (
+                <Button onClick={startSession} className="h-12 text-base">
+                  <PhoneCall className="h-4 w-4" />
+                  {language === "urdu" ? "ولنگ ویز اے آئی کو کال کریں" : "Make a call to Willing Ways AI"}
+                </Button>
+              ) : (
+                <Button variant="secondary" onClick={stopSession} className="h-12 text-base">
+                  <PhoneOff className="h-4 w-4" />
+                  {language === "urdu" ? "کال بند کریں" : "End call"}
+                </Button>
+              )}
+            </div>
+          </div>
 
           <div
-            className={`rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-3 text-sm text-[#5a3743] ${
+            className={`rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] px-5 py-4 text-sm leading-7 text-[#5a3743] ${
               language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
             {language === "urdu"
-              ? `منتخب آواز: ${selectedVoiceLabel}. ${voiceSelectionHint}`
-              : `Selected voice: ${selectedVoiceLabel}. ${voiceSelectionHint}`}
-          </div>
-
-          {status === "idle" || status === "error" ? (
-            <Button onClick={startSession}>
-              <Mic className="h-4 w-4" />
-              {language === "urdu" ? "آواز شروع کریں" : "Start voice"}
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={stopSession}>
-              <Square className="h-4 w-4" />
-              {language === "urdu" ? "آواز بند کریں" : "Stop voice"}
-            </Button>
-          )}
-
-          <div
-            className={`rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-4 text-sm text-[#5a3743] ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            <div className="flex items-center gap-2 font-semibold text-[#3b1725]">
-              {status === "requesting" || status === "connecting" ? (
-                <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
-              ) : status === "error" ? (
-                <AlertTriangle className="h-4 w-4 text-primary" />
-              ) : (
-                <Radio className="h-4 w-4 text-primary" />
-              )}
-              {statusLabel}
-            </div>
+              ? "کال جڑنے کے بعد مختصر اور واضح سوال کریں۔ اگر آپ علاج، داخلے یا فیملی انٹروینشن کے بارے میں بات کرنا چاہتے ہیں تو اے آئی آپ کو مناسب اگلا قدم بتائے گی۔"
+              : "Once the call connects, ask in a simple natural way. Whether you need help with treatment, admissions, or family intervention, the AI will guide you to the next step."}
           </div>
         </div>
       </div>
@@ -485,6 +560,14 @@ export function RealtimeVoicePanel({
 
       {transcript.length > 0 ? (
         <div className="mt-5 grid gap-3">
+          <div
+            className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
+              language === "urdu" ? "font-urdu text-right normal-case" : ""
+            }`}
+            dir={language === "urdu" ? "rtl" : "ltr"}
+          >
+            {language === "urdu" ? "کال کی جھلک" : "Recent call highlights"}
+          </div>
           {transcript.slice(-4).map((entry) => (
             <div
               key={entry.id}

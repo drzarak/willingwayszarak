@@ -11,7 +11,6 @@ const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 
 interface ChatRequestBody {
-  apiKey?: string;
   id?: string;
   language?: ChatLanguage;
   messageId?: string;
@@ -23,10 +22,10 @@ interface ChatRequestBody {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
-  const apiKey = process.env.OPENAI_API_KEY?.trim() || body.apiKey?.trim();
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
 
   if (!apiKey) {
-    return new Response("Missing OpenAI API key. Configure OPENAI_API_KEY on the server or add a browser key in Settings.", {
+    return new Response("Willing Ways AI is not configured on the server yet.", {
       status: 401,
     });
   }
@@ -72,7 +71,7 @@ export async function POST(request: Request) {
           message.includes("401") ||
           message.includes("unauthorized")
         ) {
-          return "The OpenAI API key was rejected. Update the server environment or your Settings override and try again.";
+          return "The server-side OpenAI configuration was rejected. Please update the deployment environment and try again.";
         }
 
         return "Willing Ways AI could not respond right now. Please try again in a moment.";

@@ -29,20 +29,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ChatPaneProps {
-  apiKey: string;
   modelId: ModelId;
   onMessagesChange: (chatId: string, messages: UIMessage[]) => void;
-  onOpenSettings: () => void;
   realtimeConfigured: boolean;
   serverKeyConfigured: boolean;
   session: ChatSession;
 }
 
 export function ChatPane({
-  apiKey,
   modelId,
   onMessagesChange,
-  onOpenSettings,
   realtimeConfigured,
   serverKeyConfigured,
   session,
@@ -61,7 +57,6 @@ export function ChatPane({
         messages,
         trigger,
         messageId,
-        apiKey,
         language: session.language,
         modelId,
         mode: session.mode,
@@ -112,11 +107,12 @@ export function ChatPane({
       return;
     }
 
-    if (!apiKey.trim() && !serverKeyConfigured) {
+    if (!serverKeyConfigured) {
       setLocalError(
-        "Add your OpenAI API key in Settings or configure OPENAI_API_KEY on the server to start chatting.",
+        session.language === "urdu"
+          ? "اے آئی چیٹ اس وقت عارضی طور پر دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
+          : "AI chat is temporarily unavailable right now. Please try again shortly or call 0300-7413639.",
       );
-      onOpenSettings();
       return;
     }
 
@@ -135,11 +131,12 @@ export function ChatPane({
   }
 
   async function handleRegenerate() {
-    if (!apiKey.trim() && !serverKeyConfigured) {
+    if (!serverKeyConfigured) {
       setLocalError(
-        "Add your OpenAI API key in Settings or configure OPENAI_API_KEY on the server before regenerating.",
+        session.language === "urdu"
+          ? "اے آئی چیٹ اس وقت عارضی طور پر دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
+          : "AI chat is temporarily unavailable right now. Please try again shortly or call 0300-7413639.",
       );
-      onOpenSettings();
       return;
     }
 
@@ -193,13 +190,13 @@ export function ChatPane({
                 </div>
                 <h2 className="gradient-heading mt-6 font-serif text-3xl font-semibold leading-tight sm:text-5xl">
                   {session.language === "urdu"
-                    ? "پرسکون، باوقار اور رہنمائی پر مبنی گفتگو"
-                    : "Calm, clinical support with the same chat workflow you already have."}
+                    ? "پرسکون رہنمائی، جیسے ولنگ ویز ٹیم سے پہلی مطمئن گفتگو"
+                    : "Calm guidance that feels like a first reassuring conversation with Willing Ways."}
                 </h2>
                 <p className="mx-auto mt-5 max-w-2xl text-lg leading-9 text-[#5a3743]">
                   {session.language === "urdu"
-                    ? "ریحاب پروگرامز، نفسیاتی خدمات، فیملی انٹروینشن، داخلے، relapse support یا برانچ contacts کے بارے میں پوچھیں۔"
-                    : "Ask about rehab programs, psychiatric services, family intervention, admissions, relapse support, or branch contacts. The interface stays familiar while the content now routes entirely through Willing Ways."}
+                    ? "علاج، داخلے، فیملی سپورٹ، برانچ رابطوں، یا اے آئی کال کے بارے میں سادہ انداز میں پوچھیں۔"
+                    : "Ask in simple language about treatment, admissions, family support, branch contacts, or make an AI call."}
                 </p>
 
                 <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -242,8 +239,8 @@ export function ChatPane({
                       dir={session.language === "urdu" ? "rtl" : "ltr"}
                     >
                       {session.language === "urdu"
-                        ? "پاکستان میں addiction psychiatry کی 50+ سالہ leadership، جو اب اسی chat UX میں Willing Ways کے باوقار support experience کے ساتھ نظر آتی ہے۔"
-                        : "50+ years of addiction psychiatry leadership in Pakistan, now reflected in the same chat UX through a Willing Ways-first support experience."}
+                        ? "پاکستان میں addiction psychiatry کی 50+ سالہ قیادت، جس کی رہنمائی اب اسی محفوظ اور آسان اے آئی سپورٹ میں شامل ہے۔"
+                        : "50+ years of addiction psychiatry leadership in Pakistan, now reflected in a simple and reassuring AI support experience."}
                     </p>
                   </div>
                 </div>
@@ -335,11 +332,11 @@ export function ChatPane({
                 )}
                 {session.mode === "doctor"
                   ? session.language === "urdu"
-                    ? "سخت حدود کے ساتھ کلینیکل موڈ"
-                    : "Clinical mode with strict boundaries"
+                    ? "ڈاکٹروں کے لئے تفصیلی مگر محفوظ رہنمائی"
+                    : "Doctor mode with detailed but safe guidance"
                   : session.language === "urdu"
-                    ? "سادہ رہنمائی کے ساتھ مریض / خاندان موڈ"
-                    : "Patient / family mode with simplified guidance"}
+                    ? "مریض اور خاندان کے لئے نرم اور سادہ رہنمائی"
+                    : "Patient and family mode with calm, simple guidance"}
               </div>
 
               <div className="flex items-center gap-2">

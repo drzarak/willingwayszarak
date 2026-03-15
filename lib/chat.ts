@@ -15,11 +15,6 @@ export type RealtimeVoiceId =
   | "shimmer"
   | "verse";
 
-export interface AppSettings {
-  apiKey: string;
-  modelId: ModelId;
-}
-
 export interface ChatSession {
   id: string;
   title: string;
@@ -40,13 +35,8 @@ export const APP_SETTINGS_STORAGE_KEY = "willing-ways-ai:settings";
 export const CHAT_SESSIONS_STORAGE_KEY = "willing-ways-ai:sessions";
 export const ACTIVE_CHAT_STORAGE_KEY = "willing-ways-ai:active-chat";
 export const REALTIME_VOICE_STORAGE_KEY = "willing-ways-ai:realtime-voice";
+export const DEFAULT_CHAT_MODEL_ID: ModelId = "gpt-4o-mini";
 export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "cedar";
-
-export const MODEL_OPTIONS: Array<{ id: ModelId; label: string }> = [
-  { id: "gpt-4o-mini", label: "gpt-4o-mini" },
-  { id: "gpt-4o", label: "gpt-4o" },
-  { id: "gpt-4-turbo", label: "gpt-4-turbo" },
-];
 
 export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
   { id: "cedar", label: "Cedar" },
@@ -74,11 +64,6 @@ export function normalizeRealtimeVoiceId(
 
   return DEFAULT_REALTIME_VOICE_ID;
 }
-
-export const DEFAULT_SETTINGS: AppSettings = {
-  apiKey: "",
-  modelId: "gpt-4o-mini",
-};
 
 export const SUGGESTION_CHIPS: Record<ChatLanguage, string[]> = {
   english: [
