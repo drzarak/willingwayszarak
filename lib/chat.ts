@@ -35,12 +35,14 @@ export const APP_SETTINGS_STORAGE_KEY = "willing-ways-ai:settings";
 export const CHAT_SESSIONS_STORAGE_KEY = "willing-ways-ai:sessions";
 export const ACTIVE_CHAT_STORAGE_KEY = "willing-ways-ai:active-chat";
 export const REALTIME_VOICE_STORAGE_KEY = "willing-ways-ai:realtime-voice";
+export const REALTIME_VOICE_VERSION_STORAGE_KEY = "willing-ways-ai:realtime-voice-version";
+export const CURRENT_REALTIME_VOICE_VERSION = "2";
 export const DEFAULT_CHAT_MODEL_ID: ModelId = "gpt-4o-mini";
-export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "cedar";
+export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "marin";
 
 export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
-  { id: "cedar", label: "Cedar" },
   { id: "marin", label: "Marin (Marine)" },
+  { id: "cedar", label: "Cedar" },
   { id: "alloy", label: "Alloy" },
   { id: "ash", label: "Ash" },
   { id: "ballad", label: "Ballad" },

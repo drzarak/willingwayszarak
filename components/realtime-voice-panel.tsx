@@ -11,9 +11,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  CURRENT_REALTIME_VOICE_VERSION,
   DEFAULT_REALTIME_VOICE_ID,
   REALTIME_VOICE_OPTIONS,
   REALTIME_VOICE_STORAGE_KEY,
+  REALTIME_VOICE_VERSION_STORAGE_KEY,
   normalizeRealtimeVoiceId,
   type ChatLanguage,
   type ChatMode,
@@ -88,12 +90,27 @@ export function RealtimeVoicePanel({
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
+    const storedVersion = window.localStorage.getItem(REALTIME_VOICE_VERSION_STORAGE_KEY);
+    const needsDefaultVoiceMigration = storedVersion !== CURRENT_REALTIME_VOICE_VERSION;
+    const nextVoice =
+      needsDefaultVoiceMigration && (!storedVoice || storedVoice === "cedar")
+        ? DEFAULT_REALTIME_VOICE_ID
+        : normalizeRealtimeVoiceId(storedVoice);
 
-    setVoiceId(normalizeRealtimeVoiceId(storedVoice));
+    setVoiceId(nextVoice);
+    window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, nextVoice);
+    window.localStorage.setItem(
+      REALTIME_VOICE_VERSION_STORAGE_KEY,
+      CURRENT_REALTIME_VOICE_VERSION,
+    );
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, voiceId);
+    window.localStorage.setItem(
+      REALTIME_VOICE_VERSION_STORAGE_KEY,
+      CURRENT_REALTIME_VOICE_VERSION,
+    );
   }, [voiceId]);
 
   useEffect(() => () => cleanupSession(), []);
@@ -424,20 +441,20 @@ export function RealtimeVoicePanel({
           </div>
 
           <div className="mt-6 flex flex-col items-center text-center">
-            <div className="relative flex h-32 w-32 items-center justify-center">
+            <div className="relative flex h-36 w-full items-center justify-center">
               {showCallPulse ? (
                 <>
-                  <span className="absolute h-28 w-28 rounded-full bg-primary/12 animate-ping" />
-                  <span className="absolute h-32 w-32 rounded-full border border-primary/20" />
+                  <span className="absolute h-24 w-[15rem] rounded-[32px] bg-primary/10 animate-ping sm:h-28 sm:w-[18rem]" />
+                  <span className="absolute h-28 w-[16rem] rounded-[34px] border border-primary/20 sm:h-32 sm:w-[19rem]" />
                 </>
               ) : null}
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[#ead6dc] bg-white shadow-soft">
+              <div className="relative flex items-center justify-center rounded-[30px] border border-[#ead6dc] bg-white px-5 py-4 shadow-soft sm:px-6">
                 <Image
-                  src={SITE_MEDIA.brandMark}
-                  alt="Willing Ways AI"
-                  width={56}
-                  height={56}
-                  className="h-14 w-14 object-contain"
+                  src={SITE_MEDIA.logo}
+                  alt="Willing Ways"
+                  width={320}
+                  height={80}
+                  className="h-14 w-auto max-w-[220px] object-contain sm:h-16 sm:max-w-[280px]"
                   unoptimized
                 />
               </div>
