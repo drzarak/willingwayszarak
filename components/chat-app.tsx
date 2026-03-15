@@ -266,10 +266,10 @@ export function ChatApp() {
                   isUrdu ? "font-urdu text-right" : ""
                 }`}
                 dir={isUrdu ? "rtl" : "ltr"}
-              >
-                {isUrdu
-                  ? "داخلے، فیملی رہنمائی، علاج کے بارے میں سوالات یا اے آئی کال کے لئے بات کریں۔"
-                  : "Ask about admissions, family support, treatment options, or place an AI call."}
+                >
+                  {isUrdu
+                  ? "داخلے، فیملی coaching، crisis guidance، treatment options یا اے آئی کال کے لئے بات کریں۔"
+                  : "Ask about admissions, family coaching, crisis guidance, treatment options, or place an AI call."}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:ml-auto">

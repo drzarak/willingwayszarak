@@ -1,9 +1,12 @@
 import {
   DEFAULT_REALTIME_VOICE_ID,
+  DEFAULT_VOICE_CALL_FOCUS_ID,
+  normalizeVoiceCallFocusId,
   normalizeRealtimeVoiceId,
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
+  type VoiceCallFocusId,
 } from "@/lib/chat";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 
@@ -11,6 +14,13 @@ export const maxDuration = 30;
 
 const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
+const ALLOWED_FOCUSES = new Set<VoiceCallFocusId>([
+  "general-support",
+  "family-coach",
+  "crisis-triage",
+  "founder-method",
+  "private-intake",
+]);
 const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
   "cedar",
   "marin",
@@ -117,13 +127,17 @@ function shouldFallbackToDocumentedModel(status: number, body: string) {
 function buildRealtimeSession(
   mode: ChatMode,
   language: ChatLanguage,
+  focus: VoiceCallFocusId,
   voice: RealtimeVoiceId,
   model: string,
 ) {
   return JSON.stringify({
     type: "realtime",
     model,
-    instructions: `${composeSystemPrompt(mode, language)}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
+    instructions: `${composeSystemPrompt(mode, language, {
+      surface: "voice",
+      voiceFocus: focus,
+    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
     audio: {
       input: {
         noise_reduction: {
@@ -153,6 +167,9 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const mode = (url.searchParams.get("mode") ?? "patient") as ChatMode;
   const language = (url.searchParams.get("language") ?? "english") as ChatLanguage;
+  const focus = normalizeVoiceCallFocusId(
+    url.searchParams.get("focus") ?? DEFAULT_VOICE_CALL_FOCUS_ID,
+  );
   const voice = normalizeRealtimeVoiceId(url.searchParams.get("voice") ?? DEFAULT_REALTIME_VOICE_ID);
 
   if (!ALLOWED_MODES.has(mode)) {
@@ -161,6 +178,10 @@ export async function POST(request: Request) {
 
   if (!ALLOWED_LANGUAGES.has(language)) {
     return new Response("Unsupported realtime language selected.", { status: 400 });
+  }
+
+  if (!ALLOWED_FOCUSES.has(focus)) {
+    return new Response("Unsupported realtime focus selected.", { status: 400 });
   }
 
   if (!ALLOWED_VOICES.has(voice)) {
@@ -174,20 +195,20 @@ export async function POST(request: Request) {
   }
 
   let response = await postRealtimeCall(
-    apiKey,
-    sdp,
-    buildRealtimeSession(mode, language, voice, PRIMARY_REALTIME_MODEL),
-  );
+      apiKey,
+      sdp,
+      buildRealtimeSession(mode, language, focus, voice, PRIMARY_REALTIME_MODEL),
+    );
 
   if (!response.ok) {
     const primaryBody = await response.text();
 
     if (shouldFallbackToDocumentedModel(response.status, primaryBody)) {
-      response = await postRealtimeCall(
-        apiKey,
-        sdp,
-        buildRealtimeSession(mode, language, voice, FALLBACK_REALTIME_MODEL),
-      );
+        response = await postRealtimeCall(
+          apiKey,
+          sdp,
+          buildRealtimeSession(mode, language, focus, voice, FALLBACK_REALTIME_MODEL),
+        );
     } else {
       const message = normalizeRealtimeError(response.status, primaryBody);
       return new Response(message, { status: response.status });

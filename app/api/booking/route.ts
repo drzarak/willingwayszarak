@@ -71,6 +71,306 @@ function makeBulletedItem(content: string) {
   };
 }
 
+function makeToggleBlock(
+  content: string,
+  children: Array<Record<string, unknown>> = [],
+) {
+  return {
+    object: "block" as const,
+    type: "toggle" as const,
+    toggle: {
+      rich_text: [makeTextContent(content)],
+      children,
+    },
+  };
+}
+
+const NOTION_API_BASE_URL = "https://api.notion.com/v1";
+const PAKISTAN_TIME_ZONE = "Asia/Karachi";
+
+interface NotionRichTextObject {
+  plain_text?: string;
+}
+
+interface NotionBlock {
+  id: string;
+  type: string;
+  in_trash?: boolean;
+  toggle?: { rich_text?: NotionRichTextObject[] };
+  paragraph?: { rich_text?: NotionRichTextObject[] };
+  heading_1?: { rich_text?: NotionRichTextObject[] };
+  heading_2?: { rich_text?: NotionRichTextObject[] };
+  heading_3?: { rich_text?: NotionRichTextObject[] };
+}
+
+interface NotionListResponse {
+  results?: NotionBlock[];
+  has_more?: boolean;
+  next_cursor?: string | null;
+  message?: string;
+}
+
+function getNotionBlockText(block: NotionBlock) {
+  if (block.type === "toggle") {
+    return block.toggle?.rich_text?.map((item) => item.plain_text ?? "").join("").trim() ?? "";
+  }
+
+  if (block.type === "paragraph") {
+    return block.paragraph?.rich_text?.map((item) => item.plain_text ?? "").join("").trim() ?? "";
+  }
+
+  if (block.type === "heading_1") {
+    return block.heading_1?.rich_text?.map((item) => item.plain_text ?? "").join("").trim() ?? "";
+  }
+
+  if (block.type === "heading_2") {
+    return block.heading_2?.rich_text?.map((item) => item.plain_text ?? "").join("").trim() ?? "";
+  }
+
+  if (block.type === "heading_3") {
+    return block.heading_3?.rich_text?.map((item) => item.plain_text ?? "").join("").trim() ?? "";
+  }
+
+  return "";
+}
+
+async function notionRequest<T>(
+  notionToken: string,
+  path: string,
+  init?: RequestInit & { bodyJson?: unknown },
+): Promise<T> {
+  const response = await fetch(`${NOTION_API_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      "Notion-Version": NOTION_API_VERSION,
+      ...(init?.bodyJson ? { "Content-Type": "application/json" } : {}),
+      ...(init?.headers ?? {}),
+    },
+    body:
+      init?.bodyJson !== undefined
+        ? JSON.stringify(init.bodyJson)
+        : init?.body,
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let message = "The request could not be saved in Notion.";
+
+    try {
+      const parsed = JSON.parse(responseText) as { message?: string };
+      if (parsed.message) {
+        message = parsed.message;
+      }
+    } catch {
+      if (responseText.trim()) {
+        message = responseText;
+      }
+    }
+
+    throw new Error(message);
+  }
+
+  if (!responseText.trim()) {
+    return {} as T;
+  }
+
+  return JSON.parse(responseText) as T;
+}
+
+async function listAllBlockChildren(notionToken: string, blockId: string) {
+  const results: NotionBlock[] = [];
+  let nextCursor: string | null | undefined;
+
+  do {
+    const searchParams = new URLSearchParams({
+      page_size: "100",
+    });
+
+    if (nextCursor) {
+      searchParams.set("start_cursor", nextCursor);
+    }
+
+    const response = await notionRequest<NotionListResponse>(
+      notionToken,
+      `/blocks/${blockId}/children?${searchParams.toString()}`,
+    );
+
+    results.push(...(response.results ?? []));
+    nextCursor = response.has_more ? response.next_cursor : null;
+  } while (nextCursor);
+
+  return results.filter((block) => !block.in_trash);
+}
+
+async function appendBlockChildren(
+  notionToken: string,
+  blockId: string,
+  children: Array<Record<string, unknown>>,
+) {
+  return notionRequest<{ results?: NotionBlock[] }>(
+    notionToken,
+    `/blocks/${blockId}/children`,
+    {
+      method: "PATCH",
+      bodyJson: {
+        children,
+      },
+    },
+  );
+}
+
+function getBookingTimeParts() {
+  const now = new Date();
+
+  const monthLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: PAKISTAN_TIME_ZONE,
+    month: "long",
+    year: "numeric",
+  }).format(now);
+
+  const dayLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: PAKISTAN_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
+
+  const timeLabel = new Intl.DateTimeFormat("en-PK", {
+    timeZone: PAKISTAN_TIME_ZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(now);
+
+  return {
+    dayLabel,
+    monthLabel,
+    timestampLabel: `${dayLabel}, ${timeLabel} PKT`,
+    timeLabel,
+  };
+}
+
+function createRequestLogBlock(
+  payload: ReturnType<typeof validatePayload>,
+  timeParts: ReturnType<typeof getBookingTimeParts>,
+) {
+  const requesterLabel = getBookingOptionLabel(BOOKING_RELATION_OPTIONS, payload.relation);
+  const branchLabel = getBookingOptionLabel(
+    BOOKING_BRANCH_OPTIONS,
+    payload.branchPreference,
+  );
+  const serviceLabel = getBookingOptionLabel(
+    BOOKING_SERVICE_OPTIONS,
+    payload.serviceInterest,
+  );
+  const contactMethodLabel = getBookingOptionLabel(
+    BOOKING_CONTACT_METHOD_OPTIONS,
+    payload.contactMethod,
+  );
+  const languageLabel = getBookingOptionLabel(
+    BOOKING_LANGUAGE_OPTIONS,
+    payload.contactLanguage,
+  );
+  const availabilityLabel = getBookingOptionLabel(
+    BOOKING_AVAILABILITY_OPTIONS,
+    payload.availability,
+  );
+  const { timeLabel, timestampLabel } = timeParts;
+
+  return makeToggleBlock(
+    `${timeLabel} - ${payload.requesterName} - ${serviceLabel}`.slice(0, 180),
+    [
+      {
+        object: "block" as const,
+        type: "paragraph" as const,
+        paragraph: {
+          rich_text: [makeTextContent(`Submitted from drzarak.org on ${timestampLabel}.`)],
+        },
+      },
+      makeBulletedItem(`Requester name: ${payload.requesterName}`),
+      makeBulletedItem(`Patient name: ${payload.patientName || "Not provided"}`),
+      makeBulletedItem(`Requester type: ${requesterLabel}`),
+      makeBulletedItem(`Phone: ${payload.phone}`),
+      makeBulletedItem(`Email: ${payload.email || "Not provided"}`),
+      makeBulletedItem(`Preferred branch: ${branchLabel}`),
+      makeBulletedItem(`Service needed: ${serviceLabel}`),
+      makeBulletedItem(`Preferred contact method: ${contactMethodLabel}`),
+      makeBulletedItem(`Preferred language: ${languageLabel}`),
+      makeBulletedItem(`Best time to contact: ${availabilityLabel}`),
+      {
+        object: "block" as const,
+        type: "heading_3" as const,
+        heading_3: {
+          rich_text: [makeTextContent("Summary")],
+        },
+      },
+      ...makeParagraphBlocks(payload.notes),
+    ],
+  );
+}
+
+async function appendBookingRequestToNotionPage(
+  notionToken: string,
+  notionPageId: string,
+  payload: ReturnType<typeof validatePayload>,
+) {
+  const timeParts = getBookingTimeParts();
+  const { monthLabel, dayLabel } = timeParts;
+  const requestBlock = createRequestLogBlock(payload, timeParts);
+  const pageChildren = await listAllBlockChildren(notionToken, notionPageId);
+
+  const monthBlock = pageChildren.find(
+    (block) => block.type === "toggle" && getNotionBlockText(block) === monthLabel,
+  );
+
+  if (!monthBlock) {
+    const monthResponse = await appendBlockChildren(notionToken, notionPageId, [
+      makeToggleBlock(monthLabel),
+    ]);
+    const createdMonthId = monthResponse.results?.[0]?.id;
+
+    if (!createdMonthId) {
+      throw new Error("The booking month group could not be created in Notion.");
+    }
+
+    const dayResponse = await appendBlockChildren(notionToken, createdMonthId, [
+      makeToggleBlock(dayLabel),
+    ]);
+    const createdDayId = dayResponse.results?.[0]?.id;
+
+    if (!createdDayId) {
+      throw new Error("The booking day group could not be created in Notion.");
+    }
+
+    await appendBlockChildren(notionToken, createdDayId, [requestBlock]);
+    return;
+  }
+
+  const monthChildren = await listAllBlockChildren(notionToken, monthBlock.id);
+  const dayBlock = monthChildren.find(
+    (block) => block.type === "toggle" && getNotionBlockText(block) === dayLabel,
+  );
+
+  if (!dayBlock) {
+    const dayResponse = await appendBlockChildren(notionToken, monthBlock.id, [
+      makeToggleBlock(dayLabel),
+    ]);
+    const createdDayId = dayResponse.results?.[0]?.id;
+
+    if (!createdDayId) {
+      throw new Error("The booking day group could not be created in Notion.");
+    }
+
+    await appendBlockChildren(notionToken, createdDayId, [requestBlock]);
+    return;
+  }
+
+  await appendBlockChildren(notionToken, dayBlock.id, [requestBlock]);
+}
+
 function jsonError(error: string, status: number) {
   return Response.json({ error }, { status });
 }
@@ -143,88 +443,6 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
   return payload;
 }
 
-function createNotionPayload(payload: ReturnType<typeof validatePayload>) {
-  const timestamp = new Date().toISOString();
-  const requesterLabel = getBookingOptionLabel(BOOKING_RELATION_OPTIONS, payload.relation);
-  const branchLabel = getBookingOptionLabel(
-    BOOKING_BRANCH_OPTIONS,
-    payload.branchPreference,
-  );
-  const serviceLabel = getBookingOptionLabel(
-    BOOKING_SERVICE_OPTIONS,
-    payload.serviceInterest,
-  );
-  const contactMethodLabel = getBookingOptionLabel(
-    BOOKING_CONTACT_METHOD_OPTIONS,
-    payload.contactMethod,
-  );
-  const languageLabel = getBookingOptionLabel(
-    BOOKING_LANGUAGE_OPTIONS,
-    payload.contactLanguage,
-  );
-  const availabilityLabel = getBookingOptionLabel(
-    BOOKING_AVAILABILITY_OPTIONS,
-    payload.availability,
-  );
-
-  const title = `Booking request - ${payload.requesterName} - ${serviceLabel}`.slice(0, 120);
-
-  const children = [
-    {
-      object: "block" as const,
-      type: "heading_1" as const,
-      heading_1: {
-        rich_text: [makeTextContent("Willing Ways booking request")],
-      },
-    },
-    {
-      object: "block" as const,
-      type: "paragraph" as const,
-      paragraph: {
-        rich_text: [
-          makeTextContent(
-            `New booking request submitted from drzarak.org on ${timestamp}.`,
-          ),
-        ],
-      },
-    },
-    makeBulletedItem(`Requester name: ${payload.requesterName}`),
-    makeBulletedItem(`Patient name: ${payload.patientName || "Not provided"}`),
-    makeBulletedItem(`Requester type: ${requesterLabel}`),
-    makeBulletedItem(`Phone: ${payload.phone}`),
-    makeBulletedItem(`Email: ${payload.email || "Not provided"}`),
-    makeBulletedItem(`Preferred branch: ${branchLabel}`),
-    makeBulletedItem(`Service needed: ${serviceLabel}`),
-    makeBulletedItem(`Preferred contact method: ${contactMethodLabel}`),
-    makeBulletedItem(`Preferred language: ${languageLabel}`),
-    makeBulletedItem(`Best time to contact: ${availabilityLabel}`),
-    {
-      object: "block" as const,
-      type: "heading_2" as const,
-      heading_2: {
-        rich_text: [makeTextContent("Summary")],
-      },
-    },
-    ...makeParagraphBlocks(payload.notes),
-  ];
-
-  return {
-    parent: {
-      page_id: process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim(),
-    },
-    icon: {
-      type: "emoji",
-      emoji: "📞",
-    },
-    properties: {
-      title: {
-        title: [makeTextContent(title)],
-      },
-    },
-    children,
-  };
-}
-
 export async function POST(request: Request) {
   const notionToken = process.env.NOTION_TOKEN?.trim();
   const notionParentPageId = process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim();
@@ -256,43 +474,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const notionResponse = await fetch("https://api.notion.com/v1/pages", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${notionToken}`,
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_API_VERSION,
-      },
-      body: JSON.stringify(createNotionPayload(payload)),
-    });
-
-    const responseText = await notionResponse.text();
-
-    if (!notionResponse.ok) {
-      let message = "The request could not be saved in Notion.";
-
-      try {
-        const errorJson = JSON.parse(responseText) as {
-          message?: string;
-        };
-        if (errorJson.message) {
-          message = errorJson.message;
-        }
-      } catch {
-        if (responseText.trim()) {
-          message = responseText;
-        }
-      }
-
-      return jsonError(message, 502);
-    }
+    await appendBookingRequestToNotionPage(notionToken, notionParentPageId, payload);
 
     return Response.json({
       ok: true,
     });
-  } catch {
+  } catch (error) {
     return jsonError(
-      "The booking request could not be sent right now. Please call 0300-7413639 if the matter is urgent.",
+      error instanceof Error
+        ? error.message
+        : "The booking request could not be sent right now. Please call 0300-7413639 if the matter is urgent.",
       502,
     );
   }

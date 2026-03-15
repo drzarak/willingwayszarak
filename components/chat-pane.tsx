@@ -195,8 +195,8 @@ export function ChatPane({
                 </h2>
                 <p className="mx-auto mt-5 max-w-2xl text-lg leading-9 text-[#5a3743]">
                   {session.language === "urdu"
-                    ? "علاج، داخلے، فیملی سپورٹ، برانچ رابطوں، یا اے آئی کال کے بارے میں سادہ انداز میں پوچھیں۔"
-                    : "Ask in simple language about treatment, admissions, family support, branch contacts, or make an AI call."}
+                    ? "علاج، داخلے، فیملی intervention rehearsal، crisis guidance، بانی کے طریقہ علاج، یا confidential intake کے بارے میں پوچھیں۔"
+                    : "Ask about treatment, admissions, family intervention rehearsal, crisis guidance, the founder's method, or a confidential intake."}
                 </p>
 
                 <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -304,7 +304,7 @@ export function ChatPane({
                   ? "اپنا سوال لکھیے، ہم آپ کو پُرسکون اور واضح رہنمائی دیں گے۔"
                   : session.mode === "doctor"
                     ? "Ask for clinical program details, referral context, detox structure, or branch-specific information."
-                    : "Tell us what you or your loved one is facing, and we will respond with calm, practical guidance."
+                    : "Tell us what you or your loved one is facing, and we will respond with calm, practical guidance or help you rehearse the next conversation."
               }
               dir={inputIsUrdu ? "rtl" : "ltr"}
               value={input}
