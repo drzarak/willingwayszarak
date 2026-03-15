@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Brain,
+  CalendarDays,
   CheckCircle2,
   HeartHandshake,
   MessageSquareHeart,
@@ -175,6 +176,10 @@ export function HomePage() {
                   <PhoneCall className="h-4 w-4" />
                   <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
                 </a>
+                <Link href="/book-session" className="site-action-link">
+                  <CalendarDays className="h-4 w-4" />
+                  <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
+                </Link>
                 <Link href="/ai" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Open AI assistant" urdu="اے آئی معاون کھولیں" />

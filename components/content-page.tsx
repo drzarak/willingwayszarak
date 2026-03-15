@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Clock3, MapPin, MessageSquareHeart, PhoneCall } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  MapPin,
+  MessageSquareHeart,
+  PhoneCall,
+} from "lucide-react";
 
 import { BRANCH_CONTACTS } from "@/lib/chat";
 import { getPreferredPageImage, getRelatedPages, getSectionTitle, type SitePage } from "@/lib/site-data";
@@ -78,6 +85,10 @@ export function ContentPage({ page }: ContentPageProps) {
                   <PhoneCall className="h-4 w-4" />
                   <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
                 </a>
+                <Link href="/book-session" className="site-action-link">
+                  <CalendarDays className="h-4 w-4" />
+                  <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
+                </Link>
                 <Link href="/ai" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Ask Willing Ways AI" urdu="ولنگ ویز اے آئی سے پوچھیں" />
@@ -139,6 +150,10 @@ export function ContentPage({ page }: ContentPageProps) {
                   <PhoneCall className="h-4 w-4" />
                   0300 7413639
                 </a>
+                <Link href="/book-session" className="site-action-link justify-center">
+                  <CalendarDays className="h-4 w-4" />
+                  <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
+                </Link>
                 <Link href="/contact-us" className="site-action-link justify-center">
                   <LocalizedText english="Contact branches" urdu="برانچز سے رابطہ کریں" />
                 </Link>

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, PhoneCall } from "lucide-react";
+import { CalendarDays, Menu, PhoneCall } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -304,13 +304,21 @@ export function ChatApp() {
                 ? "یہ اے آئی کال اور چیٹ مدد کے لئے تیار ہے۔ ہنگامی صورت میں فوراً ہیلپ لائن سے رابطہ کریں۔"
                 : "This AI line is ready for chat and voice support. In emergencies, contact the helpline immediately."}
             </div>
-            <div
-              className={`text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d] ${
-                isUrdu ? "font-urdu normal-case text-right" : ""
-              }`}
-              dir={isUrdu ? "rtl" : "ltr"}
-            >
-              {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+            <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+              <Link href="/book-session" className="site-action-link">
+                <CalendarDays className="h-4 w-4" />
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {isUrdu ? "سیشن بک کریں" : "Book a session"}
+                </span>
+              </Link>
+              <div
+                className={`text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d] ${
+                  isUrdu ? "font-urdu normal-case text-right" : ""
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+              </div>
             </div>
           </div>
         </footer>

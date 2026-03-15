@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, MessageSquareHeart, PhoneCall, X } from "lucide-react";
+import { CalendarDays, Menu, MessageSquareHeart, PhoneCall, X } from "lucide-react";
 import { useState } from "react";
 
 import { SITE_MEDIA } from "@/lib/site-assets";
@@ -17,6 +17,7 @@ const navigation = [
   { href: "/our-services", english: "Services", urdu: "خدمات" },
   { href: "/treatments", english: "Treatments", urdu: "علاج" },
   { href: "/library", english: "Library", urdu: "لائبریری" },
+  { href: "/book-session", english: "Book Session", urdu: "سیشن بک کریں" },
   { href: "/contact-us", english: "Contact", urdu: "رابطہ" },
 ];
 
@@ -90,6 +91,12 @@ export function SiteHeader() {
             <PhoneCall className="h-4 w-4" />
             0300 7413639
           </a>
+          <Link href="/book-session" className="site-action-link">
+            <CalendarDays className="h-4 w-4" />
+            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+              {isUrdu ? "سیشن بک کریں" : "Book a session"}
+            </span>
+          </Link>
           <Link href="/ai" className="site-cta-button">
             <MessageSquareHeart className="h-4 w-4" />
             <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
@@ -154,6 +161,12 @@ export function SiteHeader() {
               <PhoneCall className="h-4 w-4" />
               0300 7413639
             </a>
+            <Link href="/book-session" className="site-action-link justify-center" onClick={() => setOpen(false)}>
+              <CalendarDays className="h-4 w-4" />
+              <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                {isUrdu ? "سیشن بک کریں" : "Book a session"}
+              </span>
+            </Link>
             <Link href="/ai" className="site-cta-button justify-center" onClick={() => setOpen(false)}>
               <MessageSquareHeart className="h-4 w-4" />
               <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>

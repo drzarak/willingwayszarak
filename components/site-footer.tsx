@@ -14,6 +14,7 @@ const footerLinks = [
   { href: "/our-services", english: "Services", urdu: "خدمات" },
   { href: "/treatments", english: "Treatments", urdu: "علاج" },
   { href: "/library", english: "Library", urdu: "لائبریری" },
+  { href: "/book-session", english: "Book Session", urdu: "سیشن بک کریں" },
   { href: "/ai", english: "AI Assistant", urdu: "اے آئی معاون" },
   { href: "/contact-us", english: "Contact", urdu: "رابطہ" },
 ];

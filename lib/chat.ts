@@ -27,6 +27,7 @@ export interface ChatSession {
 }
 
 export interface RuntimeStatus {
+  bookingConfigured?: boolean;
   realtimeConfigured: boolean;
   serverKeyConfigured: boolean;
 }
