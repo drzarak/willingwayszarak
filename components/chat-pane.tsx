@@ -178,11 +178,11 @@ export function ChatPane({
               <div className="mx-auto max-w-3xl text-center">
                 <div className="mx-auto inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary shadow-sm">
                   <Image
-                    src={SITE_MEDIA.brandMark}
-                    alt=""
-                    width={16}
-                    height={16}
-                    className="mr-2 h-4 w-4 object-contain"
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={108}
+                    height={27}
+                    className="mr-3 h-5 w-auto object-contain"
                     unoptimized
                   />
                   <Sparkles className="mr-2 h-3.5 w-3.5" />
