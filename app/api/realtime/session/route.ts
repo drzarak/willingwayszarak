@@ -202,12 +202,17 @@ function buildRealtimeSession(
         noise_reduction: {
           type: "near_field",
         },
+        transcription: {
+          model: "gpt-4o-mini-transcribe",
+          prompt:
+            "The caller may speak English, Urdu, Roman Urdu, or Pakistani Punjabi. Prefer Pakistan-context words, names, and spellings. Ignore remote speaker playback or echoed assistant audio where possible.",
+        },
         // Keep turn taking conservative so ambient room noise is less likely
         // to trigger a response or cut off the assistant mid-sentence.
         turn_detection: {
           type: "semantic_vad",
           eagerness: "low",
-          create_response: true,
+          create_response: false,
           interrupt_response: false,
         },
       },

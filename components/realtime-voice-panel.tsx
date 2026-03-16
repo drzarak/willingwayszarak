@@ -165,6 +165,49 @@ function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
     : "One call can cover guidance, routing, and follow-up requests.";
 }
 
+function normalizeTranscriptComparisonText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function transcriptLooksLikeAssistantEcho(
+  transcriptText: string,
+  transcript: VoiceTranscriptEntry[],
+  lastAssistantSpeechAt: number,
+) {
+  if (!lastAssistantSpeechAt || Date.now() - lastAssistantSpeechAt > 8000) {
+    return false;
+  }
+
+  const normalizedTranscript = normalizeTranscriptComparisonText(transcriptText);
+
+  if (normalizedTranscript.length < 18) {
+    return false;
+  }
+
+  const lastAssistantEntry = [...transcript]
+    .reverse()
+    .find((entry) => entry.role === "assistant" && entry.text.trim());
+
+  if (!lastAssistantEntry) {
+    return false;
+  }
+
+  const normalizedAssistant = normalizeTranscriptComparisonText(lastAssistantEntry.text);
+
+  if (normalizedAssistant.length < 18) {
+    return false;
+  }
+
+  return (
+    normalizedAssistant.includes(normalizedTranscript) ||
+    normalizedTranscript.includes(normalizedAssistant)
+  );
+}
+
 export function RealtimeVoicePanel({
   bookingConfigured,
   enabled,
@@ -183,6 +226,7 @@ export function RealtimeVoicePanel({
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
   const [rememberedName, setRememberedName] = useState(preferredName);
+  const localTranscriptRef = useRef<VoiceTranscriptEntry[]>(transcript);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -193,6 +237,7 @@ export function RealtimeVoicePanel({
   const activeResponseRef = useRef(false);
   const queuedResponseCreateRef = useRef(false);
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
+  const lastAssistantSpeechAtRef = useRef(0);
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
@@ -240,6 +285,10 @@ export function RealtimeVoicePanel({
 
     setRememberedName(preferredName);
   }, [preferredName, rememberedName]);
+
+  useEffect(() => {
+    localTranscriptRef.current = localTranscript;
+  }, [localTranscript]);
 
   useEffect(() => {
     const transcriptIsUnchanged =
@@ -386,6 +435,7 @@ export function RealtimeVoicePanel({
 
     const nextId = itemId ?? assistantEntryIdRef.current ?? crypto.randomUUID();
     assistantEntryIdRef.current = nextId;
+    lastAssistantSpeechAtRef.current = Date.now();
 
     setLocalTranscript((current) => {
       const existingIndex = current.findIndex((entry) => entry.id === nextId);
@@ -575,6 +625,7 @@ export function RealtimeVoicePanel({
 
     if (type === "response.done") {
       activeResponseRef.current = false;
+      lastAssistantSpeechAtRef.current = Date.now();
       assistantEntryIdRef.current = null;
       setStatus("connected");
       setToolActivity(null);
@@ -598,18 +649,47 @@ export function RealtimeVoicePanel({
         typeof payload.transcript === "string" ? payload.transcript.trim() : "";
 
       if (!transcriptText) {
+        setStatus("connected");
         return;
       }
 
-      setLocalTranscript((current) => [
-        ...current,
-        {
-          id: typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID(),
+      if (
+        transcriptLooksLikeAssistantEcho(
+          transcriptText,
+          localTranscriptRef.current,
+          lastAssistantSpeechAtRef.current,
+        )
+      ) {
+        setStatus("connected");
+        return;
+      }
+
+      setLocalTranscript((current) => {
+        const nextId =
+          typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID();
+        const existingIndex = current.findIndex((entry) => entry.id === nextId);
+
+        if (existingIndex === -1) {
+          return [
+            ...current,
+            {
+              id: nextId,
+              role: "user",
+              text: transcriptText,
+            },
+          ];
+        }
+
+        const next = [...current];
+        next[existingIndex] = {
+          ...next[existingIndex],
           role: "user",
           text: transcriptText,
-        },
-      ]);
+        };
+        return next;
+      });
       setStatus("connected");
+      requestAssistantResponse();
       return;
     }
 
@@ -708,7 +788,14 @@ export function RealtimeVoicePanel({
     setStatus("requesting");
 
     try {
-      const localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
       const peerConnection = new RTCPeerConnection();
       const dataChannel = peerConnection.createDataChannel("oai-events");
 
