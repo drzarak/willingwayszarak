@@ -1,13 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   AlertTriangle,
   ArrowUp,
+  CalendarDays,
   Check,
   LoaderCircle,
+  PhoneCall,
   ShieldAlert,
   Sparkles,
   Square,
@@ -174,74 +177,105 @@ export function ChatPane({
           />
 
           {deferredMessages.length === 0 ? (
-            <div className="animate-fade-up py-10">
-              <div className="mx-auto max-w-3xl text-center">
-                <div className="mx-auto inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary shadow-sm">
-                  <Image
-                    src={SITE_MEDIA.logo}
-                    alt="Willing Ways"
-                    width={108}
-                    height={27}
-                    className="mr-3 h-5 w-auto object-contain"
-                    unoptimized
-                  />
-                  <Sparkles className="mr-2 h-3.5 w-3.5" />
-                  Willing Ways AI
-                </div>
-                <h2 className="gradient-heading mt-6 font-serif text-3xl font-semibold leading-tight sm:text-5xl">
-                  {session.language === "urdu"
-                    ? "پرسکون رہنمائی، جیسے ولنگ ویز ٹیم سے پہلی مطمئن گفتگو"
-                    : "Calm guidance that feels like a first reassuring conversation with Willing Ways."}
-                </h2>
-                <p className="mx-auto mt-5 max-w-2xl text-lg leading-9 text-[#5a3743]">
-                  {session.language === "urdu"
-                    ? "علاج، داخلے، فیملی intervention rehearsal، crisis guidance، بانی کے طریقہ علاج، یا confidential intake کے بارے میں پوچھیں۔"
-                    : "Ask about treatment, admissions, family intervention rehearsal, crisis guidance, the founder's method, or a confidential intake."}
-                </p>
+            <div className="animate-fade-up py-6">
+              <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.12fr_0.88fr]">
+                <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl">
+                  <div className="inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary shadow-sm">
+                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                    {session.language === "urdu" ? "مرحلہ 3 · اگر آپ لکھنا چاہیں" : "Step 3 · Prefer typing instead?"}
+                  </div>
+                  <h2
+                    className={`mt-4 text-3xl font-semibold leading-tight text-[#3b1725] ${
+                      session.language === "urdu" ? "font-urdu text-right" : "font-serif"
+                    }`}
+                    dir={session.language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {session.language === "urdu"
+                      ? "اگر کال مناسب نہ لگے تو نیچے مختصر سوال لکھ دیں"
+                      : "If a call does not feel right, type a short question below"}
+                  </h2>
+                  <p
+                    className={`mt-3 text-base leading-8 text-[#5a3743] ${
+                      session.language === "urdu" ? "font-urdu text-right" : ""
+                    }`}
+                    dir={session.language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {session.language === "urdu"
+                      ? "چیٹ treatment، family intervention planning، crisis guidance، founder method اور private intake سوالات کے لئے موزوں ہے۔"
+                      : "Chat works well for treatment questions, family intervention planning, crisis guidance, founder-method questions, and private intake concerns."}
+                  </p>
 
-                <div className="mt-10 flex flex-wrap justify-center gap-3">
-                  {suggestionChips.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      className="rounded-full border border-[#ead6dc] bg-white px-4 py-3 text-base font-medium text-[#4b2934] shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary"
-                      onClick={() => submitPrompt(chip)}
-                    >
-                      {chip}
-                    </button>
-                  ))}
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {suggestionChips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        className="rounded-full border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#4b2934] shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary"
+                        onClick={() => submitPrompt(chip)}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="mt-10 rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl sm:flex sm:items-center sm:gap-5">
-                  <Image
-                    src={SITE_MEDIA.founder}
-                    alt="Dr. Sadaqat Ali"
-                    width={96}
-                    height={96}
-                    className="mx-auto h-24 w-24 rounded-[24px] object-cover sm:mx-0"
-                    unoptimized
-                  />
-                  <div className={`mt-4 sm:mt-0 ${session.language === "urdu" ? "text-right" : "text-left"}`}>
+                <div className="grid gap-4">
+                  <div className="rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 shadow-soft">
                     <div
-                      className={`text-xs font-semibold tracking-[0.22em] text-primary ${
-                        session.language === "urdu" ? "font-urdu normal-case" : "uppercase"
-                      }`}
-                    >
-                      {session.language === "urdu" ? "بانی" : "Founded By"}
-                    </div>
-                    <div className={`mt-2 text-2xl font-semibold text-slate-950 ${session.language === "urdu" ? "font-urdu" : "font-serif"}`}>
-                      Dr. Sadaqat Ali
-                    </div>
-                    <p
-                      className={`mt-2 text-base leading-8 text-[#5a3743] ${
-                        session.language === "urdu" ? "font-urdu" : ""
+                      className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
+                        session.language === "urdu" ? "font-urdu text-right normal-case" : ""
                       }`}
                       dir={session.language === "urdu" ? "rtl" : "ltr"}
                     >
-                      {session.language === "urdu"
-                        ? "پاکستان میں addiction psychiatry کی 50+ سالہ قیادت، جس کی رہنمائی اب اسی محفوظ اور آسان اے آئی سپورٹ میں شامل ہے۔"
-                        : "50+ years of addiction psychiatry leadership in Pakistan, now reflected in a simple and reassuring AI support experience."}
-                    </p>
+                      {session.language === "urdu" ? "دوسرے فوری راستے" : "Other fast options"}
+                    </div>
+                    <div className="mt-4 grid gap-3">
+                      <Link href="/book-session" className="site-action-link justify-center">
+                        <CalendarDays className="h-4 w-4" />
+                        <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
+                          {session.language === "urdu" ? "callback یا session بک کریں" : "Request a callback or session"}
+                        </span>
+                      </Link>
+                      <a href="tel:+923007413639" className="site-action-link justify-center">
+                        <PhoneCall className="h-4 w-4" />
+                        <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
+                          {session.language === "urdu" ? "فوری مدد کے لئے کال کریں" : "Call for urgent help"}
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl sm:flex sm:items-center sm:gap-4">
+                    <Image
+                      src={SITE_MEDIA.founder}
+                      alt="Dr. Sadaqat Ali"
+                      width={88}
+                      height={88}
+                      className="mx-auto h-20 w-20 rounded-[22px] object-cover sm:mx-0"
+                      unoptimized
+                    />
+                    <div className={`mt-4 sm:mt-0 ${session.language === "urdu" ? "text-right" : "text-left"}`}>
+                      <div
+                        className={`text-xs font-semibold tracking-[0.22em] text-primary ${
+                          session.language === "urdu" ? "font-urdu normal-case" : "uppercase"
+                        }`}
+                      >
+                        {session.language === "urdu" ? "بانی" : "Founded By"}
+                      </div>
+                      <div className={`mt-2 text-xl font-semibold text-slate-950 ${session.language === "urdu" ? "font-urdu" : "font-serif"}`}>
+                        Dr. Sadaqat Ali
+                      </div>
+                      <p
+                        className={`mt-2 text-sm leading-7 text-[#5a3743] ${
+                          session.language === "urdu" ? "font-urdu" : ""
+                        }`}
+                        dir={session.language === "urdu" ? "rtl" : "ltr"}
+                      >
+                        {session.language === "urdu"
+                          ? "50+ سالہ addiction psychiatry leadership اب اسی سادہ AI support experience میں شامل ہے۔"
+                          : "50+ years of addiction psychiatry leadership now reflected in this simpler AI support experience."}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -299,6 +333,7 @@ export function ChatPane({
             }}
           >
             <Textarea
+              id="ai-text-input"
               placeholder={
                 session.language === "urdu"
                   ? "اپنا سوال لکھیے، ہم آپ کو پُرسکون اور واضح رہنمائی دیں گے۔"

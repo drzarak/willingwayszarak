@@ -42,6 +42,8 @@ export interface VoiceCallFocusOption {
   id: VoiceCallFocusId;
   englishLabel: string;
   urduLabel: string;
+  englishTag: string;
+  urduTag: string;
   englishDescription: string;
   urduDescription: string;
   englishStarter: string;
@@ -67,7 +69,7 @@ export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "marin";
 export const DEFAULT_VOICE_CALL_FOCUS_ID: VoiceCallFocusId = "general-support";
 
 export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
-  { id: "marin", label: "Marin (Marine)" },
+  { id: "marin", label: "Marin" },
   { id: "cedar", label: "Cedar" },
   { id: "alloy", label: "Alloy" },
   { id: "ash", label: "Ash" },
@@ -84,6 +86,8 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     id: "general-support",
     englishLabel: "General support",
     urduLabel: "عمومی رہنمائی",
+    englishTag: "Best first step",
+    urduTag: "پہلا بہترین قدم",
     englishDescription: "Admissions, treatment questions, branch guidance, and calm first-step support.",
     urduDescription: "داخلے، علاج، برانچ رہنمائی اور پرسکون ابتدائی مدد۔",
     englishStarter: "I need help understanding the next step for my family.",
@@ -93,6 +97,8 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     id: "family-coach",
     englishLabel: "Family coach",
     urduLabel: "فیملی کوچ",
+    englishTag: "For families",
+    urduTag: "خاندان کے لئے",
     englishDescription: "Practice difficult conversations and intervention language before speaking to your loved one.",
     urduDescription: "اپنے عزیز سے بات کرنے سے پہلے مشکل گفتگو اور intervention language کی مشق کریں۔",
     englishStarter: "Help me rehearse what to say to my addicted brother without triggering a fight.",
@@ -102,6 +108,8 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     id: "crisis-triage",
     englishLabel: "Crisis triage",
     urduLabel: "بحرانی رہنمائی",
+    englishTag: "Urgent support",
+    urduTag: "فوری مدد",
     englishDescription: "Fast safety-first guidance for overdose, violent relapse, self-harm, or urgent psychiatric distress.",
     urduDescription: "اوورڈوز، violent relapse، self-harm یا فوری psychiatric distress کے لئے فوری حفاظتی رہنمائی۔",
     englishStarter: "This feels urgent. Help me decide what we should do right now.",
@@ -111,6 +119,8 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     id: "founder-method",
     englishLabel: "Dr. Sadaqat method",
     urduLabel: "ڈاکٹر صداقت کا طریقہ",
+    englishTag: "Founder guidance",
+    urduTag: "بانی کی رہنمائی",
     englishDescription: "Ask for founder-led guidance grounded in Willing Ways teachings, books, videos, and family-system philosophy.",
     urduDescription: "ولنگ ویز کی تعلیمات، کتابوں، ویڈیوز اور family-system philosophy پر مبنی founder-led guidance حاصل کریں۔",
     englishStarter: "What is Dr. Sadaqat Ali's approach to shame, denial, and family recovery?",
@@ -120,6 +130,8 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     id: "private-intake",
     englishLabel: "Private intake",
     urduLabel: "پرائیویٹ intake",
+    englishTag: "Private start",
+    urduTag: "خفیہ آغاز",
     englishDescription: "Share a confidential situation without names first, then decide on the safest next step.",
     urduDescription: "پہلے نام بتائے بغیر خفیہ صورتحال شیئر کریں، پھر محفوظ اگلا قدم طے کریں۔",
     englishStarter: "I want to explain the situation without sharing names yet.",
@@ -296,6 +308,38 @@ export function voiceCallFocusLabel(focusId: VoiceCallFocusId, language: ChatLan
   }
 
   return language === "urdu" ? focus.urduLabel : focus.englishLabel;
+}
+
+export function voiceCallActionLabel(focusId: VoiceCallFocusId, language: ChatLanguage) {
+  if (language === "urdu") {
+    if (focusId === "family-coach") {
+      return "فیملی کوچنگ کال شروع کریں";
+    }
+    if (focusId === "crisis-triage") {
+      return "فوری رہنمائی کال شروع کریں";
+    }
+    if (focusId === "founder-method") {
+      return "بانی کی رہنمائی والی کال شروع کریں";
+    }
+    if (focusId === "private-intake") {
+      return "پرائیویٹ intake کال شروع کریں";
+    }
+    return "ولنگ ویز اے آئی کو کال کریں";
+  }
+
+  if (focusId === "family-coach") {
+    return "Start family coaching call";
+  }
+  if (focusId === "crisis-triage") {
+    return "Start urgent guidance call";
+  }
+  if (focusId === "founder-method") {
+    return "Start founder guidance call";
+  }
+  if (focusId === "private-intake") {
+    return "Start private intake call";
+  }
+  return "Call Willing Ways AI now";
 }
 
 export function getSuggestionChips(language: ChatLanguage) {
