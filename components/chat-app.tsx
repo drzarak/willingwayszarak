@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Menu, MessageSquare, PhoneCall } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -32,7 +31,6 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ surface }: ChatAppProps) {
-  const pathname = usePathname();
   const { isUrdu, language: siteLanguage, hydrated: siteLanguageHydrated } = useSiteLanguage();
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -185,29 +183,29 @@ export function ChatApp({ surface }: ChatAppProps) {
 
   if (!hydrated || !activeSession) {
     return (
-      <div className="min-h-screen bg-[#f6f7f4] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto h-[84vh] max-w-5xl rounded-[32px] border border-slate-200 bg-white shadow-sm" />
+      <div className="min-h-screen bg-[#f5f4ef] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto h-[84vh] max-w-5xl rounded-[32px] border border-white/70 bg-white/85 shadow-[0_18px_60px_rgba(47,24,32,0.08)]" />
       </div>
     );
   }
 
-  const tabs = [
-    {
-      href: "/",
-      icon: MessageSquare,
-      label: isUrdu ? "چیٹ" : "Chat",
-      active: pathname === "/" || pathname === "/ai/chat",
-    },
-    {
-      href: "/ai",
-      icon: PhoneCall,
-      label: isUrdu ? "کال" : "Call",
-      active: pathname === "/ai",
-    },
-  ];
+  const alternateAction =
+    surface === "voice"
+      ? {
+          href: "/chat",
+          icon: MessageSquare,
+          label: isUrdu ? "اگر چاہیں تو ٹیکسٹ چیٹ" : "Prefer typing? Open text chat",
+        }
+      : {
+          href: "/",
+          icon: PhoneCall,
+          label: isUrdu ? "واپس اے آئی کال پر جائیں" : "Back to the AI call",
+        };
+  const AlternateActionIcon = alternateAction.icon;
 
   return (
-    <div className="min-h-screen bg-[#f6f7f4] text-slate-950">
+    <div className="min-h-screen bg-[#f5f4ef] text-slate-950">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(101,19,40,0.06),_transparent_28%)]" />
       <Sidebar
         activeChatId={activeChatId}
         open={sidebarOpen}
@@ -218,8 +216,8 @@ export function ChatApp({ surface }: ChatAppProps) {
         onSelectChat={handleSelectChat}
       />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-3 py-3 sm:px-6 sm:py-5">
-        <header className="rounded-[28px] border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-3 py-3 sm:px-5 sm:py-5">
+        <header className="rounded-[30px] border border-white/80 bg-white/88 px-4 py-4 shadow-[0_18px_60px_rgba(47,24,32,0.08)] backdrop-blur sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <Button variant="outline" size="icon" onClick={() => setSidebarOpen(true)}>
@@ -240,11 +238,11 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <Link
-                href="/about"
-                className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#ead6dc] hover:bg-[#fff8fa] hover:text-[#651328] sm:inline-flex"
-              >
-                {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
+              <Link href={alternateAction.href} className="site-action-link hidden sm:inline-flex">
+                <AlternateActionIcon className="h-4 w-4" />
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {alternateAction.label}
+                </span>
               </Link>
               <a
                 href="tel:+923007413639"
@@ -257,52 +255,53 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div
               className={`${isUrdu ? "font-urdu text-right" : ""}`}
               dir={isUrdu ? "rtl" : "ltr"}
             >
-              <div className="text-lg font-semibold text-slate-950">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
                 {surface === "voice"
                   ? isUrdu
-                    ? "ڈاکٹر صداقت علی کے اے آئی کونسلر کے ساتھ کال"
-                    : "Call Dr. Sadaqat Ali's AI counselor"
+                    ? "ہوم اے آئی کال"
+                    : "Home AI call"
                   : isUrdu
-                    ? "ڈاکٹر صداقت علی کا اے آئی کونسلر"
-                    : "Dr. Sadaqat Ali's AI counselor"}
+                    ? "ٹیکسٹ چیٹ"
+                    : "Text chat"}
+              </div>
+              <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
+                {surface === "voice"
+                  ? isUrdu
+                    ? "ولنگ ویز اے آئی کے ساتھ ایک سادہ، پرسکون کال"
+                    : "A calm, simple call with Willing Ways AI"
+                  : isUrdu
+                    ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں"
+                    : "Type here if speaking is not easy right now"}
               </div>
               <div className="mt-1 text-sm leading-6 text-slate-600">
                 {surface === "voice"
                   ? isUrdu
-                    ? "فوری رہنمائی، family counselling اور follow-up routing کے لئے voice-first سپورٹ۔"
-                    : "Voice-first support for urgent guidance, family counseling, and follow-up routing."
+                    ? "یہی ہوم اسکرین اب مریضوں اور خاندانوں کے لئے فوری رہنمائی، family counselling اور follow-up کے لئے ہے۔"
+                    : "This home screen is now voice-first for urgent guidance, family counseling, and follow-up."
                   : isUrdu
-                    ? "مریضوں اور خاندانوں کے لئے فوری، pre-treatment اور post-treatment رہنمائی ایک پرسکون چیٹ میں۔"
-                    : "Immediate, pre-treatment, and post-treatment guidance for patients and families in a calmer chat."}
+                    ? "اگر آپ خاموشی سے اپنی بات لکھنا چاہیں تو یہی دوسرا آسان راستہ ہے۔"
+                    : "If you would rather type quietly, this is the simpler second route."}
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
-              <div className="inline-flex rounded-full border border-slate-200 bg-[#fafaf8] p-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-
-                  return (
-                    <Link
-                      key={tab.href}
-                      href={tab.href}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                        tab.active
-                          ? "bg-[#651328] text-white shadow-sm"
-                          : "text-slate-600 hover:bg-white hover:text-slate-900"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </Link>
-                  );
-                })}
-              </div>
+              <Link href={alternateAction.href} className="site-action-link sm:hidden">
+                <AlternateActionIcon className="h-4 w-4" />
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {surface === "voice"
+                    ? isUrdu
+                      ? "ٹیکسٹ چیٹ"
+                      : "Text chat"
+                    : isUrdu
+                      ? "اے آئی کال"
+                      : "AI call"}
+                </span>
+              </Link>
               <div
                 className={`text-xs font-semibold tracking-[0.14em] text-slate-500 ${
                   isUrdu ? "font-urdu text-right normal-case" : "uppercase"
@@ -315,26 +314,22 @@ export function ChatApp({ surface }: ChatAppProps) {
           </div>
         </header>
 
-        <main className="mt-3 flex-1">
-          <div className="surface-panel chat-shell overflow-hidden">
-            {surface === "voice" ? (
-              <div className="px-4 py-4 sm:px-6 sm:py-6">
-                <div className="mx-auto max-w-5xl">
-                  <RealtimeVoicePanel
-                    key={`${activeSession.id}:voice:${activeSession.language}`}
-                    bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}
-                    enabled={runtimeStatus.realtimeConfigured}
-                    language={activeSession.language}
-                    mode={activeSession.mode}
-                    preferredName={activeSession.preferredName ?? ""}
-                    sessionId={activeSession.id}
-                    transcript={activeSession.voiceTranscript}
-                    onPreferredNameChange={handlePreferredNameChange}
-                    onTranscriptChange={handleVoiceTranscriptChange}
-                  />
-                </div>
-              </div>
-            ) : (
+        <main className="mt-4 flex-1">
+          {surface === "voice" ? (
+            <RealtimeVoicePanel
+              key={`${activeSession.id}:voice:${activeSession.language}`}
+              bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}
+              enabled={runtimeStatus.realtimeConfigured}
+              language={activeSession.language}
+              mode={activeSession.mode}
+              preferredName={activeSession.preferredName ?? ""}
+              sessionId={activeSession.id}
+              transcript={activeSession.voiceTranscript}
+              onPreferredNameChange={handlePreferredNameChange}
+              onTranscriptChange={handleVoiceTranscriptChange}
+            />
+          ) : (
+            <div className="surface-panel chat-shell overflow-hidden border-white/80 bg-white/90 shadow-[0_18px_60px_rgba(47,24,32,0.08)]">
               <ChatPane
                 key={`${activeSession.id}:chat:${activeSession.language}`}
                 modelId={DEFAULT_CHAT_MODEL_ID}
@@ -343,16 +338,19 @@ export function ChatApp({ surface }: ChatAppProps) {
                 serverKeyConfigured={runtimeStatus.serverKeyConfigured}
                 session={activeSession}
               />
-            )}
-          </div>
+            </div>
+          )}
         </main>
 
-        <footer className="px-1 py-4 text-center text-sm text-slate-500">
-          <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+        <footer className="px-1 py-5 text-center text-sm text-slate-500">
+          <div className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
             {isUrdu
               ? "اگر معاملہ فوری ہو تو 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"
               : "For emergencies, contact 1122 or 0300-7413639 immediately."}
-          </span>
+          </div>
+          <div className="mt-2 text-xs font-medium text-slate-400">
+            {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+          </div>
         </footer>
       </div>
     </div>

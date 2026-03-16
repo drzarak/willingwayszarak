@@ -86,7 +86,7 @@ function getVoiceFocusPrefix(voiceFocus: VoiceCallFocusId) {
     return "Voice focus: Private intake. Allow the caller to speak anonymously at first. Avoid pushing for names or identifying details unless truly necessary for safety. Emphasize dignity, privacy, and the option to move into a formal booking request or helpline handoff when they are ready.";
   }
 
-  return "Voice focus: General support. Provide calm first-step guidance about treatment, admissions, family support, and branch routing.";
+  return "Voice focus: General support with automatic routing. Start broad, then decide the right next step yourself based on what the caller says. This may include family guidance, relapse-prevention support, treatment preparation, post-treatment follow-up, admissions questions, or a callback request. Do not ask the caller to choose a department or workflow unless that is absolutely necessary.";
 }
 
 export function composeSystemPrompt(

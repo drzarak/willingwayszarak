@@ -1,5 +1,5 @@
 import { ChatApp } from "@/components/chat-app";
 
 export default function Home() {
-  return <ChatApp surface="chat" />;
+  return <ChatApp surface="voice" />;
 }

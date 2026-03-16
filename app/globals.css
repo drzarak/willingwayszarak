@@ -16,7 +16,7 @@ html {
 
 body {
   min-height: 100vh;
-  background: #f6f7f4;
+  background: #f5f4ef;
   color: #2f1820;
   text-rendering: optimizeLegibility;
   line-height: 1.65;
@@ -54,16 +54,19 @@ body {
 @layer components {
   .glass-panel {
     @apply rounded-[28px] border bg-white shadow-sm;
-    border-color: rgba(15, 23, 42, 0.08);
+    border-color: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 18px 60px rgba(47, 24, 32, 0.08);
   }
 
   .surface-panel {
     @apply rounded-[30px] border bg-white shadow-sm;
-    border-color: rgba(15, 23, 42, 0.08);
+    border-color: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 18px 60px rgba(47, 24, 32, 0.08);
   }
 
   .sidebar-panel {
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
   }
 
   .gradient-heading {
@@ -155,8 +158,14 @@ body {
   }
 
   .site-action-link {
-    @apply inline-flex items-center gap-2 rounded-full border bg-white px-4 py-3 text-sm font-semibold text-[#4b2934] shadow-sm transition hover:bg-[#fffafb];
-    border-color: rgba(101, 19, 40, 0.12);
+    @apply inline-flex items-center gap-2 rounded-full border bg-white px-4 py-3 text-sm font-semibold text-[#4b2934] shadow-sm transition;
+    border-color: rgba(47, 24, 32, 0.08);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .site-action-link:hover {
+    background: #ffffff;
+    border-color: rgba(101, 19, 40, 0.14);
   }
 
   .site-cta-button {
@@ -186,7 +195,7 @@ body {
   .voice-orb {
     @apply relative flex h-28 w-28 items-center justify-center rounded-full border border-white bg-white/95 shadow-sm;
     box-shadow:
-      0 18px 40px rgba(101, 19, 40, 0.12),
+      0 20px 48px rgba(101, 19, 40, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.95);
   }
 
@@ -208,10 +217,10 @@ body {
   }
 
   .voice-wave-bar {
-    width: 8px;
+    width: 7px;
     height: 16px;
     border-radius: 9999px;
-    background: rgba(101, 19, 40, 0.24);
+    background: rgba(101, 19, 40, 0.2);
   }
 
   .voice-wave-ringing .voice-wave-bar {

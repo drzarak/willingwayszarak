@@ -254,15 +254,15 @@ export function ChatPane({
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Link href="/ai" className="site-action-link justify-center">
+            <Link href="/" className="site-action-link justify-center">
               <PhoneCall className="h-4 w-4" />
               <span
                 className={session.language === "urdu" ? "font-urdu" : ""}
                 dir={session.language === "urdu" ? "rtl" : "ltr"}
               >
                 {session.language === "urdu"
-                  ? "اگر بات کرنا آسان ہو تو کال کھولیں"
-                  : "Prefer to talk? Open the AI call"}
+                  ? "اگر بات کرنا آسان ہو تو اے آئی کال پر جائیں"
+                  : "Prefer to talk? Go to the AI call"}
               </span>
             </Link>
 
@@ -292,31 +292,31 @@ export function ChatPane({
         }`}
       >
         {isEmptyConversation ? (
-          <div className="mx-auto flex min-h-[calc(100vh-17rem)] w-full max-w-4xl flex-col justify-center py-6">
-            <section className="relative overflow-hidden rounded-[38px] border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-8 sm:py-9">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.08),_transparent_42%),radial-gradient(circle_at_bottom_right,_rgba(255,238,242,0.85),_transparent_34%)]" />
+          <div className="mx-auto flex min-h-[calc(100vh-18rem)] w-full max-w-4xl flex-col justify-center py-6">
+            <section className="relative overflow-hidden rounded-[38px] border border-white/80 bg-white/94 px-5 py-6 shadow-[0_18px_60px_rgba(47,24,32,0.07)] sm:px-8 sm:py-9">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.06),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(255,244,247,0.88),_transparent_34%)]" />
 
               <div className="relative">
                 <div className="mx-auto max-w-3xl text-center">
                   <div className="section-kicker">
                     {session.language === "urdu"
-                      ? "ڈاکٹر صداقت علی کا اے آئی کونسلر"
-                      : "Dr. Sadaqat Ali's AI counselor"}
+                      ? "آرام سے لکھ کر بات کریں"
+                      : "Write instead if that feels easier"}
                   </div>
 
                   <h1
-                    className={`mt-5 text-4xl font-semibold leading-[1.08] text-slate-950 sm:text-5xl ${
+                    className={`mt-5 text-4xl font-semibold leading-[1.08] text-slate-950 sm:text-[3.2rem] ${
                       session.language === "urdu" ? "font-urdu" : ""
                     }`}
                     dir={session.language === "urdu" ? "rtl" : "ltr"}
                   >
                     {session.language === "urdu"
                       ? rememberedName
-                        ? `${rememberedName}، آج ہم آپ کی کیسے مدد کر سکتے ہیں؟`
-                        : "آج ہم آپ کی کیسے مدد کر سکتے ہیں؟"
+                        ? `${rememberedName}، اپنی بات آرام سے لکھ دیں`
+                        : "اپنی بات آرام سے لکھ دیں"
                       : rememberedName
-                        ? `How can we support you today, ${rememberedName}?`
-                        : "How can we support you today?"}
+                        ? `Write what is happening, ${rememberedName}`
+                        : "Write what is happening"}
                   </h1>
 
                   <p
@@ -326,8 +326,8 @@ export function ChatPane({
                     dir={session.language === "urdu" ? "rtl" : "ltr"}
                   >
                     {session.language === "urdu"
-                      ? "یہ جگہ مریضوں اور خاندانوں کے لئے فوری counselling، treatment سے پہلے اور بعد کی رہنمائی، relapse support اور session request کے لئے بنائی گئی ہے۔"
-                      : "This space is for urgent counseling, treatment guidance before and after care, relapse support, and session requests for patients and families."}
+                      ? "اگر کال کرنا آسان نہ ہو تو یہ پرسکون چیٹ مریضوں اور خاندانوں کے لئے فوری رہنمائی، treatment support اور follow-up میں مدد دیتی ہے۔"
+                      : "If calling is not easy right now, this calmer chat can still help with urgent guidance, treatment support, and follow-up."}
                   </p>
                 </div>
 
@@ -337,11 +337,11 @@ export function ChatPane({
                       ? "فوری رہنمائی"
                       : "Urgent guidance",
                     session.language === "urdu"
-                      ? "فیملی intervention سپورٹ"
-                      : "Family intervention support",
+                      ? "خاندانی سپورٹ"
+                      : "Family support",
                     session.language === "urdu"
-                      ? "علاج کے دوران اور بعد کی مدد"
-                      : "During and after treatment support",
+                      ? "علاج کے بعد follow-up"
+                      : "After-treatment follow-up",
                   ].map((item) => (
                     <span
                       key={item}
@@ -412,15 +412,15 @@ export function ChatPane({
                 </div>
 
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <Link href="/ai" className="site-action-link justify-center">
+                  <Link href="/" className="site-action-link justify-center">
                     <PhoneCall className="h-4 w-4" />
                     <span
                       className={session.language === "urdu" ? "font-urdu" : ""}
                       dir={session.language === "urdu" ? "rtl" : "ltr"}
                     >
                       {session.language === "urdu"
-                        ? "اگر چاہیں تو اے آئی کال شروع کریں"
-                        : "Start the AI call instead"}
+                        ? "اگر چاہیں تو اے آئی کال پر واپس جائیں"
+                        : "Go back to the AI call"}
                     </span>
                   </Link>
                   <Link href="/about" className="site-action-link justify-center">

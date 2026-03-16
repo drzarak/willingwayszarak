@@ -110,7 +110,7 @@ export function Sidebar({
 
           <div className="mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             <History className="h-4 w-4" />
-            <span>{isUrdu ? "حالیہ گفتگو" : "Recent chats"}</span>
+            <span>{isUrdu ? "حالیہ گفتگو" : "Recent conversations"}</span>
           </div>
 
           <ScrollArea className="mt-3 flex-1 pr-2">

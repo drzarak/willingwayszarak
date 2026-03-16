@@ -1,5 +1,5 @@
-import { ChatApp } from "@/components/chat-app";
+import { redirect } from "next/navigation";
 
 export default function AIPage() {
-  return <ChatApp surface="voice" />;
+  redirect("/");
 }
