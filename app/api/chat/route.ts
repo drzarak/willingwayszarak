@@ -16,16 +16,20 @@ import {
   CRISIS_REDIRECT_TOOL_PARAMETERS,
   ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
   GET_CONTACT_TOOL_PARAMETERS,
+  REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
   SEND_RESOURCE_TOOL_PARAMETERS,
   buildBookingPayloadFromToolInput,
   getContactResult,
   getCrisisRedirectResult,
   getHumanEscalationResult,
+  getRememberedPreferredNameResult,
   getSupportResourceResult,
+  normalizePreferredName,
   type BookSessionToolInput,
   type ContactToolInput,
   type CrisisRedirectToolInput,
   type EscalateToHumanToolInput,
+  type RememberPreferredNameToolInput,
   type SendResourceToolInput,
 } from "@/lib/support-tools";
 
@@ -42,6 +46,8 @@ interface ChatRequestBody {
   messages?: UIMessage[];
   mode?: ChatMode;
   modelId?: ModelId;
+  preferredName?: string;
+  resumeContext?: string;
   trigger?: string;
 }
 
@@ -106,6 +112,15 @@ function createChatTools(request: Request) {
       inputSchema: jsonSchema<CrisisRedirectToolInput>(CRISIS_REDIRECT_TOOL_PARAMETERS),
       execute: async (input: CrisisRedirectToolInput) => getCrisisRedirectResult(input),
     }),
+    remember_preferred_name: tool({
+      description:
+        "Use right after the user confirms the name they want Willing Ways AI to use for them in this conversation.",
+      inputSchema: jsonSchema<RememberPreferredNameToolInput>(
+        REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
+      ),
+      execute: async (input: RememberPreferredNameToolInput) =>
+        getRememberedPreferredNameResult(input),
+    }),
     send_resource: tool({
       description:
         "Use to send short practical guidance for family conversations, intervention preparation, treatment expectations, family follow-through, calming steps, or relapse next steps.",
@@ -151,7 +166,11 @@ export async function POST(request: Request) {
     const openai = createOpenAI({ apiKey });
     const result = streamText({
       model: openai.chat(body.modelId),
-      system: composeSystemPrompt(body.mode, body.language, { surface: "chat" }),
+      system: composeSystemPrompt(body.mode, body.language, {
+        preferredName: normalizePreferredName(body.preferredName),
+        resumeContext: typeof body.resumeContext === "string" ? body.resumeContext : "",
+        surface: "chat",
+      }),
       messages: await convertToModelMessages(
         body.messages.map(
           (message) =>

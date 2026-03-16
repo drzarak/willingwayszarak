@@ -13,7 +13,9 @@ import {
   CRISIS_REDIRECT_TOOL_PARAMETERS,
   ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
   GET_CONTACT_TOOL_PARAMETERS,
+  REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
   SEND_RESOURCE_TOOL_PARAMETERS,
+  normalizePreferredName,
 } from "@/lib/support-tools";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 
@@ -137,17 +139,28 @@ function buildRealtimeSession(
   language: ChatLanguage,
   focus: VoiceCallFocusId,
   voice: RealtimeVoiceId,
+  preferredName: string,
+  resumeContext: string,
   model: string,
 ) {
   return JSON.stringify({
     type: "realtime",
     model,
     instructions: `${composeSystemPrompt(mode, language, {
+      preferredName,
+      resumeContext,
       surface: "voice",
       voiceFocus: focus,
     })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
     tool_choice: "auto",
     tools: [
+      {
+        type: "function",
+        name: "remember_preferred_name",
+        description:
+          "Use right after the caller confirms the name they want Willing Ways AI to use for them.",
+        parameters: REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
+      },
       {
         type: "function",
         name: "book_session",
@@ -217,6 +230,8 @@ export async function POST(request: Request) {
     url.searchParams.get("focus") ?? DEFAULT_VOICE_CALL_FOCUS_ID,
   );
   const voice = normalizeRealtimeVoiceId(url.searchParams.get("voice") ?? DEFAULT_REALTIME_VOICE_ID);
+  const preferredName = normalizePreferredName(url.searchParams.get("preferredName"));
+  const resumeContext = (url.searchParams.get("resumeContext") ?? "").slice(0, 900);
 
   if (!ALLOWED_MODES.has(mode)) {
     return new Response("Unsupported realtime mode selected.", { status: 400 });
@@ -243,7 +258,15 @@ export async function POST(request: Request) {
   let response = await postRealtimeCall(
       apiKey,
       sdp,
-      buildRealtimeSession(mode, language, focus, voice, PRIMARY_REALTIME_MODEL),
+      buildRealtimeSession(
+        mode,
+        language,
+        focus,
+        voice,
+        preferredName,
+        resumeContext,
+        PRIMARY_REALTIME_MODEL,
+      ),
     );
 
   if (!response.ok) {
@@ -253,7 +276,15 @@ export async function POST(request: Request) {
         response = await postRealtimeCall(
           apiKey,
           sdp,
-          buildRealtimeSession(mode, language, focus, voice, FALLBACK_REALTIME_MODEL),
+          buildRealtimeSession(
+            mode,
+            language,
+            focus,
+            voice,
+            preferredName,
+            resumeContext,
+            FALLBACK_REALTIME_MODEL,
+          ),
         );
     } else {
       const message = normalizeRealtimeError(response.status, primaryBody);

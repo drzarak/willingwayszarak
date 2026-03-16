@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, PhoneCall } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, MessageSquare, PhoneCall } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -11,20 +12,27 @@ import {
   CHAT_SESSIONS_STORAGE_KEY,
   DEFAULT_CHAT_MODEL_ID,
   createChatSession,
-  deriveChatTitle,
+  deriveSessionTitle,
   normalizeChatSessions,
   type ChatSession,
   type RuntimeStatus,
+  type VoiceTranscriptEntry,
 } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { ChatPane } from "@/components/chat-pane";
 import { LanguageToggle } from "@/components/language-toggle";
+import { RealtimeVoicePanel } from "@/components/realtime-voice-panel";
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 
-export function ChatApp() {
+interface ChatAppProps {
+  surface: "voice" | "chat";
+}
+
+export function ChatApp({ surface }: ChatAppProps) {
+  const pathname = usePathname();
   const { isUrdu, language: siteLanguage, hydrated: siteLanguageHydrated } = useSiteLanguage();
   const [hydrated, setHydrated] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -122,31 +130,57 @@ export function ChatApp() {
     });
   }
 
-  const handleMessagesChange = useCallback((chatId: string, nextMessages: ChatSession["messages"]) => {
-    setSessions((current) =>
-      current.map((session) =>
-        session.id === chatId
-          ? {
-              ...session,
-              messages: nextMessages,
-              title: deriveChatTitle(nextMessages),
-              updatedAt: new Date().toISOString(),
-            }
-          : session,
-      ),
-    );
-  }, []);
+  const patchSession = useCallback(
+    (chatId: string, patch: Partial<ChatSession>) => {
+      setSessions((current) =>
+        current.map((session) => {
+          if (session.id !== chatId) {
+            return session;
+          }
+
+          const nextSession: ChatSession = {
+            ...session,
+            ...patch,
+            updatedAt: new Date().toISOString(),
+          };
+
+          return {
+            ...nextSession,
+            title: deriveSessionTitle(nextSession),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const handleMessagesChange = useCallback(
+    (chatId: string, nextMessages: ChatSession["messages"]) => {
+      patchSession(chatId, { messages: nextMessages });
+    },
+    [patchSession],
+  );
+
+  const handleVoiceTranscriptChange = useCallback(
+    (chatId: string, voiceTranscript: VoiceTranscriptEntry[]) => {
+      patchSession(chatId, { voiceTranscript });
+    },
+    [patchSession],
+  );
+
+  const handlePreferredNameChange = useCallback(
+    (chatId: string, preferredName: string) => {
+      patchSession(chatId, { preferredName });
+    },
+    [patchSession],
+  );
 
   function handleLanguageChange(language: ChatSession["language"]) {
     if (!activeSession) {
       return;
     }
 
-    setSessions((current) =>
-      current.map((session) =>
-        session.id === activeSession.id ? { ...session, language } : session,
-      ),
-    );
+    patchSession(activeSession.id, { language });
   }
 
   if (!hydrated || !activeSession) {
@@ -157,7 +191,18 @@ export function ChatApp() {
     );
   }
 
-  const chatPaneKey = `${activeSession.id}:${activeSession.language}`;
+  const tabs = [
+    {
+      href: "/ai",
+      icon: PhoneCall,
+      label: isUrdu ? "کال" : "Call",
+    },
+    {
+      href: "/ai/chat",
+      icon: MessageSquare,
+      label: isUrdu ? "چیٹ" : "Chat",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f6f7f4] text-slate-950">
@@ -204,45 +249,94 @@ export function ChatApp() {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div
               className={`${isUrdu ? "font-urdu text-right" : ""}`}
               dir={isUrdu ? "rtl" : "ltr"}
             >
               <div className="text-lg font-semibold text-slate-950">
-                {isUrdu
-                  ? "ایک سادہ ونڈو میں ولنگ ویز اے آئی مدد"
-                  : "One simple support window for Willing Ways AI"}
+                {surface === "voice"
+                  ? isUrdu
+                    ? "سکون سے بات کرنے کے لئے ولنگ ویز اے آئی کال"
+                    : "A calmer voice-first Willing Ways AI call"
+                  : isUrdu
+                    ? "آسان اور صاف ولنگ ویز اے آئی چیٹ"
+                    : "A simpler, cleaner Willing Ways AI chat"}
               </div>
               <div className="mt-1 text-sm leading-6 text-slate-600">
-                {isUrdu
-                  ? "کال یا چیٹ شروع کریں۔ اے آئی خود سمجھے گی کہ آپ مریض ہیں، خاندان ہیں یا ریفرر، پھر اگلا مناسب قدم خود سنبھالے گی۔"
-                  : "Start a call or type a message. The AI will figure out whether you are the patient, family, or a referrer, then handle the next useful step for you."}
+                {surface === "voice"
+                  ? isUrdu
+                    ? "کال، waveform، saved transcript اور نام کی continuity کے ساتھ۔"
+                    : "Voice-first support with a calmer call screen, saved transcript, and name continuity."
+                  : isUrdu
+                    ? "صرف ٹیکسٹ چیٹ کے لئے الگ صفحہ، تاکہ پڑھنا اور ٹائپ کرنا آسان رہے۔"
+                    : "A separate text-only page so reading and typing stay easy on the mind."}
               </div>
             </div>
 
-            <div
-              className={`text-xs font-semibold tracking-[0.14em] text-slate-500 ${
-                isUrdu ? "font-urdu text-right normal-case" : "uppercase"
-              }`}
-              dir={isUrdu ? "rtl" : "ltr"}
-            >
-              {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+            <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
+              <div className="inline-flex rounded-full border border-slate-200 bg-[#fafaf8] p-1">
+                {tabs.map((tab) => {
+                  const active = pathname === tab.href;
+                  const Icon = tab.icon;
+
+                  return (
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        active
+                          ? "bg-[#651328] text-white shadow-sm"
+                          : "text-slate-600 hover:bg-white hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </Link>
+                  );
+                })}
+              </div>
+              <div
+                className={`text-xs font-semibold tracking-[0.14em] text-slate-500 ${
+                  isUrdu ? "font-urdu text-right normal-case" : "uppercase"
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
+              </div>
             </div>
           </div>
         </header>
 
         <main className="mt-3 flex-1">
           <div className="surface-panel chat-shell overflow-hidden">
-            <ChatPane
-              key={chatPaneKey}
-              bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}
-              modelId={DEFAULT_CHAT_MODEL_ID}
-              onMessagesChange={handleMessagesChange}
-              realtimeConfigured={runtimeStatus.realtimeConfigured}
-              serverKeyConfigured={runtimeStatus.serverKeyConfigured}
-              session={activeSession}
-            />
+            {surface === "voice" ? (
+              <div className="px-4 py-4 sm:px-6 sm:py-6">
+                <div className="mx-auto max-w-5xl">
+                  <RealtimeVoicePanel
+                    key={`${activeSession.id}:voice:${activeSession.language}`}
+                    bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}
+                    enabled={runtimeStatus.realtimeConfigured}
+                    language={activeSession.language}
+                    mode={activeSession.mode}
+                    preferredName={activeSession.preferredName ?? ""}
+                    sessionId={activeSession.id}
+                    transcript={activeSession.voiceTranscript}
+                    onPreferredNameChange={handlePreferredNameChange}
+                    onTranscriptChange={handleVoiceTranscriptChange}
+                  />
+                </div>
+              </div>
+            ) : (
+              <ChatPane
+                key={`${activeSession.id}:chat:${activeSession.language}`}
+                modelId={DEFAULT_CHAT_MODEL_ID}
+                onMessagesChange={handleMessagesChange}
+                onPreferredNameChange={handlePreferredNameChange}
+                serverKeyConfigured={runtimeStatus.serverKeyConfigured}
+                session={activeSession}
+              />
+            )}
           </div>
         </main>
 

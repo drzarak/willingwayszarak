@@ -24,6 +24,10 @@ export type SupportResourceId =
   | "calming-steps"
   | "relapse-next-step";
 
+export interface RememberPreferredNameToolInput {
+  preferredName: string;
+}
+
 export interface BookSessionToolInput {
   requesterName: string;
   patientName?: string;
@@ -306,6 +310,19 @@ export const ESCALATE_TO_HUMAN_TOOL_PARAMETERS = {
   },
 } satisfies JSONSchema7;
 
+export const REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    preferredName: {
+      type: "string",
+      description:
+        "The caller's confirmed preferred name after the AI has asked and the caller has agreed that this is the name to use.",
+    },
+  },
+  required: ["preferredName"],
+} satisfies JSONSchema7;
+
 export function buildBookingPayloadFromToolInput(
   input: BookSessionToolInput,
 ): BookingRequestPayload {
@@ -376,5 +393,21 @@ export function getHumanEscalationResult(input?: EscalateToHumanToolInput) {
     helpline: "0300-7413639",
     note:
       "If the caller wants a callback instead of calling directly, collect the minimum details and use the booking tool so the Willing Ways team can follow up.",
+  };
+}
+
+export function normalizePreferredName(value: string | undefined | null) {
+  return (value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+export function getRememberedPreferredNameResult(
+  input: RememberPreferredNameToolInput,
+) {
+  return {
+    ok: true,
+    preferredName: normalizePreferredName(input.preferredName),
   };
 }

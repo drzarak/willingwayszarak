@@ -1,5 +1,5 @@
 import { ChatApp } from "@/components/chat-app";
 
 export default function AIPage() {
-  return <ChatApp />;
+  return <ChatApp surface="voice" />;
 }

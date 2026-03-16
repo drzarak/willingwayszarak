@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
@@ -7,12 +8,15 @@ import {
   ArrowUp,
   Check,
   LoaderCircle,
+  PhoneCall,
   ShieldAlert,
   Square,
 } from "lucide-react";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  buildVoiceResumeContext,
+  extractPreferredNameFromMessages,
   getSuggestionChips,
   isUrduText,
   type ChatSession,
@@ -20,24 +24,21 @@ import {
 } from "@/lib/chat";
 
 import { MessageBubble } from "@/components/message-bubble";
-import { RealtimeVoicePanel } from "@/components/realtime-voice-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ChatPaneProps {
-  bookingConfigured: boolean;
   modelId: ModelId;
   onMessagesChange: (chatId: string, messages: UIMessage[]) => void;
-  realtimeConfigured: boolean;
+  onPreferredNameChange: (chatId: string, preferredName: string) => void;
   serverKeyConfigured: boolean;
   session: ChatSession;
 }
 
 export function ChatPane({
-  bookingConfigured,
   modelId,
   onMessagesChange,
-  realtimeConfigured,
+  onPreferredNameChange,
   serverKeyConfigured,
   session,
 }: ChatPaneProps) {
@@ -58,6 +59,8 @@ export function ChatPane({
         language: session.language,
         modelId,
         mode: session.mode,
+        preferredName: session.preferredName ?? "",
+        resumeContext: buildVoiceResumeContext(session.voiceTranscript),
       },
     }),
   });
@@ -80,10 +83,22 @@ export function ChatPane({
   );
   const inputIsUrdu = session.language === "urdu" || isUrduText(input);
   const suggestionChips = getSuggestionChips(session.language);
+  const rememberedName = useMemo(
+    () => extractPreferredNameFromMessages(deferredMessages) || session.preferredName || "",
+    [deferredMessages, session.preferredName],
+  );
 
   useEffect(() => {
     onMessagesChange(session.id, messages);
   }, [messages, onMessagesChange, session.id]);
+
+  useEffect(() => {
+    if (!rememberedName || rememberedName === session.preferredName) {
+      return;
+    }
+
+    onPreferredNameChange(session.id, rememberedName);
+  }, [onPreferredNameChange, rememberedName, session.id, session.preferredName]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -165,58 +180,98 @@ export function ChatPane({
     <div className="flex h-full min-h-0 w-full flex-col">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
-          <RealtimeVoicePanel
-            bookingConfigured={bookingConfigured}
-            enabled={realtimeConfigured}
-            language={session.language}
-            mode={session.mode}
-          />
+          <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="section-kicker">
+                  {session.language === "urdu" ? "صرف ٹیکسٹ چیٹ" : "Text-only chat"}
+                </div>
+                <h2
+                  className={`mt-4 text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl ${
+                    session.language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={session.language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {session.language === "urdu"
+                    ? "آرام سے لکھیں، ہم بات کو سادہ رکھیں گے"
+                    : "Type comfortably, and we will keep the conversation simple"}
+                </h2>
+                <p
+                  className={`mt-3 text-base leading-7 text-slate-600 ${
+                    session.language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={session.language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {session.language === "urdu"
+                    ? "اگر آپ پڑھ کر اور سوچ کر بات کرنا چاہتے ہیں تو یہ صفحہ بہتر ہے۔ اگر آپ کال پر جانا چاہیں تو کبھی بھی voice screen کھول سکتے ہیں۔"
+                    : "This page is better when you want to read and think while talking. If you want to switch back to a live call, you can open the voice screen anytime."}
+                </p>
+              </div>
 
-          {deferredMessages.length === 0 ? (
-            <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link href="/ai" className="site-action-link justify-center">
+                  <PhoneCall className="h-4 w-4" />
+                  <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
+                    {session.language === "urdu" ? "وائس کال پر جائیں" : "Go to voice call"}
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            {rememberedName ? (
               <div
-                className={`text-center ${session.language === "urdu" ? "font-urdu" : ""}`}
+                className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-3 text-sm text-[#651328] ${
+                  session.language === "urdu" ? "font-urdu text-right" : ""
+                }`}
                 dir={session.language === "urdu" ? "rtl" : "ltr"}
               >
-                <div className="mx-auto max-w-2xl">
-                  <h2 className="text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl">
-                    {session.language === "urdu"
-                      ? "جو کچھ ہو رہا ہے وہ مختصر بتا دیں، ولنگ ویز اے آئی اگلا قدم خود سنبھال لے گی"
-                      : "Tell us what is happening, and Willing Ways AI will guide the next step"}
-                  </h2>
-                  <p className="mt-3 text-base leading-7 text-slate-600">
-                    {session.language === "urdu"
-                      ? "یہ چیٹ آپ سے چند ضروری سوالات پوچھ سکتی ہے، practical guidance دے سکتی ہے، crisis کی صورت میں فوراً راستہ دکھا سکتی ہے، اور اگر آپ چاہیں تو follow-up request بھی نوٹ کر سکتی ہے۔"
-                      : "This chat can ask a few useful questions, guide the family, handle urgent routing, and note a follow-up request for the Willing Ways team when you want."}
-                  </p>
+                {session.language === "urdu"
+                  ? `ہم نے آپ کا نام ${rememberedName} کے طور پر محفوظ رکھا ہے تاکہ گفتگو زیادہ ذاتی اور مسلسل محسوس ہو۔`
+                  : `We have your name saved as ${rememberedName} so the conversation can feel more personal and continuous.`}
+              </div>
+            ) : null}
+
+            {session.voiceTranscript.length > 0 ? (
+              <div
+                className={`mt-4 rounded-[22px] border border-slate-200 bg-[#fafaf8] px-4 py-3 text-sm text-slate-600 ${
+                  session.language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={session.language === "urdu" ? "rtl" : "ltr"}
+              >
+                {session.language === "urdu"
+                  ? "اس سیشن میں ایک محفوظ voice transcript پہلے سے موجود ہے، اس لئے چیٹ پچھلی کال کے مختصر context سے بھی فائدہ اٹھا سکتی ہے۔"
+                  : "This session already has a saved voice transcript, so the chat can also benefit from the recent call context."}
+              </div>
+            ) : null}
+
+            {deferredMessages.length === 0 ? (
+              <div className="mt-5">
+                <div className="flex flex-wrap gap-3">
+                  {suggestionChips.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      className="rounded-full border border-slate-200 bg-[#faf8f8] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-[#d4b8c0] hover:bg-white hover:text-[#651328]"
+                      onClick={() => submitPrompt(chip)}
+                    >
+                      {chip}
+                    </button>
+                  ))}
                 </div>
               </div>
+            ) : null}
+          </section>
 
-              <div className="mt-5 flex flex-wrap justify-center gap-3">
-                {suggestionChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    className="rounded-full border border-slate-200 bg-[#faf8f8] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-[#d4b8c0] hover:bg-white hover:text-[#651328]"
-                    onClick={() => submitPrompt(chip)}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : (
-            deferredMessages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                canRegenerate={!isGenerating}
-                isLatestAssistant={latestAssistantMessage?.id === message.id}
-                message={message}
-                onCopy={handleCopy}
-                onRegenerate={handleRegenerate}
-              />
-            ))
-          )}
+          {deferredMessages.map((message) => (
+            <MessageBubble
+              key={message.id}
+              canRegenerate={!isGenerating}
+              isLatestAssistant={latestAssistantMessage?.id === message.id}
+              message={message}
+              onCopy={handleCopy}
+              onRegenerate={handleRegenerate}
+            />
+          ))}
 
           {isGenerating ? (
             <div className="flex justify-start">
@@ -313,19 +368,6 @@ export function ChatPane({
               </div>
             </div>
           </form>
-
-          {latestAssistantMessage && !isGenerating ? (
-            <div
-              className={`mt-3 text-xs leading-6 text-slate-500 ${
-                session.language === "urdu" ? "font-urdu text-right" : ""
-              }`}
-              dir={session.language === "urdu" ? "rtl" : "ltr"}
-            >
-              {session.language === "urdu"
-                ? "اگر جواب میں کوئی غلطی ہو تو سوال دوبارہ مختلف انداز میں پوچھیں، یا فوری معاملے میں براہ راست ہیلپ لائن پر کال کریں۔"
-                : "If the reply misses something important, ask again more directly, or call the helpline immediately for urgent cases."}
-            </div>
-          ) : null}
         </div>
       </div>
     </div>

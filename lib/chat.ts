@@ -22,6 +22,12 @@ export type RealtimeVoiceId =
   | "shimmer"
   | "verse";
 
+export interface VoiceTranscriptEntry {
+  id: string;
+  role: "assistant" | "user";
+  text: string;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -31,6 +37,8 @@ export interface ChatSession {
   mode: ChatMode;
   language: ChatLanguage;
   messages: UIMessage[];
+  preferredName?: string;
+  voiceTranscript: VoiceTranscriptEntry[];
 }
 
 export interface RuntimeStatus {
@@ -262,6 +270,8 @@ export function createChatSession(
     mode,
     language,
     messages: [],
+    preferredName: "",
+    voiceTranscript: [],
   };
 }
 
@@ -271,7 +281,22 @@ export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[]
     welcomed: session.welcomed ?? false,
     language: session.language ?? "english",
     mode: "adaptive",
+    preferredName: session.preferredName ?? "",
     title: session.title || "New conversation",
+    voiceTranscript: Array.isArray(session.voiceTranscript)
+      ? session.voiceTranscript
+          .map((entry) => ({
+            id:
+              typeof entry?.id === "string" && entry.id
+                ? entry.id
+                : crypto.randomUUID(),
+            role: (entry?.role === "assistant" ? "assistant" : "user") as
+              | "assistant"
+              | "user",
+            text: typeof entry?.text === "string" ? entry.text : "",
+          }))
+          .filter((entry) => entry.text.trim())
+      : [],
   }));
 }
 
@@ -297,6 +322,75 @@ export function deriveChatTitle(messages: UIMessage[]): string {
   }
 
   return text.length > 42 ? `${text.slice(0, 42).trimEnd()}...` : text;
+}
+
+export function deriveVoiceTitle(
+  transcript: VoiceTranscriptEntry[],
+  preferredName?: string,
+) {
+  const firstCallerEntry = transcript.find(
+    (entry) => entry.role === "user" && entry.text.trim(),
+  );
+
+  if (firstCallerEntry) {
+    const text = firstCallerEntry.text.trim();
+    return text.length > 42 ? `${text.slice(0, 42).trimEnd()}...` : text;
+  }
+
+  if (preferredName?.trim()) {
+    return `Call with ${preferredName.trim()}`;
+  }
+
+  return "New conversation";
+}
+
+export function deriveSessionTitle({
+  messages,
+  preferredName,
+  voiceTranscript,
+}: Pick<ChatSession, "messages" | "preferredName" | "voiceTranscript">) {
+  if (messages.length > 0) {
+    return deriveChatTitle(messages);
+  }
+
+  return deriveVoiceTitle(voiceTranscript, preferredName);
+}
+
+export function extractPreferredNameFromMessages(messages: UIMessage[]) {
+  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
+    const parts = messages[messageIndex]?.parts ?? [];
+
+    for (let partIndex = parts.length - 1; partIndex >= 0; partIndex -= 1) {
+      const part = parts[partIndex] as {
+        output?: { preferredName?: unknown };
+        state?: unknown;
+        type?: unknown;
+      };
+
+      if (
+        part.type === "tool-remember_preferred_name" &&
+        part.state === "output-available" &&
+        typeof part.output?.preferredName === "string"
+      ) {
+        const preferredName = part.output.preferredName.trim();
+
+        if (preferredName) {
+          return preferredName;
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
+export function buildVoiceResumeContext(transcript: VoiceTranscriptEntry[]) {
+  return transcript
+    .slice(-6)
+    .map((entry) => `${entry.role === "user" ? "Caller" : "AI"}: ${entry.text.trim()}`)
+    .filter(Boolean)
+    .join(" | ")
+    .slice(0, 900);
 }
 
 export function formatSessionTimestamp(isoString: string): string {

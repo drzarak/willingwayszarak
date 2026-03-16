@@ -1,18 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import {
-  AlertTriangle,
   CheckCircle2,
-  LoaderCircle,
+  MessageSquare,
   PhoneCall,
   PhoneOff,
   ShieldAlert,
+  UserRound,
   Volume2,
+  Waves,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  buildVoiceResumeContext,
   CURRENT_REALTIME_VOICE_VERSION,
   DEFAULT_REALTIME_VOICE_ID,
   REALTIME_VOICE_OPTIONS,
@@ -23,6 +26,7 @@ import {
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
+  type VoiceTranscriptEntry,
 } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
 import {
@@ -30,11 +34,14 @@ import {
   getContactResult,
   getCrisisRedirectResult,
   getHumanEscalationResult,
+  getRememberedPreferredNameResult,
   getSupportResourceResult,
+  normalizePreferredName,
   type BookSessionToolInput,
   type ContactToolInput,
   type CrisisRedirectToolInput,
   type EscalateToHumanToolInput,
+  type RememberPreferredNameToolInput,
   type SendResourceToolInput,
 } from "@/lib/support-tools";
 
@@ -49,17 +56,16 @@ type VoiceStatus =
   | "responding"
   | "error";
 
-interface TranscriptEntry {
-  id: string;
-  role: "assistant" | "user";
-  text: string;
-}
-
 interface RealtimeVoicePanelProps {
   bookingConfigured: boolean;
   enabled: boolean;
   language: ChatLanguage;
   mode: ChatMode;
+  preferredName: string;
+  sessionId: string;
+  transcript: VoiceTranscriptEntry[];
+  onPreferredNameChange: (chatId: string, preferredName: string) => void;
+  onTranscriptChange: (chatId: string, transcript: VoiceTranscriptEntry[]) => void;
 }
 
 function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
@@ -132,8 +138,8 @@ function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
 
   if (status === "connected") {
     return language === "urdu"
-      ? "اے آئی پہلے آپ سے پوچھے گی کہ آپ کون ہیں اور کیا مدد چاہتے ہیں۔"
-      : "The AI will start by understanding who you are and what kind of help you need.";
+      ? "اے آئی پہلے آپ کا نام پوچھ کر کنفرم کرے گی، پھر سمجھ کر آگے بڑھے گی۔"
+      : "The AI will first confirm your name, then understand what you need and guide the next step.";
   }
 
   if (status === "listening") {
@@ -155,7 +161,7 @@ function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
   }
 
   return language === "urdu"
-    ? "ایک کال میں رہنمائی، routing اور follow-up request سب سنبھل سکتے ہیں۔"
+    ? "ایک کال میں guidance، routing اور follow-up request سب سنبھل سکتے ہیں۔"
     : "One call can cover guidance, routing, and follow-up requests.";
 }
 
@@ -164,19 +170,26 @@ export function RealtimeVoicePanel({
   enabled,
   language,
   mode,
+  preferredName,
+  sessionId,
+  transcript,
+  onPreferredNameChange,
+  onTranscriptChange,
 }: RealtimeVoicePanelProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<VoiceStatus>("idle");
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [localTranscript, setLocalTranscript] = useState<VoiceTranscriptEntry[]>(transcript);
   const [voiceId, setVoiceId] = useState<RealtimeVoiceId>(DEFAULT_REALTIME_VOICE_ID);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
+  const [rememberedName, setRememberedName] = useState(preferredName);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
+  const lastSessionIdRef = useRef(sessionId);
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
@@ -201,6 +214,54 @@ export function RealtimeVoicePanel({
       CURRENT_REALTIME_VOICE_VERSION,
     );
   }, [voiceId]);
+
+  useEffect(() => {
+    if (lastSessionIdRef.current === sessionId) {
+      return;
+    }
+
+    lastSessionIdRef.current = sessionId;
+    cleanupSession();
+    setLocalTranscript(transcript);
+    setRememberedName(preferredName);
+    setSubmissionNotice(null);
+    setToolActivity(null);
+    setErrorMessage(null);
+    setStatus("idle");
+  }, [preferredName, sessionId, transcript]);
+
+  useEffect(() => {
+    if (!preferredName.trim() || preferredName === rememberedName) {
+      return;
+    }
+
+    setRememberedName(preferredName);
+  }, [preferredName, rememberedName]);
+
+  useEffect(() => {
+    const transcriptIsUnchanged =
+      localTranscript.length === transcript.length &&
+      localTranscript.every(
+        (entry, index) =>
+          entry.id === transcript[index]?.id &&
+          entry.role === transcript[index]?.role &&
+          entry.text === transcript[index]?.text,
+      );
+
+    if (transcriptIsUnchanged) {
+      return;
+    }
+
+    onTranscriptChange(sessionId, localTranscript);
+  }, [localTranscript, onTranscriptChange, sessionId, transcript]);
+
+  useEffect(() => {
+    if (!rememberedName.trim() || rememberedName === preferredName) {
+      return;
+    }
+
+    onPreferredNameChange(sessionId, rememberedName.trim());
+  }, [onPreferredNameChange, preferredName, rememberedName, sessionId]);
 
   useEffect(() => () => cleanupSession(), []);
 
@@ -237,7 +298,7 @@ export function RealtimeVoicePanel({
     const nextId = itemId ?? assistantEntryIdRef.current ?? crypto.randomUUID();
     assistantEntryIdRef.current = nextId;
 
-    setTranscript((current) => {
+    setLocalTranscript((current) => {
       const existingIndex = current.findIndex((entry) => entry.id === nextId);
 
       if (existingIndex === -1) {
@@ -257,6 +318,22 @@ export function RealtimeVoicePanel({
     name: string,
     rawInput: unknown,
   ): Promise<Record<string, unknown>> {
+    if (name === "remember_preferred_name") {
+      const output = getRememberedPreferredNameResult(rawInput as RememberPreferredNameToolInput);
+      const nextName = normalizePreferredName(output.preferredName);
+
+      if (nextName) {
+        setRememberedName(nextName);
+        setSubmissionNotice(
+          language === "urdu"
+            ? `${nextName}، ہم نے آپ کا نام اسی براؤزر میں یاد رکھ لیا ہے۔`
+            : `${nextName}, we have saved your name in this browser so the conversation can continue more naturally.`,
+        );
+      }
+
+      return output;
+    }
+
     if (name === "book_session") {
       const input = rawInput as Partial<BookSessionToolInput>;
 
@@ -357,17 +434,21 @@ export function RealtimeVoicePanel({
     }
 
     setToolActivity(
-      toolName === "book_session"
+      toolName === "remember_preferred_name"
         ? language === "urdu"
-          ? "ہم آپ کی follow-up request نوٹ کر رہے ہیں..."
-          : "We are noting your follow-up request..."
-        : toolName === "crisis_redirect"
+          ? "ہم آپ کا نام محفوظ کر رہے ہیں..."
+          : "We are saving your name..."
+        : toolName === "book_session"
           ? language === "urdu"
-            ? "ہم فوری حفاظتی رہنمائی تیار کر رہے ہیں..."
-            : "We are preparing urgent safety guidance..."
-          : language === "urdu"
-            ? "ہم اگلا مفید قدم تیار کر رہے ہیں..."
-            : "We are working on the next useful step...",
+            ? "ہم آپ کی follow-up request نوٹ کر رہے ہیں..."
+            : "We are noting your follow-up request..."
+          : toolName === "crisis_redirect"
+            ? language === "urdu"
+              ? "ہم فوری حفاظتی رہنمائی تیار کر رہے ہیں..."
+              : "We are preparing urgent safety guidance..."
+            : language === "urdu"
+              ? "ہم اگلا مفید قدم تیار کر رہے ہیں..."
+              : "We are working on the next useful step...",
     );
 
     try {
@@ -444,7 +525,7 @@ export function RealtimeVoicePanel({
         return;
       }
 
-      setTranscript((current) => [
+      setLocalTranscript((current) => [
         ...current,
         {
           id: typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID(),
@@ -540,7 +621,6 @@ export function RealtimeVoicePanel({
     setErrorMessage(null);
     setSubmissionNotice(null);
     setToolActivity(null);
-    setTranscript([]);
     handledToolCallsRef.current.clear();
     setStatus("requesting");
 
@@ -599,16 +679,22 @@ export function RealtimeVoicePanel({
         );
       }
 
-      const realtimeResponse = await fetch(
-        `/api/realtime/session?mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}&focus=general-support&voice=${encodeURIComponent(voiceId)}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/sdp",
-          },
-          body: localSdp,
+      const query = new URLSearchParams({
+        focus: "general-support",
+        language,
+        mode,
+        preferredName: rememberedName,
+        resumeContext: buildVoiceResumeContext(localTranscript),
+        voice: voiceId,
+      });
+
+      const realtimeResponse = await fetch(`/api/realtime/session?${query.toString()}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp",
         },
-      );
+        body: localSdp,
+      });
 
       if (!realtimeResponse.ok) {
         throw new Error(await realtimeResponse.text());
@@ -638,8 +724,8 @@ export function RealtimeVoicePanel({
   const selectedVoiceLabel =
     REALTIME_VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? voiceId;
   const userTranscriptTexts = useMemo(
-    () => transcript.filter((entry) => entry.role === "user").map((entry) => entry.text),
-    [transcript],
+    () => localTranscript.filter((entry) => entry.role === "user").map((entry) => entry.text),
+    [localTranscript],
   );
   const careSignal = useMemo(
     () => analyzeVoiceCareSignals(userTranscriptTexts),
@@ -650,207 +736,242 @@ export function RealtimeVoicePanel({
     status === "connected" || status === "listening" || status === "responding";
 
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+    <section className="space-y-4">
       <audio ref={audioRef} autoPlay />
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="section-kicker">
-            {language === "urdu" ? "24/7 اے آئی کال سپورٹ" : "24/7 AI call support"}
-          </div>
-          <h2
-            className={`mt-4 text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {language === "urdu"
-              ? "ولنگ ویز اے آئی کو کال کریں"
-              : "Call Willing Ways AI"}
-          </h2>
-          <p
-            className={`mt-3 max-w-3xl text-base leading-7 text-slate-600 ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {language === "urdu"
-              ? "بس کال شروع کریں۔ اے آئی خود پوچھے گی کہ آپ کون ہیں، کیا مسئلہ ہے، اور پھر رہنمائی، crisis routing، یا follow-up request کا اگلا قدم خود سنبھالے گی۔"
-              : "Just start the call. The AI will ask who you are, understand the situation, and then handle the next useful step, whether that is guidance, urgent routing, or a follow-up request."}
-          </p>
+      <section className="rounded-[32px] border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6 sm:py-6">
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="voice-hero rounded-[28px] border border-[#ead6dc] px-5 py-5 sm:px-6">
+            <div className="section-kicker bg-white/75">
+              {language === "urdu" ? "24/7 اے آئی کال سپورٹ" : "24/7 AI call support"}
+            </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              language === "urdu"
-                ? "اردو، انگریزی، پاکستانی پنجابی"
-                : "English, Urdu, Pakistani Punjabi",
-              language === "urdu"
-                ? "فیملی guidance اور intervention support"
-                : "Family guidance and intervention support",
-              language === "urdu"
-                ? "ضرورت ہو تو session request بھی نوٹ ہو سکتی ہے"
-                : "Can note a session or callback request",
-            ].map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-slate-200 bg-[#faf8f8] px-3 py-2 text-sm text-slate-600"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-[#ead6dc] bg-[#fff8fa]">
-            {callIsStarting || callIsLive ? (
-              <span className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
-            ) : null}
-            <Image
-              src={SITE_MEDIA.logo}
-              alt="Willing Ways"
-              width={72}
-              height={72}
-              className="h-10 w-auto object-contain"
-              unoptimized
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_240px]">
-        <div
-          className={`rounded-[24px] border px-4 py-4 ${
-            status === "error"
-              ? "border-rose-200 bg-rose-50 text-rose-950"
-              : callIsLive
-                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-                : "border-slate-200 bg-[#fafaf8] text-slate-700"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            {callIsStarting ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-            ) : status === "error" ? (
-              <AlertTriangle className="h-4 w-4" />
-            ) : (
-              <PhoneCall className="h-4 w-4" />
-            )}
-            {getStatusLabel(status, language)}
-          </div>
-          <div
-            className={`mt-2 text-sm leading-7 ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {getStatusDescription(status, language)}
-          </div>
-
-          {toolActivity ? (
-            <div
-              className={`mt-3 rounded-[18px] border border-current/10 bg-white/70 px-3 py-3 text-sm ${
+            <h2
+              className={`mt-4 text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl ${
                 language === "urdu" ? "font-urdu text-right" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              {toolActivity}
-            </div>
-          ) : null}
+              {language === "urdu"
+                ? "ولنگ ویز اے آئی سے آرام سے بات کریں"
+                : "Talk to Willing Ways AI comfortably"}
+            </h2>
 
-          {submissionNotice ? (
-            <div
-              className={`mt-3 flex items-start gap-2 rounded-[18px] border border-emerald-200 bg-white px-3 py-3 text-sm text-emerald-900 ${
+            <p
+              className={`mt-3 max-w-2xl text-base leading-7 text-slate-700 ${
                 language === "urdu" ? "font-urdu text-right" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{submissionNotice}</span>
-            </div>
-          ) : null}
+              {language === "urdu"
+                ? "یہ اسکرین کال کے لئے بنائی گئی ہے۔ اے آئی پہلے نام کنفرم کرے گی، پھر سمجھے گی کہ آپ مریض ہیں، خاندان ہیں یا ریفرر، اور اسی کے مطابق guidance، crisis routing یا follow-up request سنبھالے گی۔"
+                : "This screen is designed for calling. The AI will first confirm your name, then understand whether you are the patient, family, or a referrer, and handle guidance, urgent routing, or a follow-up request accordingly."}
+            </p>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {[
-              language === "urdu"
-                ? "اے آئی پہلے سمجھے گی کہ آپ کون ہیں"
-                : "The AI starts by understanding who you are",
-              language === "urdu"
-                ? "ضرورت ہو تو follow-up request نوٹ کر سکتی ہے"
-                : "It can note a follow-up request when needed",
-              language === "urdu"
-                ? "بحرانی اشاروں میں فوراً safety-first جواب"
-                : "Urgent safety-first handling for crisis cues",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-[18px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-          <label className="block space-y-2">
-            <div
-              className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
-                language === "urdu" ? "font-urdu justify-end normal-case" : ""
-              }`}
-              dir={language === "urdu" ? "rtl" : "ltr"}
-            >
-              <Volume2 className="h-4 w-4 text-primary" />
-              {language === "urdu" ? "کال کی آواز" : "Call voice"}
-            </div>
-            <select
-              className="flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={callIsStarting || callIsLive}
-              value={voiceId}
-              onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
-            >
-              {REALTIME_VOICE_OPTIONS.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.label}
-                </option>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                language === "urdu"
+                  ? "اردو، انگریزی، پاکستانی پنجابی"
+                  : "English, Urdu, Pakistani Punjabi",
+                language === "urdu"
+                  ? "کال ختم ہونے کے بعد بھی transcript محفوظ رہے گا"
+                  : "Transcript stays saved after the call ends",
+                language === "urdu"
+                  ? "اگر نام محفوظ ہو تو اگلی بار continuity بہتر ہوگی"
+                  : "Saved names make the next visit feel more continuous",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/70 bg-white/75 px-3 py-2 text-sm text-slate-700 shadow-sm"
+                >
+                  {item}
+                </span>
               ))}
-            </select>
-          </label>
+            </div>
 
-          <div
-            className={`mt-3 text-xs leading-6 text-slate-500 ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {language === "urdu"
-              ? `فی الحال منتخب آواز: ${selectedVoiceLabel}`
-              : `Current voice: ${selectedVoiceLabel}`}
+            <div className="mt-6 flex flex-col items-center justify-center rounded-[26px] border border-white/70 bg-white/75 px-5 py-6 shadow-sm">
+              <div className={`voice-orb ${callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""}`}>
+                <Image
+                  src={SITE_MEDIA.logo}
+                  alt="Willing Ways"
+                  width={88}
+                  height={88}
+                  className="h-12 w-auto object-contain"
+                  unoptimized
+                />
+              </div>
+
+              <div className={`voice-wave ${callIsLive ? "voice-wave-live" : callIsStarting ? "voice-wave-ringing" : "voice-wave-idle"}`}>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className="voice-wave-bar"
+                    style={{ animationDelay: `${index * 0.12}s` }}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-4 text-center">
+                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                  {getStatusLabel(status, language)}
+                </div>
+                <div
+                  className={`mt-2 max-w-md text-sm leading-7 text-slate-600 ${
+                    language === "urdu" ? "font-urdu" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {getStatusDescription(status, language)}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4 grid gap-3">
-            {status === "idle" || status === "error" ? (
-              <Button onClick={startSession} className="h-12 text-base shadow-sm">
-                <PhoneCall className="h-4 w-4" />
-                {language === "urdu" ? "ولنگ ویز اے آئی کو کال کریں" : "Call Willing Ways AI now"}
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={stopSession}
-                className="h-12 text-base shadow-sm"
+          <div className="space-y-4">
+            <section className="rounded-[28px] border border-slate-200 bg-[#fafaf8] px-5 py-5 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                <PhoneCall className="h-4 w-4 text-primary" />
+                {language === "urdu" ? "کال کنٹرول" : "Call controls"}
+              </div>
+
+              {rememberedName ? (
+                <div
+                  className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-3 text-sm text-[#651328] ${
+                    language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <div className="flex items-center gap-2 font-semibold">
+                    <UserRound className="h-4 w-4" />
+                    {language === "urdu"
+                      ? `محفوظ نام: ${rememberedName}`
+                      : `Saved name: ${rememberedName}`}
+                  </div>
+                  <div className="mt-2 leading-6">
+                    {language === "urdu"
+                      ? "اگلی بار کال شروع ہونے پر اے آئی اسی نام سے continuity برقرار رکھ سکتی ہے۔"
+                      : "On the next call, the AI can reconnect more naturally with this name."}
+                  </div>
+                </div>
+              ) : null}
+
+              <label className="mt-4 block space-y-2">
+                <div
+                  className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
+                    language === "urdu" ? "font-urdu justify-end normal-case" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <Volume2 className="h-4 w-4 text-primary" />
+                  {language === "urdu" ? "کال کی آواز" : "Call voice"}
+                </div>
+                <select
+                  className="flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={callIsStarting || callIsLive}
+                  value={voiceId}
+                  onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
+                >
+                  {REALTIME_VOICE_OPTIONS.map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div
+                className={`mt-3 text-xs leading-6 text-slate-500 ${
+                  language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <PhoneOff className="h-4 w-4" />
-                {language === "urdu" ? "کال بند کریں" : "End call"}
-              </Button>
-            )}
+                {language === "urdu"
+                  ? `موجودہ آواز: ${selectedVoiceLabel}`
+                  : `Current voice: ${selectedVoiceLabel}`}
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {status === "idle" || status === "error" ? (
+                  <Button onClick={startSession} className="h-12 text-base shadow-sm">
+                    <PhoneCall className="h-4 w-4" />
+                    {language === "urdu" ? "ولنگ ویز اے آئی کو کال کریں" : "Call Willing Ways AI now"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={stopSession}
+                    className="h-12 text-base shadow-sm"
+                  >
+                    <PhoneOff className="h-4 w-4" />
+                    {language === "urdu" ? "کال بند کریں" : "End call"}
+                  </Button>
+                )}
+
+                <Link href="/ai/chat" className="site-action-link justify-center">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
+                    {language === "urdu" ? "اگر چاہیں تو ٹیکسٹ چیٹ کھولیں" : "Open text chat if you prefer typing"}
+                  </span>
+                </Link>
+              </div>
+
+              {toolActivity ? (
+                <div
+                  className={`mt-4 rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 ${
+                    language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {toolActivity}
+                </div>
+              ) : null}
+
+              {submissionNotice ? (
+                <div
+                  className={`mt-4 flex items-start gap-2 rounded-[20px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ${
+                    language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{submissionNotice}</span>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                <Waves className="h-4 w-4 text-primary" />
+                {language === "urdu" ? "کال میں کیا ہوگا" : "How the call works"}
+              </div>
+              <div className="mt-4 grid gap-3">
+                {[
+                  language === "urdu"
+                    ? "اے آئی پہلے نام پوچھ کر کنفرم کرے گی تاکہ گفتگو زیادہ ذاتی لگے۔"
+                    : "The AI first confirms your name so the conversation feels more personal.",
+                  language === "urdu"
+                    ? "جو کچھ آپ بولیں گے وہ اسی براؤزر میں محفوظ رہے گا تاکہ بعد میں continuity رہے۔"
+                    : "What you say stays saved in this browser so the conversation can continue later.",
+                  language === "urdu"
+                    ? "ضرورت پڑنے پر یہی کال guidance، crisis routing یا follow-up request میں بدل سکتی ہے۔"
+                    : "The same call can move into guidance, urgent routing, or a follow-up request when needed.",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-[18px] border border-slate-200 bg-[#fafaf8] px-4 py-3 text-sm leading-6 text-slate-600"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         </div>
-      </div>
+      </section>
 
       {careSignal && careSignal.severity !== "normal" ? (
         <div
-          className={`mt-4 rounded-[22px] border px-4 py-4 text-sm leading-7 ${
+          className={`rounded-[24px] border px-4 py-4 text-sm leading-7 ${
             careSignal.severity === "urgent"
               ? "border-rose-200 bg-rose-50 text-rose-950"
               : "border-amber-200 bg-amber-50 text-amber-950"
@@ -875,23 +996,49 @@ export function RealtimeVoicePanel({
         </div>
       ) : null}
 
-      {transcript.length > 0 ? (
-        <div className="mt-4 rounded-[24px] border border-slate-200 bg-[#fafaf8] px-4 py-4">
+      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div
+              className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
+                language === "urdu" ? "font-urdu normal-case text-right" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {language === "urdu" ? "محفوظ کال transcript" : "Saved call transcript"}
+            </div>
+            <div
+              className={`mt-1 text-sm text-slate-600 ${
+                language === "urdu" ? "font-urdu text-right" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {language === "urdu"
+                ? "یہ transcript اسی براؤزر میں محفوظ رہے گا تاکہ اگلی بار continuity برقرار رہے۔"
+                : "This transcript stays saved in this browser so the next visit can continue more naturally."}
+            </div>
+          </div>
+        </div>
+
+        {localTranscript.length === 0 ? (
           <div
-            className={`text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
-              language === "urdu" ? "font-urdu text-right normal-case" : ""
+            className={`mt-4 rounded-[22px] border border-slate-200 bg-[#fafaf8] px-4 py-4 text-sm text-slate-600 ${
+              language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
-            {language === "urdu" ? "حالیہ کال جھلک" : "Recent call highlights"}
+            {language === "urdu"
+              ? "ابھی کوئی کال transcript محفوظ نہیں۔ پہلی کال کے بعد گفتگو یہاں محفوظ ہو جائے گی۔"
+              : "No call transcript is saved yet. After the first call, the conversation will stay here."}
           </div>
-          <div className="mt-3 grid gap-3">
-            {transcript.slice(-4).map((entry) => (
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {localTranscript.slice(-8).map((entry) => (
               <div
                 key={entry.id}
-                className={`rounded-[20px] border px-4 py-3 ${
+                className={`rounded-[22px] border px-4 py-4 ${
                   entry.role === "assistant"
-                    ? "border-slate-200 bg-white"
+                    ? "border-slate-200 bg-[#fafaf8]"
                     : "border-[#ead6dc] bg-[#fff3f6]"
                 }`}
               >
@@ -915,12 +1062,12 @@ export function RealtimeVoicePanel({
               </div>
             ))}
           </div>
-        </div>
-      ) : null}
+        )}
+      </section>
 
       {errorMessage ? (
         <div
-          className={`mt-4 rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900 ${
+          className={`rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900 ${
             language === "urdu" ? "font-urdu text-right" : ""
           }`}
           dir={language === "urdu" ? "rtl" : "ltr"}
