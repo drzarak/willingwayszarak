@@ -202,11 +202,13 @@ function buildRealtimeSession(
         noise_reduction: {
           type: "near_field",
         },
+        // Keep turn taking conservative so ambient room noise is less likely
+        // to trigger a response or cut off the assistant mid-sentence.
         turn_detection: {
           type: "semantic_vad",
-          eagerness: "auto",
+          eagerness: "low",
           create_response: true,
-          interrupt_response: true,
+          interrupt_response: false,
         },
       },
       output: {
