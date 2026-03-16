@@ -37,23 +37,23 @@ export function MessageBubble({
     <div className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")} dir={isUrdu ? "rtl" : "ltr"}>
       <div
         className={cn(
-          "max-w-[94%] rounded-[30px] px-5 py-4 shadow-sm sm:max-w-[85%]",
+          "max-w-[94%] rounded-[26px] px-5 py-4 shadow-sm sm:max-w-[85%]",
           isUser
-            ? "bg-gradient-to-br from-primary to-[#8e3a52] text-white shadow-card"
-            : "border border-[#ead6dc] bg-white/95 text-slate-800 shadow-card backdrop-blur-xl",
+            ? "border border-[#ead6dc] bg-[#fff3f6] text-slate-900"
+            : "border border-slate-200 bg-white text-slate-800",
         )}
       >
         <div
           className={cn(
-            "mb-3 text-[11px] font-semibold uppercase tracking-[0.2em]",
-            isUser ? "text-white/70" : "text-slate-400",
+            "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
+            isUser ? "text-[#8a4b5d]" : "text-slate-400",
           )}
         >
           {isUser ? (isUrdu ? "آپ" : "You") : isUrdu ? "ولنگ ویز اے آئی" : "Willing Ways AI"}
         </div>
 
         {isUser ? (
-          <div className="whitespace-pre-wrap text-[16px] leading-8">{text}</div>
+          <div className="whitespace-pre-wrap text-[16px] leading-7">{text}</div>
         ) : (
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>

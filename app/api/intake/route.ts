@@ -28,7 +28,7 @@ import {
 
 export const maxDuration = 30;
 
-const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
+const ALLOWED_MODES = new Set<ChatMode>(["adaptive", "patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 const INTAKE_MODEL = "gpt-4o-mini";
 
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid intake request payload." }, { status: 400 });
   }
 
-  const mode = body.mode ?? "patient";
+  const mode = body.mode ?? "adaptive";
   const language = body.language ?? "english";
   const focus = normalizeVoiceCallFocusId(body.focus ?? "guided-intake");
   const transcript: IntakeTranscriptEntry[] = Array.isArray(body.transcript)

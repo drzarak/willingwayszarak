@@ -1,47 +1,43 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   AlertTriangle,
-  BookOpenText,
-  CalendarDays,
-  HeartHandshake,
-  LockKeyhole,
+  CheckCircle2,
   LoaderCircle,
-  MessageSquareHeart,
   PhoneCall,
   PhoneOff,
   ShieldAlert,
-  Siren,
-  Stethoscope,
-  Users,
   Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type BookingRequestPayload } from "@/lib/booking";
 import {
   CURRENT_REALTIME_VOICE_VERSION,
   DEFAULT_REALTIME_VOICE_ID,
-  DEFAULT_VOICE_CALL_FOCUS_ID,
   REALTIME_VOICE_OPTIONS,
   REALTIME_VOICE_STORAGE_KEY,
   REALTIME_VOICE_VERSION_STORAGE_KEY,
-  VOICE_CALL_FOCUS_OPTIONS,
   analyzeVoiceCareSignals,
   normalizeRealtimeVoiceId,
-  normalizeVoiceCallFocusId,
-  voiceCallActionLabel,
-  voiceCallFocusLabel,
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
-  type VoiceCallFocusId,
 } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
+import {
+  buildBookingPayloadFromToolInput,
+  getContactResult,
+  getCrisisRedirectResult,
+  getHumanEscalationResult,
+  getSupportResourceResult,
+  type BookSessionToolInput,
+  type ContactToolInput,
+  type CrisisRedirectToolInput,
+  type EscalateToHumanToolInput,
+  type SendResourceToolInput,
+} from "@/lib/support-tools";
 
-import { VoiceIntakeReview } from "@/components/voice-intake-review";
 import { Button } from "@/components/ui/button";
 
 type VoiceStatus =
@@ -66,8 +62,6 @@ interface RealtimeVoicePanelProps {
   mode: ChatMode;
 }
 
-const VOICE_FOCUS_STORAGE_KEY = "willing-ways-ai:call-focus";
-
 function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
   const lowerMessage = message.toLowerCase();
 
@@ -82,7 +76,7 @@ function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
     lowerMessage.includes("api_version_mismatch")
   ) {
     return language === "urdu"
-      ? "کال لائن کو تازہ کرنے کی ضرورت ہے۔ صفحہ refresh کر کے دوبارہ کوشش کریں۔"
+      ? "کال لائن کو تازہ کرنے کی ضرورت ہے۔ صفحہ ریفریش کر کے دوبارہ کوشش کریں۔"
       : "The AI call line needs a quick refresh. Please reload the page and try again.";
   }
 
@@ -95,168 +89,74 @@ function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
   return message;
 }
 
-function FocusIcon({
-  focus,
-  className,
-}: {
-  focus: VoiceCallFocusId;
-  className?: string;
-}) {
-  if (focus === "guided-intake") {
-    return <MessageSquareHeart className={className} />;
-  }
-
-  if (focus === "family-coach") {
-    return <Users className={className} />;
-  }
-
-  if (focus === "crisis-triage") {
-    return <Siren className={className} />;
-  }
-
-  if (focus === "founder-method") {
-    return <BookOpenText className={className} />;
-  }
-
-  if (focus === "private-intake") {
-    return <LockKeyhole className={className} />;
-  }
-
-  return <HeartHandshake className={className} />;
-}
-
-function careSignalLanguageLabel(
-  detectedLanguage: "english" | "urdu" | "punjabi" | "mixed",
-  language: ChatLanguage,
-) {
-  if (language === "urdu") {
-    if (detectedLanguage === "punjabi") {
-      return "پاکستانی پنجابی";
-    }
-    if (detectedLanguage === "urdu") {
-      return "اردو";
-    }
-    if (detectedLanguage === "mixed") {
-      return "مخلوط";
-    }
-    return "انگریزی";
-  }
-
-  if (detectedLanguage === "punjabi") {
-    return "Pakistani Punjabi";
-  }
-  if (detectedLanguage === "urdu") {
-    return "Urdu";
-  }
-  if (detectedLanguage === "mixed") {
-    return "Mixed";
-  }
-  return "English";
-}
-
-function careSignalEmotionLabel(
-  emotionalLoad: "steady" | "distressed" | "acute",
-  language: ChatLanguage,
-) {
-  if (language === "urdu") {
-    if (emotionalLoad === "acute") {
-      return "شدید دباؤ";
-    }
-    if (emotionalLoad === "distressed") {
-      return "ذہنی دباؤ";
-    }
-    return "نسبتاً پُرسکون";
-  }
-
-  if (emotionalLoad === "acute") {
-    return "Acute strain";
-  }
-  if (emotionalLoad === "distressed") {
-    return "Distressed";
-  }
-  return "Steady";
-}
-
-function careSignalCategoryLabel(
-  category: "crisis" | "distress" | "family" | "privacy" | "relapse",
-  language: ChatLanguage,
-) {
-  if (language === "urdu") {
-    if (category === "crisis") {
-      return "بحران";
-    }
-    if (category === "distress") {
-      return "ذہنی دباؤ";
-    }
-    if (category === "family") {
-      return "خاندانی معاملہ";
-    }
-    if (category === "privacy") {
-      return "رازداری";
-    }
-    return "relapse / دوبارہ نشہ";
-  }
-
-  if (category === "crisis") {
-    return "Crisis";
-  }
-  if (category === "distress") {
-    return "Distress";
-  }
-  if (category === "family") {
-    return "Family";
-  }
-  if (category === "privacy") {
-    return "Privacy";
-  }
-  return "Relapse";
-}
-
 function getStatusLabel(status: VoiceStatus, language: ChatLanguage) {
   if (status === "requesting") {
-    return language === "urdu" ? "کال ملائی جا رہی ہے" : "Placing your call";
+    return language === "urdu" ? "کال تیار ہو رہی ہے" : "Preparing your call";
   }
 
   if (status === "connecting") {
     return language === "urdu" ? "فون بج رہا ہے" : "Phone is ringing";
   }
 
+  if (status === "connected") {
+    return language === "urdu" ? "ولنگ ویز اے آئی نے کال اٹھا لی" : "Willing Ways AI picked up";
+  }
+
   if (status === "listening") {
-    return language === "urdu" ? "ہم سن رہے ہیں" : "We are listening";
+    return language === "urdu" ? "ہم سن رہے ہیں" : "Listening";
   }
 
   if (status === "responding") {
-    return language === "urdu" ? "ولنگ ویز اے آئی جواب دے رہی ہے" : "Willing Ways AI is speaking";
-  }
-
-  if (status === "connected") {
-    return language === "urdu" ? "کال جڑ چکی ہے" : "Willing Ways AI picked up";
+    return language === "urdu" ? "ولنگ ویز اے آئی بات کر رہی ہے" : "Willing Ways AI is speaking";
   }
 
   if (status === "error") {
-    return language === "urdu" ? "کال میں مسئلہ آیا" : "The call ran into a problem";
+    return language === "urdu" ? "کال میں مسئلہ آ گیا" : "The call ran into a problem";
   }
 
-  return language === "urdu" ? "کال کے لئے تیار" : "Ready when you are";
+  return language === "urdu" ? "کال کے لئے تیار" : "Ready for your call";
 }
 
-function createInitialIntakeDraft(language: ChatLanguage): BookingRequestPayload {
-  return {
-    requesterName: "",
-    patientName: "",
-    relation: "family",
-    phone: "",
-    email: "",
-    branchPreference: "first-available",
-    serviceInterest: "consultation",
-    contactMethod: "phone",
-    contactLanguage: language === "urdu" ? "urdu" : "english",
-    availability: "asap",
-    notes: "",
-    consent: false,
-    source: "ai-guided-intake",
-    website: "",
-  };
+function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
+  if (status === "requesting") {
+    return language === "urdu"
+      ? "ہم مائیکروفون اور اے آئی لائن تیار کر رہے ہیں۔"
+      : "We are preparing the microphone and AI line.";
+  }
+
+  if (status === "connecting") {
+    return language === "urdu"
+      ? "براہ کرم ایک لمحہ رکیں، لائن مل رہی ہے۔"
+      : "Please hold for a moment while the line connects.";
+  }
+
+  if (status === "connected") {
+    return language === "urdu"
+      ? "اے آئی پہلے آپ سے پوچھے گی کہ آپ کون ہیں اور کیا مدد چاہتے ہیں۔"
+      : "The AI will start by understanding who you are and what kind of help you need.";
+  }
+
+  if (status === "listening") {
+    return language === "urdu"
+      ? "قدرتی انداز میں بولیں۔ آپ اردو، انگریزی یا پاکستانی پنجابی میں بات کر سکتے ہیں۔"
+      : "Speak naturally. You can talk in English, Urdu, or Pakistani Punjabi.";
+  }
+
+  if (status === "responding") {
+    return language === "urdu"
+      ? "اے آئی اگلا مفید قدم، رہنمائی یا follow-up سنبھال رہی ہے۔"
+      : "The AI is working through the next useful step, guidance, or follow-up.";
+  }
+
+  if (status === "error") {
+    return language === "urdu"
+      ? "اکثر ایک نئی کال شروع کرنے سے مسئلہ حل ہو جاتا ہے۔"
+      : "Starting a fresh call usually fixes this.";
+  }
+
+  return language === "urdu"
+    ? "ایک کال میں رہنمائی، routing اور follow-up request سب سنبھل سکتے ہیں۔"
+    : "One call can cover guidance, routing, and follow-up requests.";
 }
 
 export function RealtimeVoicePanel({
@@ -269,19 +169,14 @@ export function RealtimeVoicePanel({
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [voiceId, setVoiceId] = useState<RealtimeVoiceId>(DEFAULT_REALTIME_VOICE_ID);
-  const [voiceFocus, setVoiceFocus] = useState<VoiceCallFocusId>(DEFAULT_VOICE_CALL_FOCUS_ID);
-  const [intakeDraft, setIntakeDraft] = useState<BookingRequestPayload>(() =>
-    createInitialIntakeDraft(language),
-  );
-  const [intakeStatus, setIntakeStatus] = useState<
-    "idle" | "preparing" | "ready" | "submitting" | "success" | "error"
-  >("idle");
-  const [intakeMessage, setIntakeMessage] = useState<string | null>(null);
+  const [toolActivity, setToolActivity] = useState<string | null>(null);
+  const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
+  const handledToolCallsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
@@ -290,18 +185,13 @@ export function RealtimeVoicePanel({
       storedVersion !== CURRENT_REALTIME_VOICE_VERSION && (!storedVoice || storedVoice === "cedar")
         ? DEFAULT_REALTIME_VOICE_ID
         : normalizeRealtimeVoiceId(storedVoice);
-    const nextFocus = normalizeVoiceCallFocusId(
-      window.localStorage.getItem(VOICE_FOCUS_STORAGE_KEY),
-    );
 
     setVoiceId(nextVoice);
-    setVoiceFocus(nextFocus);
     window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, nextVoice);
     window.localStorage.setItem(
       REALTIME_VOICE_VERSION_STORAGE_KEY,
       CURRENT_REALTIME_VOICE_VERSION,
     );
-    window.localStorage.setItem(VOICE_FOCUS_STORAGE_KEY, nextFocus);
   }, []);
 
   useEffect(() => {
@@ -311,29 +201,6 @@ export function RealtimeVoicePanel({
       CURRENT_REALTIME_VOICE_VERSION,
     );
   }, [voiceId]);
-
-  useEffect(() => {
-    window.localStorage.setItem(VOICE_FOCUS_STORAGE_KEY, voiceFocus);
-  }, [voiceFocus]);
-
-  useEffect(() => {
-    setIntakeDraft((current) => {
-      if (current.requesterName || current.phone || current.notes || current.aiIntake) {
-        return current;
-      }
-
-      const nextLanguage = language === "urdu" ? "urdu" : "english";
-
-      if (current.contactLanguage === nextLanguage) {
-        return current;
-      }
-
-      return {
-        ...current,
-        contactLanguage: nextLanguage,
-      };
-    });
-  }, [language]);
 
   useEffect(() => () => cleanupSession(), []);
 
@@ -352,29 +219,13 @@ export function RealtimeVoicePanel({
     }
 
     assistantEntryIdRef.current = null;
+    handledToolCallsRef.current.clear();
+    setToolActivity(null);
   }
 
-  function resetIntakeReview() {
-    setIntakeDraft(createInitialIntakeDraft(language));
-    setIntakeStatus("idle");
-    setIntakeMessage(null);
-  }
-
-  function updateIntakeField<K extends keyof BookingRequestPayload>(
-    field: K,
-    value: BookingRequestPayload[K],
-  ) {
-    setIntakeDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
-
-    if (intakeStatus === "success" || intakeStatus === "error") {
-      setIntakeStatus("ready");
-    }
-
-    if (intakeMessage) {
-      setIntakeMessage(null);
+  function sendRealtimeEvent(payload: Record<string, unknown>) {
+    if (dataChannelRef.current?.readyState === "open") {
+      dataChannelRef.current.send(JSON.stringify(payload));
     }
   }
 
@@ -402,6 +253,153 @@ export function RealtimeVoicePanel({
     });
   }
 
+  async function executeRealtimeTool(
+    name: string,
+    rawInput: unknown,
+  ): Promise<Record<string, unknown>> {
+    if (name === "book_session") {
+      const input = rawInput as Partial<BookSessionToolInput>;
+
+      if (!bookingConfigured) {
+        return {
+          ok: false,
+          message:
+            "The follow-up request service is not available right now. Please ask the caller to use the helpline 0300-7413639.",
+        };
+      }
+
+      if (!input?.consentConfirmed) {
+        return {
+          ok: false,
+          needsConsent: true,
+          message:
+            "Explicit permission to share the request with the Willing Ways team is still required before booking.",
+        };
+      }
+
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          buildBookingPayloadFromToolInput(input as BookSessionToolInput),
+        ),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string; ok?: boolean }
+        | null;
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message:
+            data?.error ??
+            "The request could not be noted right now. Ask the caller to use the helpline if it is urgent.",
+        };
+      }
+
+      setSubmissionNotice(
+        language === "urdu"
+          ? "ولنگ ویز ٹیم کے لئے follow-up request نوٹ کر دی گئی ہے۔"
+          : "The follow-up request has been noted for the Willing Ways team.",
+      );
+
+      return {
+        ok: true,
+        status: "noted",
+        message:
+          "The request has been noted for the Willing Ways team. They should follow up within about 24 hours on the provided contact route.",
+        helpline: "0300-7413639",
+      };
+    }
+
+    if (name === "get_contact") {
+      return getContactResult(rawInput as ContactToolInput);
+    }
+
+    if (name === "crisis_redirect") {
+      return getCrisisRedirectResult(rawInput as CrisisRedirectToolInput);
+    }
+
+    if (name === "send_resource") {
+      return getSupportResourceResult(rawInput as SendResourceToolInput);
+    }
+
+    if (name === "escalate_to_human") {
+      return getHumanEscalationResult(rawInput as EscalateToHumanToolInput);
+    }
+
+    return {
+      ok: false,
+      message: `Unsupported realtime tool: ${name}`,
+    };
+  }
+
+  async function handleRealtimeToolCall(
+    toolName: string,
+    callId: string,
+    rawArguments: string,
+  ) {
+    if (handledToolCallsRef.current.has(callId)) {
+      return;
+    }
+
+    handledToolCallsRef.current.add(callId);
+
+    let parsedArguments: unknown = {};
+
+    try {
+      parsedArguments = rawArguments ? JSON.parse(rawArguments) : {};
+    } catch {
+      parsedArguments = {};
+    }
+
+    setToolActivity(
+      toolName === "book_session"
+        ? language === "urdu"
+          ? "ہم آپ کی follow-up request نوٹ کر رہے ہیں..."
+          : "We are noting your follow-up request..."
+        : toolName === "crisis_redirect"
+          ? language === "urdu"
+            ? "ہم فوری حفاظتی رہنمائی تیار کر رہے ہیں..."
+            : "We are preparing urgent safety guidance..."
+          : language === "urdu"
+            ? "ہم اگلا مفید قدم تیار کر رہے ہیں..."
+            : "We are working on the next useful step...",
+    );
+
+    try {
+      const output = await executeRealtimeTool(toolName, parsedArguments);
+      sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output: JSON.stringify(output),
+        },
+      });
+      sendRealtimeEvent({ type: "response.create" });
+    } catch (error) {
+      sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output: JSON.stringify({
+            ok: false,
+            message:
+              error instanceof Error
+                ? error.message
+                : "The tool call failed unexpectedly.",
+          }),
+        },
+      });
+      sendRealtimeEvent({ type: "response.create" });
+    }
+  }
+
   function handleRealtimeEvent(event: unknown) {
     if (!event || typeof event !== "object" || !("type" in event)) {
       return;
@@ -423,6 +421,7 @@ export function RealtimeVoicePanel({
     if (type === "response.done") {
       assistantEntryIdRef.current = null;
       setStatus("connected");
+      setToolActivity(null);
       return;
     }
 
@@ -448,15 +447,58 @@ export function RealtimeVoicePanel({
       setTranscript((current) => [
         ...current,
         {
-          id:
-            typeof payload.item_id === "string"
-              ? payload.item_id
-              : crypto.randomUUID(),
+          id: typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID(),
           role: "user",
           text: transcriptText,
         },
       ]);
       setStatus("connected");
+      return;
+    }
+
+    if (type === "response.function_call_arguments.done") {
+      const callId =
+        typeof payload.call_id === "string"
+          ? payload.call_id
+          : typeof payload.item_id === "string"
+            ? payload.item_id
+            : "";
+      const name = typeof payload.name === "string" ? payload.name : "";
+
+      if (!callId || !name) {
+        return;
+      }
+
+      void handleRealtimeToolCall(
+        name,
+        callId,
+        typeof payload.arguments === "string" ? payload.arguments : "",
+      );
+      return;
+    }
+
+    if (type === "response.output_item.done") {
+      const item =
+        typeof payload.item === "object" && payload.item
+          ? (payload.item as Record<string, unknown>)
+          : null;
+
+      if (!item || item.type !== "function_call") {
+        return;
+      }
+
+      const callId = typeof item.call_id === "string" ? item.call_id : "";
+      const name = typeof item.name === "string" ? item.name : "";
+
+      if (!callId || !name) {
+        return;
+      }
+
+      void handleRealtimeToolCall(
+        name,
+        callId,
+        typeof item.arguments === "string" ? item.arguments : "",
+      );
       return;
     }
 
@@ -470,6 +512,7 @@ export function RealtimeVoicePanel({
 
       setErrorMessage(normalizeRealtimeClientError(error, language));
       setStatus("error");
+      setToolActivity(null);
     }
   }
 
@@ -495,14 +538,20 @@ export function RealtimeVoicePanel({
     }
 
     setErrorMessage(null);
+    setSubmissionNotice(null);
+    setToolActivity(null);
     setTranscript([]);
-    resetIntakeReview();
+    handledToolCallsRef.current.clear();
     setStatus("requesting");
 
     try {
       const localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const peerConnection = new RTCPeerConnection();
       const dataChannel = peerConnection.createDataChannel("oai-events");
+
+      dataChannelRef.current = dataChannel;
+      localStreamRef.current = localStream;
+      peerConnectionRef.current = peerConnection;
 
       dataChannel.onmessage = (messageEvent) => {
         try {
@@ -514,6 +563,7 @@ export function RealtimeVoicePanel({
 
       dataChannel.onopen = () => {
         setStatus("connected");
+        sendRealtimeEvent({ type: "response.create" });
       };
 
       dataChannel.onerror = () => {
@@ -535,10 +585,6 @@ export function RealtimeVoicePanel({
         peerConnection.addTrack(track, localStream);
       });
 
-      localStreamRef.current = localStream;
-      peerConnectionRef.current = peerConnection;
-      dataChannelRef.current = dataChannel;
-
       setStatus("connecting");
 
       const offer = await peerConnection.createOffer();
@@ -554,7 +600,7 @@ export function RealtimeVoicePanel({
       }
 
       const realtimeResponse = await fetch(
-        `/api/realtime/session?mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}&focus=${encodeURIComponent(voiceFocus)}&voice=${encodeURIComponent(voiceId)}`,
+        `/api/realtime/session?mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}&focus=general-support&voice=${encodeURIComponent(voiceId)}`,
         {
           method: "POST",
           headers: {
@@ -589,169 +635,8 @@ export function RealtimeVoicePanel({
     setStatus("idle");
   }
 
-  async function prepareIntakeDraft() {
-    if (!bookingConfigured) {
-      setIntakeStatus("error");
-      setIntakeMessage(
-        language === "urdu"
-          ? "ولنگ ویز ٹیم کو handoff بھیجنے کی سہولت ابھی دستیاب نہیں۔ براہ کرم 0300-7413639 پر کال کریں۔"
-          : "The Willing Ways handoff service is not available right now. Please call 0300-7413639.",
-      );
-      return;
-    }
-
-    if (mode !== "patient") {
-      setIntakeStatus("error");
-      setIntakeMessage(
-        language === "urdu"
-          ? "یہ handoff flow مریض یا خاندان کے لئے ہے۔"
-          : "This handoff flow is designed for patients and families.",
-      );
-      return;
-    }
-
-    const callerTurns = transcript.filter(
-      (entry) => entry.role === "user" && entry.text.trim(),
-    ).length;
-
-    if (callerTurns === 0) {
-      setIntakeStatus("error");
-      setIntakeMessage(
-        language === "urdu"
-          ? "پہلے اپنی بات کال میں بتائیں، پھر handoff summary تیار کریں۔"
-          : "Please speak in the call first, then prepare the handoff summary.",
-      );
-      return;
-    }
-
-    setIntakeStatus("preparing");
-    setIntakeMessage(
-      language === "urdu"
-        ? "ہم آپ کی گفتگو کو ولنگ ویز ٹیم کے لئے ترتیب دے رہے ہیں..."
-        : "We are organizing this call into a handoff for the Willing Ways team...",
-    );
-
-    try {
-      const response = await fetch("/api/intake", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          focus: voiceFocus,
-          language,
-          mode,
-          transcript,
-        }),
-      });
-
-      const data = (await response.json().catch(() => null)) as
-        | { draft?: BookingRequestPayload; error?: string; ok?: boolean }
-        | null;
-
-      if (!response.ok || !data?.draft) {
-        throw new Error(
-          data?.error ??
-            (language === "urdu"
-              ? "AI handoff summary اس وقت تیار نہیں ہو سکی۔"
-              : "The AI handoff summary could not be prepared right now."),
-        );
-      }
-
-      setIntakeDraft({
-        ...createInitialIntakeDraft(language),
-        ...data.draft,
-        consent: false,
-        source: "ai-guided-intake",
-        website: "",
-      });
-      setIntakeStatus("ready");
-      setIntakeMessage(
-        language === "urdu"
-          ? "Summary تیار ہے۔ اب نیچے details چیک کر کے ولنگ ویز ٹیم کو بھیج دیں۔"
-          : "Your handoff summary is ready. Review the details below and send it to the Willing Ways team.",
-      );
-    } catch (error) {
-      setIntakeStatus("error");
-      setIntakeMessage(
-        error instanceof Error
-          ? error.message
-          : language === "urdu"
-            ? "AI handoff summary اس وقت تیار نہیں ہو سکی۔"
-            : "The AI handoff summary could not be prepared right now.",
-      );
-    }
-  }
-
-  async function submitIntake(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (intakeStatus === "submitting") {
-      return;
-    }
-
-    setIntakeStatus("submitting");
-    setIntakeMessage(
-      language === "urdu"
-        ? "ہم یہ handoff ولنگ ویز ٹیم کو بھیج رہے ہیں..."
-        : "We are sending this handoff to the Willing Ways team...",
-    );
-
-    try {
-      const response = await fetch("/api/booking", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...intakeDraft,
-          source: "ai-guided-intake",
-          website: "",
-        }),
-      });
-
-      const data = (await response.json().catch(() => null)) as
-        | { error?: string; ok?: boolean }
-        | null;
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error ??
-            (language === "urdu"
-              ? "یہ handoff اس وقت بھیجا نہیں جا سکا۔"
-              : "This handoff could not be sent right now."),
-        );
-      }
-
-      setIntakeStatus("success");
-      setIntakeMessage(
-        language === "urdu"
-          ? "ہینڈ آف ولنگ ویز ٹیم کو بھیج دیا گیا ہے۔ اگر معاملہ فوری ہے تو ابھی 0300-7413639 پر کال کریں۔"
-          : "The handoff has been sent to the Willing Ways team. If the matter is urgent, call 0300-7413639 right away.",
-      );
-    } catch (error) {
-      setIntakeStatus("error");
-      setIntakeMessage(
-        error instanceof Error
-          ? error.message
-          : language === "urdu"
-            ? "یہ handoff اس وقت بھیجا نہیں جا سکا۔"
-            : "This handoff could not be sent right now.",
-      );
-    }
-  }
-
-  const selectedFocus = useMemo(
-    () =>
-      VOICE_CALL_FOCUS_OPTIONS.find((focus) => focus.id === voiceFocus) ??
-      VOICE_CALL_FOCUS_OPTIONS[0],
-    [voiceFocus],
-  );
-  const selectedVoiceLabel = useMemo(
-    () =>
-      REALTIME_VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? voiceId,
-    [voiceId],
-  );
+  const selectedVoiceLabel =
+    REALTIME_VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? voiceId;
   const userTranscriptTexts = useMemo(
     () => transcript.filter((entry) => entry.role === "user").map((entry) => entry.text),
     [transcript],
@@ -760,523 +645,257 @@ export function RealtimeVoicePanel({
     () => analyzeVoiceCareSignals(userTranscriptTexts),
     [userTranscriptTexts],
   );
-
   const callIsStarting = status === "requesting" || status === "connecting";
   const callIsLive =
     status === "connected" || status === "listening" || status === "responding";
-  const selectionLocked = callIsStarting || callIsLive;
-  const selectedFocusLabel = voiceCallFocusLabel(voiceFocus, language);
-  const selectedFocusTag =
-    language === "urdu" ? selectedFocus.urduTag : selectedFocus.englishTag;
-  const voiceSelectionHint =
-    language === "urdu"
-      ? "آواز بدلنے کے لئے موجودہ کال ختم کر کے نئی کال کریں۔"
-      : "End the current call before switching voices.";
-  const stepOneLabel = language === "urdu" ? "مرحلہ 1" : "Step 1";
-  const stepTwoLabel = language === "urdu" ? "مرحلہ 2" : "Step 2";
-  const statusLabel = getStatusLabel(status, language);
-  const callButtonLabel = voiceCallActionLabel(voiceFocus, language);
-  const statusDescription =
-    status === "requesting"
-      ? language === "urdu"
-        ? "ہم ولنگ ویز اے آئی کے ساتھ آپ کی کال شروع کر رہے ہیں۔"
-        : "We are starting your call with Willing Ways AI."
-      : status === "connecting"
-        ? language === "urdu"
-          ? "براہ کرم ایک لمحہ رکیں، لائن مل رہی ہے۔"
-          : "Please hold for a moment while the line connects."
-        : status === "connected"
-          ? language === "urdu"
-            ? "کال جڑ چکی ہے، اب آپ قدرتی انداز میں بات شروع کر سکتے ہیں۔"
-            : "The line is open. You can start speaking naturally."
-          : status === "listening"
-            ? language === "urdu"
-              ? "آپ بولیں، ہم غور سے سن رہے ہیں۔"
-              : "Go ahead. We are listening carefully."
-            : status === "responding"
-              ? language === "urdu"
-                ? "ولنگ ویز اے آئی مختصر اور واضح جواب دے رہی ہے۔"
-                : "Willing Ways AI is replying with the next helpful step."
-              : status === "error"
-                ? language === "urdu"
-                  ? "اکثر ایک نئی کال شروع کرنے سے مسئلہ حل ہو جاتا ہے۔"
-                  : "Starting a fresh call usually fixes this."
-                : language === "urdu"
-                  ? "پہلے اپنی ضرورت منتخب کریں، پھر کال شروع کریں۔"
-                  : "Choose the kind of help you need, then start the call.";
-  const careSignalTone =
-    careSignal?.severity === "urgent"
-      ? "border-rose-200 bg-rose-50 text-rose-950"
-      : careSignal?.severity === "watch"
-      ? "border-amber-200 bg-amber-50 text-amber-950"
-      : "border-emerald-200 bg-emerald-50 text-emerald-950";
-  const hasCallerTranscript = userTranscriptTexts.length > 0;
-  const canOfferHandoff = bookingConfigured && mode === "patient";
-  const shouldShowHandoffReview =
-    canOfferHandoff && (Boolean(intakeDraft.aiIntake) || intakeStatus !== "idle");
 
   return (
-    <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl">
+    <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
       <audio ref={audioRef} autoPlay />
 
-      <div className="grid gap-4 xl:grid-cols-[1.16fr_0.84fr]">
-        <section className="order-2 rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 sm:p-6 xl:order-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-[#ead6dc] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              {stepOneLabel}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-[#ead6dc] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            <PhoneCall className="mr-2 h-3.5 w-3.5" />
-            {language === "urdu" ? "ولنگ ویز اے آئی کال" : "Willing Ways AI voice support"}
-            </span>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="section-kicker">
+            {language === "urdu" ? "24/7 اے آئی کال سپورٹ" : "24/7 AI call support"}
           </div>
-
           <h2
-            className={`mt-4 text-3xl font-semibold leading-tight text-[#3b1725] ${
+            className={`mt-4 text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl ${
               language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
             {language === "urdu"
-              ? "وہ مدد منتخب کریں جو اس وقت آپ کے لئے سب سے زیادہ اہم ہے"
-              : "Choose the kind of help that matters most right now"}
+              ? "ولنگ ویز اے آئی کو کال کریں"
+              : "Call Willing Ways AI"}
           </h2>
-
           <p
-            className={`mt-3 max-w-3xl text-base leading-8 text-[#5a3743] ${
+            className={`mt-3 max-w-3xl text-base leading-7 text-slate-600 ${
               language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
             {language === "urdu"
-              ? "یہ صفحہ families، patients اور referrers کے لئے بنایا گیا ہے۔ پہلے اپنی ضرورت منتخب کریں، پھر کال شروع کریں یا چاہیں تو نیچے چیٹ میں سوال لکھیں۔"
-              : "This page is designed for families, patients, and referrers. Choose your need first, then place the call or switch to chat below if that feels easier."}
+              ? "بس کال شروع کریں۔ اے آئی خود پوچھے گی کہ آپ کون ہیں، کیا مسئلہ ہے، اور پھر رہنمائی، crisis routing، یا follow-up request کا اگلا قدم خود سنبھالے گی۔"
+              : "Just start the call. The AI will ask who you are, understand the situation, and then handle the next useful step, whether that is guidance, urgent routing, or a follow-up request."}
           </p>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {VOICE_CALL_FOCUS_OPTIONS.map((focus) => {
-              const active = focus.id === voiceFocus;
-
-              return (
-                <button
-                  key={focus.id}
-                  type="button"
-                  disabled={selectionLocked}
-                  onClick={() => setVoiceFocus(focus.id)}
-                  className={`rounded-[26px] border px-4 py-4 text-left transition ${
-                    active
-                      ? "border-[#651328] bg-white shadow-soft"
-                      : "border-[#ead6dc] bg-[#fff8fa] hover:border-primary/35 hover:bg-white"
-                  } disabled:cursor-not-allowed disabled:opacity-70`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                        active ? "bg-[#651328] text-white" : "bg-white text-primary"
-                      }`}
-                    >
-                      <FocusIcon focus={focus.id} className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div
-                          className={`text-sm font-semibold text-[#3b1725] ${
-                            language === "urdu" ? "font-urdu text-right" : ""
-                          }`}
-                          dir={language === "urdu" ? "rtl" : "ltr"}
-                        >
-                          {language === "urdu" ? focus.urduLabel : focus.englishLabel}
-                        </div>
-                        <span className="rounded-full border border-[#ead6dc] bg-[#fff4f7] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                          {language === "urdu" ? focus.urduTag : focus.englishTag}
-                        </span>
-                      </div>
-                      <div
-                        className={`mt-2 text-sm leading-6 text-[#6d4452] ${
-                          language === "urdu" ? "font-urdu text-right" : ""
-                        }`}
-                        dir={language === "urdu" ? "rtl" : "ltr"}
-                      >
-                        {language === "urdu"
-                          ? focus.urduDescription
-                          : focus.englishDescription}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              language === "urdu"
+                ? "اردو، انگریزی، پاکستانی پنجابی"
+                : "English, Urdu, Pakistani Punjabi",
+              language === "urdu"
+                ? "فیملی guidance اور intervention support"
+                : "Family guidance and intervention support",
+              language === "urdu"
+                ? "ضرورت ہو تو session request بھی نوٹ ہو سکتی ہے"
+                : "Can note a session or callback request",
+            ].map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-slate-200 bg-[#faf8f8] px-3 py-2 text-sm text-slate-600"
+              >
+                {item}
+              </span>
+            ))}
           </div>
-        </section>
+        </div>
 
-        <div className="order-1 space-y-4 xl:order-2">
-          <section className="rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-                  <span className="inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff8fa] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                    {stepTwoLabel}
-                  </span>
-                  <span>{language === "urdu" ? "اب کال شروع کریں" : "Now start the call"}</span>
-                </div>
-                <div
-                  className={`mt-2 text-2xl font-semibold text-[#3b1725] ${
-                    language === "urdu" ? "font-urdu text-right" : ""
-                  }`}
-                  dir={language === "urdu" ? "rtl" : "ltr"}
-                >
-                  {selectedFocusLabel}
-                </div>
-                <p
-                  className={`mt-2 max-w-md text-sm leading-7 text-[#6d4452] ${
-                    language === "urdu" ? "font-urdu text-right" : ""
-                  }`}
-                  dir={language === "urdu" ? "rtl" : "ltr"}
-                >
-                  {language === "urdu"
-                    ? selectedFocus.urduDescription
-                    : selectedFocus.englishDescription}
-                </p>
-              </div>
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-[#ead6dc] bg-[#fff8fa]">
+            {callIsStarting || callIsLive ? (
+              <span className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
+            ) : null}
+            <Image
+              src={SITE_MEDIA.logo}
+              alt="Willing Ways"
+              width={72}
+              height={72}
+              className="h-10 w-auto object-contain"
+              unoptimized
+            />
+          </div>
+        </div>
+      </div>
 
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#ead6dc] bg-[#fff8fa]">
-                {callIsStarting || callIsLive ? (
-                  <span className="absolute inset-0 rounded-full border border-primary/25 animate-ping" />
-                ) : null}
-                <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={60}
-                  height={60}
-                  className="h-8 w-auto object-contain"
-                  unoptimized
-                />
-              </div>
-            </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_240px]">
+        <div
+          className={`rounded-[24px] border px-4 py-4 ${
+            status === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-950"
+              : callIsLive
+                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                : "border-slate-200 bg-[#fafaf8] text-slate-700"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {callIsStarting ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : status === "error" ? (
+              <AlertTriangle className="h-4 w-4" />
+            ) : (
+              <PhoneCall className="h-4 w-4" />
+            )}
+            {getStatusLabel(status, language)}
+          </div>
+          <div
+            className={`mt-2 text-sm leading-7 ${
+              language === "urdu" ? "font-urdu text-right" : ""
+            }`}
+            dir={language === "urdu" ? "rtl" : "ltr"}
+          >
+            {getStatusDescription(status, language)}
+          </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-[#ead6dc] bg-[#fff4f7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-                {selectedFocusTag}
-              </span>
-              <span className="rounded-full border border-[#ead6dc] bg-white px-3 py-1 text-xs font-semibold text-[#7a5a64]">
-                {language === "urdu" ? `آواز: ${selectedVoiceLabel}` : `Voice: ${selectedVoiceLabel}`}
-              </span>
-              <span className="rounded-full border border-[#ead6dc] bg-white px-3 py-1 text-xs font-semibold text-[#7a5a64]">
-                {language === "urdu"
-                  ? "زبانیں: انگریزی، اردو، پاکستانی پنجابی"
-                  : "Languages: English, Urdu, Pakistani Punjabi"}
-              </span>
-            </div>
-
+          {toolActivity ? (
             <div
-              className={`mt-4 rounded-[24px] border px-4 py-4 text-sm ${
-                status === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-950"
-                  : callIsLive
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-                    : "border-[#ead6dc] bg-[#fff8fa] text-[#5a3743]"
-              } ${language === "urdu" ? "font-urdu text-right" : ""}`}
-              dir={language === "urdu" ? "rtl" : "ltr"}
-            >
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                {callIsStarting ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : status === "error" ? (
-                  <AlertTriangle className="h-4 w-4" />
-                ) : (
-                  <PhoneCall className="h-4 w-4" />
-                )}
-                {statusLabel}
-              </div>
-              <div className="mt-2 leading-7">{statusDescription}</div>
-            </div>
-
-            <label className="mt-4 block space-y-2">
-              <div
-                className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5a64] ${
-                  language === "urdu" ? "font-urdu justify-end normal-case" : ""
-                }`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                <Volume2 className="h-4 w-4 text-primary" />
-                {language === "urdu" ? "کال کی آواز" : "Call voice"}
-              </div>
-              <select
-                className="flex h-12 w-full rounded-2xl border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#3b1725] shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={selectionLocked}
-                value={voiceId}
-                onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
-              >
-                {REALTIME_VOICE_OPTIONS.map((voice) => (
-                  <option key={voice.id} value={voice.id}>
-                    {voice.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div
-              className={`mt-3 text-xs leading-6 text-[#7a5a64] ${
+              className={`mt-3 rounded-[18px] border border-current/10 bg-white/70 px-3 py-3 text-sm ${
                 language === "urdu" ? "font-urdu text-right" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              {voiceSelectionHint}
+              {toolActivity}
             </div>
+          ) : null}
 
-            <div className="mt-5 grid gap-3">
-              {status === "idle" || status === "error" ? (
-                <Button onClick={startSession} className="h-12 text-base shadow-soft">
-                  <PhoneCall className="h-4 w-4" />
-                  {callButtonLabel}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  onClick={stopSession}
-                  className="h-12 text-base shadow-soft"
-                >
-                  <PhoneOff className="h-4 w-4" />
-                  {language === "urdu" ? "کال بند کریں" : "End call"}
-                </Button>
-              )}
+          {submissionNotice ? (
+            <div
+              className={`mt-3 flex items-start gap-2 rounded-[18px] border border-emerald-200 bg-white px-3 py-3 text-sm text-emerald-900 ${
+                language === "urdu" ? "font-urdu text-right" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{submissionNotice}</span>
+            </div>
+          ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Link href="#ai-text-input" className="site-action-link justify-center">
-                  <MessageSquareHeart className="h-4 w-4" />
-                  <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
-                    {language === "urdu" ? "نیچے چیٹ میں لکھیں" : "Type in chat below"}
-                  </span>
-                </Link>
-                <Link href="/book-session" className="site-action-link justify-center">
-                  <CalendarDays className="h-4 w-4" />
-                  <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
-                    {language === "urdu" ? "سیشن بک کریں" : "Book a session"}
-                  </span>
-                </Link>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              language === "urdu"
+                ? "اے آئی پہلے سمجھے گی کہ آپ کون ہیں"
+                : "The AI starts by understanding who you are",
+              language === "urdu"
+                ? "ضرورت ہو تو follow-up request نوٹ کر سکتی ہے"
+                : "It can note a follow-up request when needed",
+              language === "urdu"
+                ? "بحرانی اشاروں میں فوراً safety-first جواب"
+                : "Urgent safety-first handling for crisis cues",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-[18px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
+              >
+                {item}
               </div>
-            </div>
-          </section>
+            ))}
+          </div>
+        </div>
 
-          <section
-            className={`rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] px-5 py-4 text-sm leading-7 text-[#5a3743] ${
+        <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+          <label className="block space-y-2">
+            <div
+              className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
+                language === "urdu" ? "font-urdu justify-end normal-case" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              <Volume2 className="h-4 w-4 text-primary" />
+              {language === "urdu" ? "کال کی آواز" : "Call voice"}
+            </div>
+            <select
+              className="flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none transition focus:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={callIsStarting || callIsLive}
+              value={voiceId}
+              onChange={(event) => setVoiceId(event.target.value as RealtimeVoiceId)}
+            >
+              {REALTIME_VOICE_OPTIONS.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div
+            className={`mt-3 text-xs leading-6 text-slate-500 ${
               language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-              <Stethoscope className="h-4 w-4 text-primary" />
-              {language === "urdu" ? "کال کے دوران کیا ہوگا؟" : "What happens during the call"}
-            </div>
-            <div className="mt-3 grid gap-3">
-              <div className="rounded-[20px] border border-[#ead6dc] bg-white px-4 py-3">
-                {language === "urdu"
-                  ? "آپ قدرتی انداز میں انگریزی، اردو یا پاکستانی پنجابی میں بات کر سکتے ہیں۔"
-                  : "Speak naturally in English, Urdu, or Pakistani Punjabi."}
-              </div>
-              <div className="rounded-[20px] border border-[#ead6dc] bg-white px-4 py-3">
-                {language === "urdu"
-                  ? "اگر آپ private intake چاہتے ہیں تو شروع میں نام بتانا ضروری نہیں۔"
-                  : "If you want a private intake, you do not need to begin with names."}
-              </div>
-              <div className="rounded-[20px] border border-[#ead6dc] bg-white px-4 py-3">
-                {language === "urdu"
-                  ? "اگر overdose، self-harm، violent relapse یا psychiatric danger ہو تو فوراً 0300-7413639 پر کال کریں یا ہسپتال جائیں۔"
-                  : "For overdose, self-harm, violent relapse, or immediate psychiatric danger, call 0300-7413639 at once or go to the nearest hospital."}
-              </div>
-            </div>
-          </section>
+            {language === "urdu"
+              ? `فی الحال منتخب آواز: ${selectedVoiceLabel}`
+              : `Current voice: ${selectedVoiceLabel}`}
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {status === "idle" || status === "error" ? (
+              <Button onClick={startSession} className="h-12 text-base shadow-sm">
+                <PhoneCall className="h-4 w-4" />
+                {language === "urdu" ? "ولنگ ویز اے آئی کو کال کریں" : "Call Willing Ways AI now"}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={stopSession}
+                className="h-12 text-base shadow-sm"
+              >
+                <PhoneOff className="h-4 w-4" />
+                {language === "urdu" ? "کال بند کریں" : "End call"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {canOfferHandoff ? (
-        <section className="mt-4 rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 shadow-soft">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div
-                className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
-                  language === "urdu" ? "font-urdu normal-case text-right" : ""
-                }`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                {language === "urdu"
-                  ? "ولنگ ویز team handoff"
-                  : "Willing Ways team handoff"}
-              </div>
-              <h3
-                className={`mt-2 text-2xl font-semibold text-[#3b1725] ${
-                  language === "urdu" ? "font-urdu text-right" : ""
-                }`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                {language === "urdu"
-                  ? "اگر آپ چاہیں تو یہ کال callback یا intervention follow-up میں بدل سکتی ہے"
-                  : "If you want, this call can become a callback or intervention follow-up"}
-              </h3>
-              <p
-                className={`mt-3 text-sm leading-7 text-[#5a3743] ${
-                  language === "urdu" ? "font-urdu text-right" : ""
-                }`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                {language === "urdu"
-                  ? "اپنی پوری صورتحال بیان کریں، سوالات کے جواب دیں، پھر ہم اسی کال سے ایک صاف summary تیار کر کے ولنگ ویز ٹیم کو بھیجنے کے لئے review کے ساتھ دکھائیں گے۔"
-                  : "Tell the full story, answer the follow-up questions, and we will turn this call into a clean reviewed summary you can send to the Willing Ways team."}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 lg:min-w-[280px]">
-              <Button
-                type="button"
-                className="h-12 text-base"
-                disabled={
-                  !hasCallerTranscript ||
-                  intakeStatus === "preparing" ||
-                  intakeStatus === "submitting" ||
-                  callIsStarting
-                }
-                onClick={prepareIntakeDraft}
-              >
-                {intakeStatus === "preparing" ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MessageSquareHeart className="h-4 w-4" />
-                )}
-                {language === "urdu"
-                  ? "AI handoff summary تیار کریں"
-                  : "Prepare AI handoff summary"}
-              </Button>
-
-              <Link href="/book-session" className="site-action-link justify-center">
-                <CalendarDays className="h-4 w-4" />
-                <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
-                  {language === "urdu"
-                    ? "اگر چاہیں تو عام booking form استعمال کریں"
-                    : "Use the regular booking form instead"}
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          <div
-            className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-3 text-sm leading-7 text-[#5a3743] ${
-              language === "urdu" ? "font-urdu text-right" : ""
-            }`}
-            dir={language === "urdu" ? "rtl" : "ltr"}
-          >
-            {!hasCallerTranscript
-              ? language === "urdu"
-                ? "پہلے کال میں اپنی بات بتائیں، پھر handoff summary تیار کریں۔ AI-guided intake focus اس کام کے لئے سب سے بہتر ہے۔"
-                : "Speak in the call first, then prepare the handoff summary. The AI intake handoff focus is the best fit for this."
-              : voiceFocus === "guided-intake"
-                ? language === "urdu"
-                  ? "یہ بہترین intake mode ہے۔ AI آپ کی کہانی، history، family context اور expectations کو منظم کرے گی۔"
-                  : "This is the best intake mode. The AI will organize the story, history, family context, and expectations."
-                : language === "urdu"
-                  ? "آپ کسی بھی support call کو follow-up handoff میں بدل سکتے ہیں، مگر مکمل story-based handoff کے لئے AI intake focus بہتر ہے۔"
-                  : "You can turn any support call into a follow-up handoff, but the AI intake focus works best for a full story-based handoff."}
-          </div>
-
-          {intakeMessage && !intakeDraft.aiIntake ? (
-            <div
-              className={`mt-4 rounded-[22px] border px-4 py-3 text-sm ${
-                intakeStatus === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-900"
-                  : "border-[#ead6dc] bg-white text-[#5a3743]"
-              } ${language === "urdu" ? "font-urdu text-right" : ""}`}
-              dir={language === "urdu" ? "rtl" : "ltr"}
-            >
-              {intakeMessage}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {shouldShowHandoffReview && intakeDraft.aiIntake ? (
-        <VoiceIntakeReview
-          draft={intakeDraft}
-          language={language}
-          message={intakeMessage}
-          onFieldChange={updateIntakeField}
-          onRefreshDraft={prepareIntakeDraft}
-          onSubmit={submitIntake}
-          preparing={intakeStatus === "preparing"}
-          status={intakeStatus}
-        />
-      ) : null}
-
-      {careSignal ? (
-        <section
-          className={`mt-4 rounded-[28px] border px-5 py-4 text-sm leading-7 ${careSignalTone} ${
-            language === "urdu" ? "font-urdu text-right" : ""
-          }`}
+      {careSignal && careSignal.severity !== "normal" ? (
+        <div
+          className={`mt-4 rounded-[22px] border px-4 py-4 text-sm leading-7 ${
+            careSignal.severity === "urgent"
+              ? "border-rose-200 bg-rose-50 text-rose-950"
+              : "border-amber-200 bg-amber-50 text-amber-950"
+          } ${language === "urdu" ? "font-urdu text-right" : ""}`}
           dir={language === "urdu" ? "rtl" : "ltr"}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
-            {careSignal.severity === "urgent" ? (
-              <ShieldAlert className="h-4 w-4" />
-            ) : (
-              <HeartHandshake className="h-4 w-4" />
-            )}
-            {language === "urdu" ? "اس کال سے نمایاں باتیں" : "What this call is picking up"}
+          <div className="flex items-center gap-2 font-semibold">
+            <ShieldAlert className="h-4 w-4" />
+            {language === "urdu"
+              ? "اس کال میں اہم care cues نظر آ رہے ہیں"
+              : "This call is showing important care cues"}
           </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full border border-current/15 bg-white/55 px-3 py-1 text-xs font-semibold">
-              {language === "urdu" ? "زبان" : "Language"}:{" "}
-              {careSignalLanguageLabel(careSignal.detectedLanguage, language)}
-            </span>
-            <span className="rounded-full border border-current/15 bg-white/55 px-3 py-1 text-xs font-semibold">
-              {language === "urdu" ? "کیفیت" : "Emotional load"}:{" "}
-              {careSignalEmotionLabel(careSignal.emotionalLoad, language)}
-            </span>
-            {careSignal.categories.map((category) => (
-              <span
-                key={category}
-                className="rounded-full border border-current/15 bg-white/55 px-3 py-1 text-xs font-semibold"
-              >
-                {careSignalCategoryLabel(category, language)}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-3">
+          <div className="mt-2">
             {careSignal.severity === "urgent"
               ? language === "urdu"
-                ? "اس گفتگو میں فوری خطرے کے اشارے موجود ہیں۔ ابھی ہیلپ لائن یا ہسپتال کو ترجیح دیں۔"
-                : "This conversation contains urgent-risk cues. Prioritize the helpline or hospital right now."
-              : careSignal.severity === "watch"
-                ? language === "urdu"
-                  ? "اس گفتگو میں distress، relapse، privacy یا family strain کے اشارے موجود ہیں، اس لئے اگلا قدم زیادہ احتیاط سے لیا جائے گا۔"
-                  : "This conversation shows distress, relapse, privacy, or family-strain cues, so the next step should be handled more carefully."
-                : language === "urdu"
-                  ? "ابھی گفتگو نسبتاً steady ہے، مگر آپ کسی بھی وقت زیادہ مخصوص مدد مانگ سکتے ہیں۔"
-                  : "So far the call sounds relatively steady, but you can ask for more specific support at any time."}
+                ? "گفتگو میں فوری خطرے کے اشارے موجود ہیں۔ 1122 یا 0300-7413639 کو ترجیح دیں۔"
+                : "The conversation includes urgent-risk cues. Prioritize 1122 or 0300-7413639 right now."
+              : language === "urdu"
+                ? "گفتگو میں distress، privacy یا relapse جیسے اشارے ہیں، اس لئے اگلا قدم احتیاط سے لیا جائے گا۔"
+                : "The conversation includes distress, privacy, or relapse cues, so the next step should be handled carefully."}
           </div>
-        </section>
+        </div>
       ) : null}
 
       {transcript.length > 0 ? (
-        <section className="mt-4 rounded-[28px] border border-[#ead6dc] bg-white p-5 shadow-soft">
+        <div className="mt-4 rounded-[24px] border border-slate-200 bg-[#fafaf8] px-4 py-4">
           <div
-            className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
+            className={`text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
               language === "urdu" ? "font-urdu text-right normal-case" : ""
             }`}
             dir={language === "urdu" ? "rtl" : "ltr"}
           >
-            {language === "urdu" ? "کال کی حالیہ جھلک" : "Recent call highlights"}
+            {language === "urdu" ? "حالیہ کال جھلک" : "Recent call highlights"}
           </div>
-          <div className="mt-4 grid gap-3">
+          <div className="mt-3 grid gap-3">
             {transcript.slice(-4).map((entry) => (
               <div
                 key={entry.id}
-                className={`rounded-[22px] border px-4 py-4 ${
+                className={`rounded-[20px] border px-4 py-3 ${
                   entry.role === "assistant"
-                    ? "border-[#ead6dc] bg-[#fff8fa]"
-                    : "border-primary/20 bg-primary/5"
+                    ? "border-slate-200 bg-white"
+                    : "border-[#ead6dc] bg-[#fff3f6]"
                 }`}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {entry.role === "assistant"
                     ? language === "urdu"
                       ? "ولنگ ویز اے آئی"
@@ -1286,7 +905,7 @@ export function RealtimeVoicePanel({
                       : "You"}
                 </div>
                 <div
-                  className={`mt-2 text-base leading-8 text-[#4b2934] ${
+                  className={`mt-2 text-base leading-7 text-slate-800 ${
                     language === "urdu" ? "font-urdu text-right" : ""
                   }`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
@@ -1296,7 +915,7 @@ export function RealtimeVoicePanel({
               </div>
             ))}
           </div>
-        </section>
+        </div>
       ) : null}
 
       {errorMessage ? (
@@ -1309,6 +928,6 @@ export function RealtimeVoicePanel({
           {errorMessage}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

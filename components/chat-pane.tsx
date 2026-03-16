@@ -1,30 +1,23 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   AlertTriangle,
   ArrowUp,
-  CalendarDays,
   Check,
   LoaderCircle,
-  PhoneCall,
   ShieldAlert,
-  Sparkles,
   Square,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 
 import {
-  getMessageText,
   getSuggestionChips,
   isUrduText,
   type ChatSession,
   type ModelId,
 } from "@/lib/chat";
-import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { MessageBubble } from "@/components/message-bubble";
 import { RealtimeVoicePanel } from "@/components/realtime-voice-panel";
@@ -115,7 +108,7 @@ export function ChatPane({
     if (!serverKeyConfigured) {
       setLocalError(
         session.language === "urdu"
-          ? "اے آئی چیٹ اس وقت عارضی طور پر دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
+          ? "اے آئی چیٹ اس وقت دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
           : "AI chat is temporarily unavailable right now. Please try again shortly or call 0300-7413639.",
       );
       return;
@@ -139,7 +132,7 @@ export function ChatPane({
     if (!serverKeyConfigured) {
       setLocalError(
         session.language === "urdu"
-          ? "اے آئی چیٹ اس وقت عارضی طور پر دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
+          ? "اے آئی چیٹ اس وقت دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
           : "AI chat is temporarily unavailable right now. Please try again shortly or call 0300-7413639.",
       );
       return;
@@ -170,7 +163,7 @@ export function ChatPane({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-6 pt-6 sm:px-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
           <RealtimeVoicePanel
             bookingConfigured={bookingConfigured}
@@ -180,109 +173,38 @@ export function ChatPane({
           />
 
           {deferredMessages.length === 0 ? (
-            <div className="animate-fade-up py-6">
-              <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.12fr_0.88fr]">
-                <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl">
-                  <div className="inline-flex items-center rounded-full border border-[#ead6dc] bg-[#fff4f7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary shadow-sm">
-                    <Sparkles className="mr-2 h-3.5 w-3.5" />
-                    {session.language === "urdu" ? "مرحلہ 3 · اگر آپ لکھنا چاہیں" : "Step 3 · Prefer typing instead?"}
-                  </div>
-                  <h2
-                    className={`mt-4 text-3xl font-semibold leading-tight text-[#3b1725] ${
-                      session.language === "urdu" ? "font-urdu text-right" : "font-serif"
-                    }`}
-                    dir={session.language === "urdu" ? "rtl" : "ltr"}
-                  >
+            <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-6">
+              <div
+                className={`text-center ${session.language === "urdu" ? "font-urdu" : ""}`}
+                dir={session.language === "urdu" ? "rtl" : "ltr"}
+              >
+                <div className="mx-auto max-w-2xl">
+                  <h2 className="text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl">
                     {session.language === "urdu"
-                      ? "اگر کال مناسب نہ لگے تو نیچے مختصر سوال لکھ دیں"
-                      : "If a call does not feel right, type a short question below"}
+                      ? "جو کچھ ہو رہا ہے وہ مختصر بتا دیں، ولنگ ویز اے آئی اگلا قدم خود سنبھال لے گی"
+                      : "Tell us what is happening, and Willing Ways AI will guide the next step"}
                   </h2>
-                  <p
-                    className={`mt-3 text-base leading-8 text-[#5a3743] ${
-                      session.language === "urdu" ? "font-urdu text-right" : ""
-                    }`}
-                    dir={session.language === "urdu" ? "rtl" : "ltr"}
-                  >
+                  <p className="mt-3 text-base leading-7 text-slate-600">
                     {session.language === "urdu"
-                      ? "چیٹ treatment، family intervention planning، crisis guidance، founder method اور private intake سوالات کے لئے موزوں ہے۔"
-                      : "Chat works well for treatment questions, family intervention planning, crisis guidance, founder-method questions, and private intake concerns."}
+                      ? "یہ چیٹ آپ سے چند ضروری سوالات پوچھ سکتی ہے، practical guidance دے سکتی ہے، crisis کی صورت میں فوراً راستہ دکھا سکتی ہے، اور اگر آپ چاہیں تو follow-up request بھی نوٹ کر سکتی ہے۔"
+                      : "This chat can ask a few useful questions, guide the family, handle urgent routing, and note a follow-up request for the Willing Ways team when you want."}
                   </p>
-
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    {suggestionChips.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        className="rounded-full border border-[#ead6dc] bg-white px-4 py-3 text-sm font-medium text-[#4b2934] shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary"
-                        onClick={() => submitPrompt(chip)}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  <div className="rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 shadow-soft">
-                    <div
-                      className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
-                        session.language === "urdu" ? "font-urdu text-right normal-case" : ""
-                      }`}
-                      dir={session.language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {session.language === "urdu" ? "دوسرے فوری راستے" : "Other fast options"}
-                    </div>
-                    <div className="mt-4 grid gap-3">
-                      <Link href="/book-session" className="site-action-link justify-center">
-                        <CalendarDays className="h-4 w-4" />
-                        <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                          {session.language === "urdu" ? "callback یا session بک کریں" : "Request a callback or session"}
-                        </span>
-                      </Link>
-                      <a href="tel:+923007413639" className="site-action-link justify-center">
-                        <PhoneCall className="h-4 w-4" />
-                        <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                          {session.language === "urdu" ? "فوری مدد کے لئے کال کریں" : "Call for urgent help"}
-                        </span>
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl sm:flex sm:items-center sm:gap-4">
-                    <Image
-                      src={SITE_MEDIA.founder}
-                      alt="Dr. Sadaqat Ali"
-                      width={88}
-                      height={88}
-                      className="mx-auto h-20 w-20 rounded-[22px] object-cover sm:mx-0"
-                      unoptimized
-                    />
-                    <div className={`mt-4 sm:mt-0 ${session.language === "urdu" ? "text-right" : "text-left"}`}>
-                      <div
-                        className={`text-xs font-semibold tracking-[0.22em] text-primary ${
-                          session.language === "urdu" ? "font-urdu normal-case" : "uppercase"
-                        }`}
-                      >
-                        {session.language === "urdu" ? "بانی" : "Founded By"}
-                      </div>
-                      <div className={`mt-2 text-xl font-semibold text-slate-950 ${session.language === "urdu" ? "font-urdu" : "font-serif"}`}>
-                        Dr. Sadaqat Ali
-                      </div>
-                      <p
-                        className={`mt-2 text-sm leading-7 text-[#5a3743] ${
-                          session.language === "urdu" ? "font-urdu" : ""
-                        }`}
-                        dir={session.language === "urdu" ? "rtl" : "ltr"}
-                      >
-                        {session.language === "urdu"
-                          ? "50+ سالہ addiction psychiatry leadership اب اسی سادہ AI support experience میں شامل ہے۔"
-                          : "50+ years of addiction psychiatry leadership now reflected in this simpler AI support experience."}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
-            </div>
+
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                {suggestionChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-[#faf8f8] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-[#d4b8c0] hover:bg-white hover:text-[#651328]"
+                    onClick={() => submitPrompt(chip)}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </section>
           ) : (
             deferredMessages.map((message) => (
               <MessageBubble
@@ -298,13 +220,15 @@ export function ChatPane({
 
           {isGenerating ? (
             <div className="flex justify-start">
-              <div className="max-w-[88%] rounded-[30px] border border-[#ead6dc] bg-white/95 px-5 py-4 shadow-card backdrop-blur-xl">
-                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="max-w-[88%] rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Willing Ways AI
                 </div>
                 <div className="flex items-center gap-3 text-sm text-slate-600">
                   <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
-                  {session.language === "urdu" ? "ہماری ٹیم غور کر رہی ہے..." : "Our team is thinking..."}
+                  {session.language === "urdu"
+                    ? "ہم آپ کے لئے اگلا مفید قدم تیار کر رہے ہیں..."
+                    : "We are working out the next useful step..."}
                 </div>
               </div>
             </div>
@@ -312,24 +236,26 @@ export function ChatPane({
         </div>
       </div>
 
-      <div className="border-t border-[#ead6dc] bg-white/88 px-4 py-4 backdrop-blur sm:px-6">
+      <div className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-4xl">
           {currentError ? (
-            <div className="mb-4 flex items-start gap-3 rounded-[24px] border border-[#e7c8d1] bg-[#fff3f6] px-4 py-3 text-sm text-[#651328]">
+            <div className="mb-4 flex items-start gap-3 rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{currentError}</span>
             </div>
           ) : null}
 
           {copiedText ? (
-            <div className="mb-4 flex items-center gap-2 rounded-[24px] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900">
+            <div className="mb-4 flex items-center gap-2 rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
               <Check className="h-4 w-4" />
-              {session.language === "urdu" ? "جواب clipboard میں کاپی ہو گیا۔" : "Response copied to clipboard."}
+              {session.language === "urdu"
+                ? "جواب clipboard میں کاپی ہو گیا۔"
+                : "Response copied to clipboard."}
             </div>
           ) : null}
 
           <form
-            className="glass-panel rounded-[30px] p-3"
+            className="rounded-[28px] border border-slate-200 bg-[#fbfbfa] p-3 shadow-sm"
             onSubmit={(event) => {
               event.preventDefault();
               void submitPrompt(input);
@@ -339,10 +265,8 @@ export function ChatPane({
               id="ai-text-input"
               placeholder={
                 session.language === "urdu"
-                  ? "اپنا سوال لکھیے، ہم آپ کو پُرسکون اور واضح رہنمائی دیں گے۔"
-                  : session.mode === "doctor"
-                    ? "Ask for clinical program details, referral context, detox structure, or branch-specific information."
-                    : "Tell us what you or your loved one is facing, and we will respond with calm, practical guidance or help you rehearse the next conversation."
+                  ? "جو کچھ ہو رہا ہے وہ لکھ دیں۔ ہم رہنمائی، family support، crisis direction یا session request میں مدد کریں گے۔"
+                  : "Type what is going on. We can guide, support the family, handle urgent routing, or note a session request for the team."
               }
               dir={inputIsUrdu ? "rtl" : "ltr"}
               value={input}
@@ -358,23 +282,20 @@ export function ChatPane({
                   void submitPrompt(input);
                 }
               }}
-              className="min-h-[124px] resize-none border-0 bg-transparent text-[16px] leading-8 shadow-none focus-visible:ring-0"
+              className="min-h-[100px] resize-none border-0 bg-transparent text-[16px] leading-7 shadow-none focus-visible:ring-0"
             />
 
-            <div className="mt-3 flex flex-col gap-3 border-t border-[#ead6dc] px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#7a5a64]">
-                {session.mode === "doctor" ? (
-                  <ShieldAlert className="h-4 w-4 text-primary" />
-                ) : (
-                  <Sparkles className="h-4 w-4 text-accent" />
-                )}
-                {session.mode === "doctor"
-                  ? session.language === "urdu"
-                    ? "ڈاکٹروں کے لئے تفصیلی مگر محفوظ رہنمائی"
-                    : "Doctor mode with detailed but safe guidance"
-                  : session.language === "urdu"
-                    ? "مریض اور خاندان کے لئے نرم اور سادہ رہنمائی"
-                    : "Patient and family mode with calm, simple guidance"}
+            <div className="mt-3 flex flex-col gap-3 border-t border-slate-200 px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className={`flex items-center gap-2 text-xs text-slate-500 ${
+                  session.language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={session.language === "urdu" ? "rtl" : "ltr"}
+              >
+                <ShieldAlert className="h-4 w-4 text-primary" />
+                {session.language === "urdu"
+                  ? "ہنگامی صورت میں 1122 یا 0300-7413639 کو ترجیح دیں"
+                  : "In emergencies, prioritize 1122 or 0300-7413639"}
               </div>
 
               <div className="flex items-center gap-2">
@@ -385,7 +306,7 @@ export function ChatPane({
                   </Button>
                 ) : null}
 
-                <Button type="submit" variant="accent" disabled={!input.trim()}>
+                <Button type="submit" variant="default" disabled={!input.trim()}>
                   <ArrowUp className="h-4 w-4" />
                   {session.language === "urdu" ? "بھیجیں" : "Send"}
                 </Button>
@@ -394,17 +315,15 @@ export function ChatPane({
           </form>
 
           {latestAssistantMessage && !isGenerating ? (
-            <div className="mt-3 flex flex-col gap-2 text-xs text-[#7a5a64] sm:flex-row sm:items-center sm:justify-between">
-              <span className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                {session.language === "urdu"
-                  ? `آخری جواب کی لمبائی: ${getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length} الفاظ`
-                  : `Last reply length: ${getMessageText(latestAssistantMessage).split(/\s+/).filter(Boolean).length} words`}
-              </span>
-              <span className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                {session.language === "urdu"
-                  ? "AI generated responses میں غلطیاں ہو سکتی ہیں۔ ہنگامی صورت میں فوراً Willing Ways کی 24/7 helpline سے رابطہ کریں۔"
-                  : "AI generated responses may contain inaccuracies. In emergencies, contact the 24/7 Willing Ways helpline immediately."}
-              </span>
+            <div
+              className={`mt-3 text-xs leading-6 text-slate-500 ${
+                session.language === "urdu" ? "font-urdu text-right" : ""
+              }`}
+              dir={session.language === "urdu" ? "rtl" : "ltr"}
+            >
+              {session.language === "urdu"
+                ? "اگر جواب میں کوئی غلطی ہو تو سوال دوبارہ مختلف انداز میں پوچھیں، یا فوری معاملے میں براہ راست ہیلپ لائن پر کال کریں۔"
+                : "If the reply misses something important, ask again more directly, or call the helpline immediately for urgent cases."}
             </div>
           ) : null}
         </div>

@@ -2,35 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Building2,
-  Globe,
-  Mail,
-  MapPin,
-  Menu,
-  MessageSquarePlus,
-  Phone,
-  Trash2,
-  X,
-} from "lucide-react";
+import { History, MessageSquarePlus, Phone, Trash2, X } from "lucide-react";
 
-import {
-  BRANCH_CONTACTS,
-  PRIMARY_CONTACTS,
-  QUICK_LINKS,
-  SERVICE_HIGHLIGHTS,
-  formatSessionTimestamp,
-  languageLabel,
-  modeLabel,
-  type ChatSession,
-} from "@/lib/chat";
+import { formatSessionTimestamp, type ChatSession } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
 import { cn } from "@/lib/utils";
 
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 
 interface SidebarProps {
   activeChatId: string;
@@ -58,302 +38,140 @@ export function Sidebar({
       {open ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px]"
           onClick={() => onOpenChange(false)}
         />
       ) : null}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[320px] transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-[320px] max-w-[88vw] transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="sidebar-panel relative flex h-full flex-col border-r border-white/10 px-5 py-5 text-white shadow-2xl shadow-slate-950/30">
-          <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="sidebar-panel flex h-full flex-col border-r border-slate-200 px-4 py-4 text-slate-900 shadow-2xl">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="inline-flex rounded-[20px] border border-white/12 bg-white/95 px-3 py-3 shadow-soft">
+              <Link href="/" className="inline-flex items-center">
                 <Image
                   src={SITE_MEDIA.logo}
                   alt="Willing Ways"
-                  width={280}
-                  height={70}
+                  width={260}
+                  height={64}
                   className="h-11 w-auto object-contain"
                   unoptimized
                 />
-              </div>
-              <div className="mt-3 inline-flex rounded-full border border-white/14 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
-                Willing Ways AI
-              </div>
-              <h1
-                className={`mt-3 text-2xl font-semibold leading-tight ${
-                  isUrdu ? "font-urdu text-right" : "font-serif"
-                }`}
-                dir={isUrdu ? "rtl" : "ltr"}
-              >
-                {isUrdu
-                  ? "مریضوں، خاندانوں اور ڈاکٹروں کے لئے باوقار intake support"
-                  : "Compassionate intake support for patients, families, and doctors"}
-              </h1>
+              </Link>
               <p
-                className={`mt-2 text-sm leading-6 text-white/70 ${
+                className={`mt-3 text-sm leading-6 text-slate-600 ${
                   isUrdu ? "font-urdu text-right" : ""
                 }`}
                 dir={isUrdu ? "rtl" : "ltr"}
               >
                 {isUrdu
-                  ? "داخلہ، intervention، treatment tracks، branch contacts، relapse، psychiatric support یا family guidance کے بارے میں پوچھیں۔"
-                  : "Ask about admissions, interventions, treatment tracks, branch contacts, relapse, psychiatric support, or family guidance."}
+                  ? "پچھلی گفتگو دوبارہ کھولیں یا نئی گفتگو شروع کریں۔"
+                  : "Reopen a previous conversation or start a fresh one."}
               </p>
-              <Link
-                href="/"
-                className="mt-4 inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/12 hover:text-white"
-              >
-                Back to website
-              </Link>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          <Button variant="accent" className="w-full justify-center" onClick={onNewChat}>
-            <MessageSquarePlus className="h-4 w-4" />
-            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-              {isUrdu ? "نئی گفتگو" : "New conversation"}
-            </span>
-          </Button>
+          <div className="mt-4 grid gap-3">
+            <Button variant="default" className="justify-center" onClick={onNewChat}>
+              <MessageSquarePlus className="h-4 w-4" />
+              <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                {isUrdu ? "نئی گفتگو" : "New conversation"}
+              </span>
+            </Button>
 
-          <ScrollArea className="mt-5 flex-1 pr-2">
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                  {isUrdu ? "گفتگو کی تاریخ" : "Chat history"}
-                </div>
-                <Menu className="h-4 w-4 text-white/35" />
+            <div className="rounded-[24px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#651328]">
+                <Phone className="h-4 w-4" />
+                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                  {isUrdu ? "فوری مدد" : "Urgent help"}
+                </span>
               </div>
-
-              <div className="space-y-2">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className={cn(
-                      "group rounded-[22px] border px-4 py-3 transition",
-                      session.id === activeChatId
-                        ? "border-white/20 bg-white/14 shadow-lg shadow-slate-950/20"
-                        : "border-white/5 bg-white/6 hover:border-white/15 hover:bg-white/10",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => onSelectChat(session.id)}
-                      >
-                        <div className="truncate text-sm font-semibold text-white">{session.title}</div>
-                        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                          <span>{modeLabel(session.mode)}</span>
-                          <span>{formatSessionTimestamp(session.updatedAt)}</span>
-                        </div>
-                        <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
-                          {languageLabel(session.language)}
-                        </div>
-                      </button>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-white/45 hover:bg-white/10 hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
-                        onClick={() => onDeleteChat(session.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete chat</span>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-2 text-lg font-semibold text-slate-950">0300-7413639</div>
+              <div
+                className={`mt-1 text-sm leading-6 text-slate-600 ${
+                  isUrdu ? "font-urdu text-right" : ""
+                }`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                {isUrdu
+                  ? "ہنگامی صورتحال میں 1122 یا ولنگ ویز ہیلپ لائن سے فوراً رابطہ کریں۔"
+                  : "For emergencies, call 1122 or the Willing Ways helpline immediately."}
               </div>
-            </section>
+            </div>
+          </div>
 
-            <Separator className="my-6 bg-white/10" />
+          <div className="mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <History className="h-4 w-4" />
+            <span>{isUrdu ? "حالیہ گفتگو" : "Recent chats"}</span>
+          </div>
 
-            <section id="about">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                {isUrdu ? "تعارف" : "About"}
-              </div>
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
-                  <div className="mb-2 inline-flex rounded-full bg-white/10 p-2">
-                    <Building2 className="h-4 w-4 text-white/80" />
-                  </div>
-                  <div className="text-base font-semibold">Willing Ways Pakistan</div>
-                  <p
-                    className={`mt-2 text-sm leading-6 text-white/70 ${
-                      isUrdu ? "font-urdu text-right" : ""
-                    }`}
-                    dir={isUrdu ? "rtl" : "ltr"}
-                  >
-                    {isUrdu
-                      ? "ڈاکٹر صداقت علی کے قائم کردہ ادارے کے طور پر، لاہور، کراچی اور اسلام آباد میں 50+ سالہ addiction treatment اور mental health rehabilitation کا تجربہ۔"
-                      : "Founded by Dr. Sadaqat Ali, with 50+ years of addiction treatment and mental health rehabilitation experience across Lahore, Karachi, and Islamabad."}
-                  </p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={SITE_MEDIA.founder}
-                      alt="Dr. Sadaqat Ali"
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 rounded-2xl object-cover"
-                      unoptimized
-                    />
-                    <div>
-                      <div className="text-sm font-semibold text-white">Dr. Sadaqat Ali</div>
-                      <div className={`mt-1 text-xs tracking-[0.18em] text-white/50 ${isUrdu ? "font-urdu normal-case" : "uppercase"}`}>
-                        {isUrdu ? "بانی" : "Founder"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[
-                  ["50+", "Years"],
-                  ["5,000+", "Clients"],
-                  ["3", "Cities"],
-                ].map(([value, label]) => (
-                  <div
-                    key={label}
-                    className="rounded-[22px] border border-white/10 bg-white/8 px-3 py-4 text-center"
-                  >
-                    <div className="text-lg font-semibold text-white">{value}</div>
-                    <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/55">
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <Separator className="my-6 bg-white/10" />
-
-            <section id="services">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                {isUrdu ? "خدمات" : "Services"}
-              </div>
-              <div className="mt-4 space-y-3">
-                {SERVICE_HIGHLIGHTS.map((service) => (
-                  <div
-                    key={service.english}
-                    className="rounded-[22px] border border-white/10 bg-white/8 px-4 py-3 text-sm leading-6 text-white/72"
-                  >
-                    <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                      {isUrdu ? service.urdu : service.english}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <Separator className="my-6 bg-white/10" />
-
-            <section>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                {isUrdu ? "فوری لنکس" : "Quick links"}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_LINKS.map((link) => (
-                  <Button
-                    key={link.id}
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-full border border-white/10 bg-white/8 text-white/80 hover:bg-white/12 hover:text-white"
-                    onClick={() =>
-                      document.getElementById(link.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
-                    }
-                  >
-                    {isUrdu
-                      ? link.label === "Services"
-                        ? "خدمات"
-                        : link.label === "About"
-                          ? "تعارف"
-                          : "رابطہ"
-                      : link.label}
-                  </Button>
-                ))}
-              </div>
-            </section>
-
-            <Separator className="my-6 bg-white/10" />
-
-            <section id="contact">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/55">
-                {isUrdu ? "رابطہ" : "Contact"}
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {PRIMARY_CONTACTS.map((contact) => {
-                  const Icon = contact.label === "Email" ? Mail : contact.label === "Website" ? Globe : Phone;
-
-                  return (
-                    <div
-                      key={contact.label}
-                      className="flex items-center gap-3 rounded-[22px] border border-white/10 bg-white/8 px-4 py-3"
+          <ScrollArea className="mt-3 flex-1 pr-2">
+            <div className="space-y-2 pb-4">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={cn(
+                    "group rounded-[22px] border px-4 py-3 transition",
+                    session.id === activeChatId
+                      ? "border-[#d5b6bf] bg-[#fff7f9] shadow-sm"
+                      : "border-slate-200 bg-white hover:border-[#d9c1c7] hover:bg-[#fffafb]",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => onSelectChat(session.id)}
                     >
-                      <span className="inline-flex rounded-full bg-white/10 p-2">
-                        <Icon className="h-4 w-4 text-white/75" />
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-white/55">
-                          {isUrdu
-                            ? contact.label === "Email"
-                              ? "ای میل"
-                              : contact.label === "Website"
-                                ? "ویب سائٹ"
-                                : "ہیلپ لائن"
-                            : contact.label}
-                        </div>
-                        <div className="truncate text-sm text-white">{contact.value}</div>
+                      <div className="truncate text-sm font-semibold text-slate-900">
+                        {session.title}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                        {formatSessionTimestamp(session.updatedAt)}
+                      </div>
+                    </button>
 
-              <div className="mt-4 space-y-3">
-                {BRANCH_CONTACTS.map((branch) => (
-                  <div
-                    key={branch.name}
-                    className="rounded-[24px] border border-white/10 bg-white/8 p-4 text-sm text-white/75"
-                  >
-                    <div className="font-semibold text-white">{branch.name}</div>
-                    <div className="mt-3 flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-200" />
-                      <span>{branch.address}</span>
-                    </div>
-                    <div className="mt-2 flex items-start gap-2">
-                      <Phone className="mt-0.5 h-4 w-4 shrink-0 text-blue-200" />
-                      <span>{branch.phones.join(" • ")}</span>
-                    </div>
-                    {branch.email ? (
-                      <div className="mt-2 flex items-start gap-2">
-                        <Mail className="mt-0.5 h-4 w-4 shrink-0 text-teal-200" />
-                        <span>{branch.email}</span>
-                      </div>
-                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-slate-500 hover:bg-[#fff1f4] hover:text-[#651328]"
+                      onClick={() => onDeleteChat(session.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete chat</span>
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
+              ))}
+            </div>
           </ScrollArea>
+
+          <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+            <div
+              className={`${isUrdu ? "font-urdu text-right" : ""}`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
+              {isUrdu
+                ? "محبت سے تعمیر: ڈاکٹر زارک خان"
+                : "Built with love by Dr Zarak Khan"}
+            </div>
+            <div className="mt-3 flex items-center gap-3 text-sm">
+              <Link href="/" className="site-inline-link">
+                {isUrdu ? "ویب سائٹ" : "Website"}
+              </Link>
+              <Link href="/book-session" className="site-inline-link">
+                {isUrdu ? "بکنگ فارم" : "Booking form"}
+              </Link>
+            </div>
+          </div>
         </div>
       </aside>
     </>

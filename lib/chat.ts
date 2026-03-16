@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 
-export type ChatMode = "patient" | "doctor";
+export type ChatMode = "adaptive" | "patient" | "doctor";
 export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
 export type VoiceCallFocusId =
@@ -177,16 +177,16 @@ export function normalizeVoiceCallFocusId(
 
 export const SUGGESTION_CHIPS: Record<ChatLanguage, string[]> = {
   english: [
-    "Help me plan a family intervention conversation",
-    "Tell me about your rehab programs",
-    "This feels like a crisis. What should we do right now?",
-    "I want a confidential intake without sharing names",
+    "My family needs help and I do not know the next step",
+    "I want to request a session or callback",
+    "This may be urgent and I need guidance right now",
+    "I want confidential guidance without judgment",
   ],
   urdu: [
-    "اپنے عزیز کے ساتھ family intervention conversation کیسے شروع کروں؟",
-    "اپنے ریحاب پروگرامز کے بارے میں بتائیں",
-    "یہ معاملہ crisis لگ رہا ہے، ہمیں ابھی کیا کرنا چاہیے؟",
-    "میں نام بتائے بغیر confidential intake کرنا چاہتا ہوں",
+    "میرے خاندان کو مدد چاہیے اور مجھے اگلا قدم سمجھ نہیں آ رہا",
+    "میں سیشن یا callback کی درخواست کرنا چاہتا ہوں",
+    "یہ معاملہ فوری لگ رہا ہے، ابھی رہنمائی چاہیے",
+    "میں بغیر ججمنٹ کے خفیہ رہنمائی چاہتا ہوں",
   ],
 };
 
@@ -247,7 +247,10 @@ export const BRANCH_CONTACTS = [
   },
 ];
 
-export function createChatSession(mode: ChatMode, language: ChatLanguage = "english"): ChatSession {
+export function createChatSession(
+  mode: ChatMode = "adaptive",
+  language: ChatLanguage = "english",
+): ChatSession {
   const now = new Date().toISOString();
 
   return {
@@ -267,6 +270,7 @@ export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[]
     ...session,
     welcomed: session.welcomed ?? false,
     language: session.language ?? "english",
+    mode: "adaptive",
     title: session.title || "New conversation",
   }));
 }
@@ -305,7 +309,15 @@ export function formatSessionTimestamp(isoString: string): string {
 }
 
 export function modeLabel(mode: ChatMode): string {
-  return mode === "doctor" ? "Doctor / Clinical" : "Patient / Family";
+  if (mode === "doctor") {
+    return "Doctor / Clinical";
+  }
+
+  if (mode === "patient") {
+    return "Patient / Family";
+  }
+
+  return "Adaptive support";
 }
 
 export function languageLabel(language: ChatLanguage): string {

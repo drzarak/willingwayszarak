@@ -1,13 +1,38 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  jsonSchema,
+  stepCountIs,
+  streamText,
+  tool,
+  type UIMessage,
+} from "ai";
 
+import { POST as submitBookingRequest } from "@/app/api/booking/route";
 import { type ChatLanguage, type ChatMode, type ModelId } from "@/lib/chat";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
+import {
+  BOOK_SESSION_TOOL_PARAMETERS,
+  CRISIS_REDIRECT_TOOL_PARAMETERS,
+  ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
+  GET_CONTACT_TOOL_PARAMETERS,
+  SEND_RESOURCE_TOOL_PARAMETERS,
+  buildBookingPayloadFromToolInput,
+  getContactResult,
+  getCrisisRedirectResult,
+  getHumanEscalationResult,
+  getSupportResourceResult,
+  type BookSessionToolInput,
+  type ContactToolInput,
+  type CrisisRedirectToolInput,
+  type EscalateToHumanToolInput,
+  type SendResourceToolInput,
+} from "@/lib/support-tools";
 
 export const maxDuration = 30;
 
 const ALLOWED_MODELS = new Set<ModelId>(["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"]);
-const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
+const ALLOWED_MODES = new Set<ChatMode>(["adaptive", "patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 
 interface ChatRequestBody {
@@ -18,6 +43,82 @@ interface ChatRequestBody {
   mode?: ChatMode;
   modelId?: ModelId;
   trigger?: string;
+}
+
+function createChatTools(request: Request) {
+  return {
+    book_session: tool({
+      description:
+        "Use when the user wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
+      inputSchema: jsonSchema<BookSessionToolInput>(BOOK_SESSION_TOOL_PARAMETERS),
+      execute: async (input: BookSessionToolInput) => {
+        if (!input.consentConfirmed) {
+          return {
+            ok: false,
+            needsConsent: true,
+            message:
+              "Explicit permission to note this request for the Willing Ways team is still required before booking.",
+          };
+        }
+
+        const bookingRequest = buildBookingPayloadFromToolInput(input);
+        const response = await submitBookingRequest(
+          new Request(new URL("/api/booking", request.url), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(bookingRequest),
+          }),
+        );
+
+        const data = (await response.json().catch(() => null)) as
+          | { error?: string; ok?: boolean }
+          | null;
+
+        if (!response.ok) {
+          return {
+            ok: false,
+            message:
+              data?.error ??
+              "The request could not be noted right now. Ask the user to call 0300-7413639 if it is urgent.",
+          };
+        }
+
+        return {
+          ok: true,
+          status: "noted",
+          message:
+            "The request has been noted for the Willing Ways team. They should follow up within about 24 hours on the provided contact route.",
+          helpline: "0300-7413639",
+        };
+      },
+    }),
+    get_contact: tool({
+      description:
+        "Use when the user asks for a phone number, branch contact, city, address, or general helpline information.",
+      inputSchema: jsonSchema<ContactToolInput>(GET_CONTACT_TOOL_PARAMETERS),
+      execute: async (input: ContactToolInput) => getContactResult(input),
+    }),
+    crisis_redirect: tool({
+      description:
+        "Use immediately for suicide, self-harm, overdose, violent relapse, or immediate psychiatric danger.",
+      inputSchema: jsonSchema<CrisisRedirectToolInput>(CRISIS_REDIRECT_TOOL_PARAMETERS),
+      execute: async (input: CrisisRedirectToolInput) => getCrisisRedirectResult(input),
+    }),
+    send_resource: tool({
+      description:
+        "Use to send short practical guidance for family conversations, intervention preparation, treatment expectations, family follow-through, calming steps, or relapse next steps.",
+      inputSchema: jsonSchema<SendResourceToolInput>(SEND_RESOURCE_TOOL_PARAMETERS),
+      execute: async (input: SendResourceToolInput) => getSupportResourceResult(input),
+    }),
+    escalate_to_human: tool({
+      description:
+        "Use when the user insists on a real counselor or team member right now and a booking tool call is not yet possible.",
+      inputSchema: jsonSchema<EscalateToHumanToolInput>(ESCALATE_TO_HUMAN_TOOL_PARAMETERS),
+      execute: async (input: EscalateToHumanToolInput) => getHumanEscalationResult(input),
+    }),
+  };
 }
 
 export async function POST(request: Request) {
@@ -50,16 +151,18 @@ export async function POST(request: Request) {
     const openai = createOpenAI({ apiKey });
     const result = streamText({
       model: openai.chat(body.modelId),
-      system: composeSystemPrompt(body.mode, body.language),
+      system: composeSystemPrompt(body.mode, body.language, { surface: "chat" }),
       messages: await convertToModelMessages(
-        body.messages.map((message) => {
-          const { id, ...messageWithoutId } = message;
-          if (id) {
-            return messageWithoutId;
-          }
-          return messageWithoutId;
-        }),
+        body.messages.map(
+          (message) =>
+            Object.fromEntries(
+              Object.entries(message).filter(([key]) => key !== "id"),
+            ) as Omit<UIMessage, "id">,
+        ),
       ),
+      toolChoice: "auto",
+      tools: createChatTools(request),
+      stopWhen: stepCountIs(6),
     });
 
     return result.toUIMessageStreamResponse({

@@ -8,11 +8,18 @@ import {
   type RealtimeVoiceId,
   type VoiceCallFocusId,
 } from "@/lib/chat";
+import {
+  BOOK_SESSION_TOOL_PARAMETERS,
+  CRISIS_REDIRECT_TOOL_PARAMETERS,
+  ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
+  GET_CONTACT_TOOL_PARAMETERS,
+  SEND_RESOURCE_TOOL_PARAMETERS,
+} from "@/lib/support-tools";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 
 export const maxDuration = 30;
 
-const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
+const ALLOWED_MODES = new Set<ChatMode>(["adaptive", "patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 const ALLOWED_FOCUSES = new Set<VoiceCallFocusId>([
   "general-support",
@@ -138,7 +145,45 @@ function buildRealtimeSession(
     instructions: `${composeSystemPrompt(mode, language, {
       surface: "voice",
       voiceFocus: focus,
-    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud.`,
+    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
+    tool_choice: "auto",
+    tools: [
+      {
+        type: "function",
+        name: "book_session",
+        description:
+          "Use when the caller wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
+        parameters: BOOK_SESSION_TOOL_PARAMETERS,
+      },
+      {
+        type: "function",
+        name: "get_contact",
+        description:
+          "Use when the caller asks for helpline, branch, phone number, address, or city contact details.",
+        parameters: GET_CONTACT_TOOL_PARAMETERS,
+      },
+      {
+        type: "function",
+        name: "crisis_redirect",
+        description:
+          "Use immediately for suicide, self-harm, overdose, violent relapse, or immediate psychiatric danger.",
+        parameters: CRISIS_REDIRECT_TOOL_PARAMETERS,
+      },
+      {
+        type: "function",
+        name: "send_resource",
+        description:
+          "Use for short practical guidance on family conversations, intervention preparation, treatment expectations, calming steps, relapse next steps, or family follow-through.",
+        parameters: SEND_RESOURCE_TOOL_PARAMETERS,
+      },
+      {
+        type: "function",
+        name: "escalate_to_human",
+        description:
+          "Use when the caller insists on a real team member now and a booking tool call is not yet possible.",
+        parameters: ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
+      },
+    ],
     audio: {
       input: {
         noise_reduction: {
@@ -166,7 +211,7 @@ export async function POST(request: Request) {
   }
 
   const url = new URL(request.url);
-  const mode = (url.searchParams.get("mode") ?? "patient") as ChatMode;
+  const mode = (url.searchParams.get("mode") ?? "adaptive") as ChatMode;
   const language = (url.searchParams.get("language") ?? "english") as ChatLanguage;
   const focus = normalizeVoiceCallFocusId(
     url.searchParams.get("focus") ?? DEFAULT_VOICE_CALL_FOCUS_ID,
