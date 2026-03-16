@@ -180,7 +180,7 @@ export function HomePage() {
                   <CalendarDays className="h-4 w-4" />
                   <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
                 </Link>
-                <Link href="/ai" className="site-action-link">
+                <Link href="/" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Open AI assistant" urdu="اے آئی معاون کھولیں" />
                 </Link>
@@ -510,7 +510,7 @@ export function HomePage() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/ai" className="site-cta-button">
+                <Link href="/" className="site-cta-button">
                   <Mic className="h-4 w-4" />
                   <LocalizedText english="Try voice and chat" urdu="voice اور chat آزمائیں" />
                 </Link>

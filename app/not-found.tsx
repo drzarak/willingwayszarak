@@ -20,7 +20,7 @@ export default function NotFound() {
           <Link href="/library" className="site-cta-button">
             Browse library
           </Link>
-          <Link href="/ai" className="site-action-link">
+          <Link href="/" className="site-action-link">
             Open AI assistant
           </Link>
         </div>

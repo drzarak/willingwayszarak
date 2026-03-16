@@ -40,7 +40,7 @@ export default function BookSessionPage() {
                   <PhoneCall className="h-4 w-4" />
                   <LocalizedText english="Call admissions now" urdu="ابھی داخلے کے لئے کال کریں" />
                 </a>
-                <Link href="/ai" className="site-action-link">
+                <Link href="/" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Use AI guided intake instead" urdu="اس کے بجائے AI guided intake استعمال کریں" />
                 </Link>

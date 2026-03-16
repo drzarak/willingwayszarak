@@ -89,7 +89,7 @@ export function ContentPage({ page }: ContentPageProps) {
                   <CalendarDays className="h-4 w-4" />
                   <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
                 </Link>
-                <Link href="/ai" className="site-action-link">
+                <Link href="/" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Ask Willing Ways AI" urdu="ولنگ ویز اے آئی سے پوچھیں" />
                 </Link>
@@ -157,7 +157,7 @@ export function ContentPage({ page }: ContentPageProps) {
                 <Link href="/contact-us" className="site-action-link justify-center">
                   <LocalizedText english="Contact branches" urdu="برانچز سے رابطہ کریں" />
                 </Link>
-                <Link href="/ai" className="site-action-link justify-center">
+                <Link href="/" className="site-action-link justify-center">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Ask the AI assistant" urdu="اے آئی معاون سے پوچھیں" />
                 </Link>

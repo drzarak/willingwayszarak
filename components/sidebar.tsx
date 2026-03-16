@@ -164,8 +164,8 @@ export function Sidebar({
                 : "Built with love by Dr Zarak Khan"}
             </div>
             <div className="mt-3 flex items-center gap-3 text-sm">
-              <Link href="/" className="site-inline-link">
-                {isUrdu ? "ویب سائٹ" : "Website"}
+              <Link href="/about" className="site-inline-link">
+                {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
               </Link>
               <Link href="/book-session" className="site-inline-link">
                 {isUrdu ? "بکنگ فارم" : "Booking form"}

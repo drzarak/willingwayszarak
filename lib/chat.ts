@@ -185,16 +185,16 @@ export function normalizeVoiceCallFocusId(
 
 export const SUGGESTION_CHIPS: Record<ChatLanguage, string[]> = {
   english: [
-    "My family needs help and I do not know the next step",
-    "I want to request a session or callback",
-    "This may be urgent and I need guidance right now",
-    "I want confidential guidance without judgment",
+    "My son is using ICE and our family needs urgent guidance",
+    "How should we prepare for treatment before admission?",
+    "How can we support a patient during treatment and after discharge?",
+    "I want to request a callback or counseling session",
   ],
   urdu: [
-    "میرے خاندان کو مدد چاہیے اور مجھے اگلا قدم سمجھ نہیں آ رہا",
-    "میں سیشن یا callback کی درخواست کرنا چاہتا ہوں",
-    "یہ معاملہ فوری لگ رہا ہے، ابھی رہنمائی چاہیے",
-    "میں بغیر ججمنٹ کے خفیہ رہنمائی چاہتا ہوں",
+    "میرا بیٹا آئس استعمال کر رہا ہے اور ہمارے خاندان کو فوری رہنمائی چاہیے",
+    "داخلے سے پہلے treatment کے لئے خود کو کیسے تیار کریں؟",
+    "علاج کے دوران اور discharge کے بعد مریض کی مدد کیسے کریں؟",
+    "میں callback یا counseling session کی درخواست کرنا چاہتا ہوں",
   ],
 };
 

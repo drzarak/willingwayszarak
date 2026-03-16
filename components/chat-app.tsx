@@ -193,14 +193,16 @@ export function ChatApp({ surface }: ChatAppProps) {
 
   const tabs = [
     {
+      href: "/",
+      icon: MessageSquare,
+      label: isUrdu ? "چیٹ" : "Chat",
+      active: pathname === "/" || pathname === "/ai/chat",
+    },
+    {
       href: "/ai",
       icon: PhoneCall,
       label: isUrdu ? "کال" : "Call",
-    },
-    {
-      href: "/ai/chat",
-      icon: MessageSquare,
-      label: isUrdu ? "چیٹ" : "Chat",
+      active: pathname === "/ai",
     },
   ];
 
@@ -238,6 +240,12 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <Link
+                href="/about"
+                className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#ead6dc] hover:bg-[#fff8fa] hover:text-[#651328] sm:inline-flex"
+              >
+                {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
+              </Link>
               <a
                 href="tel:+923007413639"
                 className="inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-[#fff8fa] px-4 py-2 text-sm font-semibold text-[#651328] transition hover:bg-[#fff1f4]"
@@ -257,27 +265,26 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="text-lg font-semibold text-slate-950">
                 {surface === "voice"
                   ? isUrdu
-                    ? "سکون سے بات کرنے کے لئے ولنگ ویز اے آئی کال"
-                    : "A calmer voice-first Willing Ways AI call"
+                    ? "ڈاکٹر صداقت علی کے اے آئی کونسلر کے ساتھ کال"
+                    : "Call Dr. Sadaqat Ali's AI counselor"
                   : isUrdu
-                    ? "آسان اور صاف ولنگ ویز اے آئی چیٹ"
-                    : "A simpler, cleaner Willing Ways AI chat"}
+                    ? "ڈاکٹر صداقت علی کا اے آئی کونسلر"
+                    : "Dr. Sadaqat Ali's AI counselor"}
               </div>
               <div className="mt-1 text-sm leading-6 text-slate-600">
                 {surface === "voice"
                   ? isUrdu
-                    ? "کال، waveform، saved transcript اور نام کی continuity کے ساتھ۔"
-                    : "Voice-first support with a calmer call screen, saved transcript, and name continuity."
+                    ? "فوری رہنمائی، family counselling اور follow-up routing کے لئے voice-first سپورٹ۔"
+                    : "Voice-first support for urgent guidance, family counseling, and follow-up routing."
                   : isUrdu
-                    ? "صرف ٹیکسٹ چیٹ کے لئے الگ صفحہ، تاکہ پڑھنا اور ٹائپ کرنا آسان رہے۔"
-                    : "A separate text-only page so reading and typing stay easy on the mind."}
+                    ? "مریضوں اور خاندانوں کے لئے فوری، pre-treatment اور post-treatment رہنمائی ایک پرسکون چیٹ میں۔"
+                    : "Immediate, pre-treatment, and post-treatment guidance for patients and families in a calmer chat."}
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
               <div className="inline-flex rounded-full border border-slate-200 bg-[#fafaf8] p-1">
                 {tabs.map((tab) => {
-                  const active = pathname === tab.href;
                   const Icon = tab.icon;
 
                   return (
@@ -285,7 +292,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                       key={tab.href}
                       href={tab.href}
                       className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                        active
+                        tab.active
                           ? "bg-[#651328] text-white shadow-sm"
                           : "text-slate-600 hover:bg-white hover:text-slate-900"
                       }`}

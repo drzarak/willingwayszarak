@@ -12,8 +12,8 @@ import { SiteLanguageSwitcher } from "@/components/site-language-switcher";
 import { useSiteLanguage } from "@/components/site-language-provider";
 
 const navigation = [
-  { href: "/", english: "Home", urdu: "ہوم" },
-  { href: "/about-us", english: "About", urdu: "تعارف" },
+  { href: "/", english: "AI Assistant", urdu: "اے آئی معاون" },
+  { href: "/about", english: "About", urdu: "تعارف" },
   { href: "/our-services", english: "Services", urdu: "خدمات" },
   { href: "/treatments", english: "Treatments", urdu: "علاج" },
   { href: "/library", english: "Library", urdu: "لائبریری" },
@@ -44,7 +44,7 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="min-w-0 shrink-0">
           <Image
             src={SITE_MEDIA.logo}
@@ -65,7 +65,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:flex">
+        <nav className="order-3 hidden w-full items-center justify-center gap-1 xl:flex">
           {navigation.map((item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
@@ -85,7 +85,7 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-2 xl:flex">
+        <div className="hidden shrink-0 items-center gap-2 xl:flex">
           <SiteLanguageSwitcher />
           <a href="tel:+923007413639" className="site-action-link">
             <PhoneCall className="h-4 w-4" />
@@ -97,7 +97,7 @@ export function SiteHeader() {
               {isUrdu ? "سیشن بک کریں" : "Book a session"}
             </span>
           </Link>
-          <Link href="/ai" className="site-cta-button">
+          <Link href="/" className="site-cta-button">
             <MessageSquareHeart className="h-4 w-4" />
             <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
               {isUrdu ? "ولنگ ویز اے آئی سے بات کریں" : "Talk to Willing Ways AI"}
@@ -167,7 +167,7 @@ export function SiteHeader() {
                 {isUrdu ? "سیشن بک کریں" : "Book a session"}
               </span>
             </Link>
-            <Link href="/ai" className="site-cta-button justify-center" onClick={() => setOpen(false)}>
+            <Link href="/" className="site-cta-button justify-center" onClick={() => setOpen(false)}>
               <MessageSquareHeart className="h-4 w-4" />
               <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
                 {isUrdu ? "ولنگ ویز اے آئی سے بات کریں" : "Talk to Willing Ways AI"}

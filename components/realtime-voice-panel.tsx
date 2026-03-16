@@ -990,7 +990,7 @@ export function RealtimeVoicePanel({
                   </Button>
                 )}
 
-                <Link href="/ai/chat" className="site-action-link justify-center">
+                <Link href="/" className="site-action-link justify-center">
                   <MessageSquare className="h-4 w-4" />
                   <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
                     {language === "urdu" ? "اگر چاہیں تو ٹیکسٹ چیٹ کھولیں" : "Open text chat if you prefer typing"}
