@@ -190,6 +190,9 @@ export function RealtimeVoicePanel({
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
+  const activeResponseRef = useRef(false);
+  const queuedResponseCreateRef = useRef(false);
+  const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
@@ -281,12 +284,98 @@ export function RealtimeVoicePanel({
 
     assistantEntryIdRef.current = null;
     handledToolCallsRef.current.clear();
+    activeResponseRef.current = false;
+    queuedResponseCreateRef.current = false;
+    pendingToolOutputsRef.current = [];
     setToolActivity(null);
   }
 
   function sendRealtimeEvent(payload: Record<string, unknown>) {
     if (dataChannelRef.current?.readyState === "open") {
       dataChannelRef.current.send(JSON.stringify(payload));
+      return true;
+    }
+
+    return false;
+  }
+
+  function requestAssistantResponse() {
+    if (activeResponseRef.current) {
+      queuedResponseCreateRef.current = true;
+      return;
+    }
+
+    queuedResponseCreateRef.current = false;
+
+    if (sendRealtimeEvent({ type: "response.create" })) {
+      activeResponseRef.current = true;
+      setStatus("responding");
+      return;
+    }
+
+    queuedResponseCreateRef.current = true;
+  }
+
+  function queueFunctionCallOutput(callId: string, output: Record<string, unknown>) {
+    const serializedOutput = JSON.stringify(output);
+
+    if (
+      activeResponseRef.current ||
+      !sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output: serializedOutput,
+        },
+      })
+    ) {
+      pendingToolOutputsRef.current = [
+        ...pendingToolOutputsRef.current,
+        { callId, output: serializedOutput },
+      ];
+      queuedResponseCreateRef.current = true;
+      return;
+    }
+
+    requestAssistantResponse();
+  }
+
+  function flushPendingRealtimeActions() {
+    if (activeResponseRef.current) {
+      return;
+    }
+
+    if (pendingToolOutputsRef.current.length > 0) {
+      const pendingOutputs = pendingToolOutputsRef.current;
+      pendingToolOutputsRef.current = [];
+
+      for (const pendingOutput of pendingOutputs) {
+        const sent = sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: pendingOutput.callId,
+            output: pendingOutput.output,
+          },
+        });
+
+        if (!sent) {
+          pendingToolOutputsRef.current = [
+            pendingOutput,
+            ...pendingToolOutputsRef.current,
+          ];
+          queuedResponseCreateRef.current = true;
+          return;
+        }
+      }
+
+      requestAssistantResponse();
+      return;
+    }
+
+    if (queuedResponseCreateRef.current) {
+      requestAssistantResponse();
     }
   }
 
@@ -453,31 +542,15 @@ export function RealtimeVoicePanel({
 
     try {
       const output = await executeRealtimeTool(toolName, parsedArguments);
-      sendRealtimeEvent({
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: callId,
-          output: JSON.stringify(output),
-        },
-      });
-      sendRealtimeEvent({ type: "response.create" });
+      queueFunctionCallOutput(callId, output);
     } catch (error) {
-      sendRealtimeEvent({
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: callId,
-          output: JSON.stringify({
-            ok: false,
-            message:
-              error instanceof Error
-                ? error.message
-                : "The tool call failed unexpectedly.",
-          }),
-        },
+      queueFunctionCallOutput(callId, {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "The tool call failed unexpectedly.",
       });
-      sendRealtimeEvent({ type: "response.create" });
     }
   }
 
@@ -495,14 +568,17 @@ export function RealtimeVoicePanel({
     }
 
     if (type === "response.created") {
+      activeResponseRef.current = true;
       setStatus("responding");
       return;
     }
 
     if (type === "response.done") {
+      activeResponseRef.current = false;
       assistantEntryIdRef.current = null;
       setStatus("connected");
       setToolActivity(null);
+      flushPendingRealtimeActions();
       return;
     }
 
@@ -591,6 +667,13 @@ export function RealtimeVoicePanel({
           ? String((payload.error as { message?: string }).message ?? "Realtime voice failed.")
           : "Realtime voice failed.";
 
+      if (error.toLowerCase().includes("active response in progress")) {
+        activeResponseRef.current = true;
+        queuedResponseCreateRef.current = true;
+        setStatus("responding");
+        return;
+      }
+
       setErrorMessage(normalizeRealtimeClientError(error, language));
       setStatus("error");
       setToolActivity(null);
@@ -643,7 +726,7 @@ export function RealtimeVoicePanel({
 
       dataChannel.onopen = () => {
         setStatus("connected");
-        sendRealtimeEvent({ type: "response.create" });
+        requestAssistantResponse();
       };
 
       dataChannel.onerror = () => {
