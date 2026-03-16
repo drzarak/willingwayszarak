@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ChatPaneProps {
+  bookingConfigured: boolean;
   modelId: ModelId;
   onMessagesChange: (chatId: string, messages: UIMessage[]) => void;
   realtimeConfigured: boolean;
@@ -40,6 +41,7 @@ interface ChatPaneProps {
 }
 
 export function ChatPane({
+  bookingConfigured,
   modelId,
   onMessagesChange,
   realtimeConfigured,
@@ -171,6 +173,7 @@ export function ChatPane({
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-6 pt-6 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
           <RealtimeVoicePanel
+            bookingConfigured={bookingConfigured}
             enabled={realtimeConfigured}
             language={session.language}
             mode={session.mode}

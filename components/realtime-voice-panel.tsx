@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { type BookingRequestPayload } from "@/lib/booking";
 import {
   CURRENT_REALTIME_VOICE_VERSION,
   DEFAULT_REALTIME_VOICE_ID,
@@ -40,6 +41,7 @@ import {
 } from "@/lib/chat";
 import { SITE_MEDIA } from "@/lib/site-assets";
 
+import { VoiceIntakeReview } from "@/components/voice-intake-review";
 import { Button } from "@/components/ui/button";
 
 type VoiceStatus =
@@ -58,6 +60,7 @@ interface TranscriptEntry {
 }
 
 interface RealtimeVoicePanelProps {
+  bookingConfigured: boolean;
   enabled: boolean;
   language: ChatLanguage;
   mode: ChatMode;
@@ -99,6 +102,10 @@ function FocusIcon({
   focus: VoiceCallFocusId;
   className?: string;
 }) {
+  if (focus === "guided-intake") {
+    return <MessageSquareHeart className={className} />;
+  }
+
   if (focus === "family-coach") {
     return <Users className={className} />;
   }
@@ -233,7 +240,27 @@ function getStatusLabel(status: VoiceStatus, language: ChatLanguage) {
   return language === "urdu" ? "کال کے لئے تیار" : "Ready when you are";
 }
 
+function createInitialIntakeDraft(language: ChatLanguage): BookingRequestPayload {
+  return {
+    requesterName: "",
+    patientName: "",
+    relation: "family",
+    phone: "",
+    email: "",
+    branchPreference: "first-available",
+    serviceInterest: "consultation",
+    contactMethod: "phone",
+    contactLanguage: language === "urdu" ? "urdu" : "english",
+    availability: "asap",
+    notes: "",
+    consent: false,
+    source: "ai-guided-intake",
+    website: "",
+  };
+}
+
 export function RealtimeVoicePanel({
+  bookingConfigured,
   enabled,
   language,
   mode,
@@ -243,6 +270,13 @@ export function RealtimeVoicePanel({
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [voiceId, setVoiceId] = useState<RealtimeVoiceId>(DEFAULT_REALTIME_VOICE_ID);
   const [voiceFocus, setVoiceFocus] = useState<VoiceCallFocusId>(DEFAULT_VOICE_CALL_FOCUS_ID);
+  const [intakeDraft, setIntakeDraft] = useState<BookingRequestPayload>(() =>
+    createInitialIntakeDraft(language),
+  );
+  const [intakeStatus, setIntakeStatus] = useState<
+    "idle" | "preparing" | "ready" | "submitting" | "success" | "error"
+  >("idle");
+  const [intakeMessage, setIntakeMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -282,6 +316,25 @@ export function RealtimeVoicePanel({
     window.localStorage.setItem(VOICE_FOCUS_STORAGE_KEY, voiceFocus);
   }, [voiceFocus]);
 
+  useEffect(() => {
+    setIntakeDraft((current) => {
+      if (current.requesterName || current.phone || current.notes || current.aiIntake) {
+        return current;
+      }
+
+      const nextLanguage = language === "urdu" ? "urdu" : "english";
+
+      if (current.contactLanguage === nextLanguage) {
+        return current;
+      }
+
+      return {
+        ...current,
+        contactLanguage: nextLanguage,
+      };
+    });
+  }, [language]);
+
   useEffect(() => () => cleanupSession(), []);
 
   function cleanupSession() {
@@ -299,6 +352,30 @@ export function RealtimeVoicePanel({
     }
 
     assistantEntryIdRef.current = null;
+  }
+
+  function resetIntakeReview() {
+    setIntakeDraft(createInitialIntakeDraft(language));
+    setIntakeStatus("idle");
+    setIntakeMessage(null);
+  }
+
+  function updateIntakeField<K extends keyof BookingRequestPayload>(
+    field: K,
+    value: BookingRequestPayload[K],
+  ) {
+    setIntakeDraft((current) => ({
+      ...current,
+      [field]: value,
+    }));
+
+    if (intakeStatus === "success" || intakeStatus === "error") {
+      setIntakeStatus("ready");
+    }
+
+    if (intakeMessage) {
+      setIntakeMessage(null);
+    }
   }
 
   function appendAssistantDelta(delta: string, itemId?: string) {
@@ -419,6 +496,7 @@ export function RealtimeVoicePanel({
 
     setErrorMessage(null);
     setTranscript([]);
+    resetIntakeReview();
     setStatus("requesting");
 
     try {
@@ -511,6 +589,158 @@ export function RealtimeVoicePanel({
     setStatus("idle");
   }
 
+  async function prepareIntakeDraft() {
+    if (!bookingConfigured) {
+      setIntakeStatus("error");
+      setIntakeMessage(
+        language === "urdu"
+          ? "ولنگ ویز ٹیم کو handoff بھیجنے کی سہولت ابھی دستیاب نہیں۔ براہ کرم 0300-7413639 پر کال کریں۔"
+          : "The Willing Ways handoff service is not available right now. Please call 0300-7413639.",
+      );
+      return;
+    }
+
+    if (mode !== "patient") {
+      setIntakeStatus("error");
+      setIntakeMessage(
+        language === "urdu"
+          ? "یہ handoff flow مریض یا خاندان کے لئے ہے۔"
+          : "This handoff flow is designed for patients and families.",
+      );
+      return;
+    }
+
+    const callerTurns = transcript.filter(
+      (entry) => entry.role === "user" && entry.text.trim(),
+    ).length;
+
+    if (callerTurns === 0) {
+      setIntakeStatus("error");
+      setIntakeMessage(
+        language === "urdu"
+          ? "پہلے اپنی بات کال میں بتائیں، پھر handoff summary تیار کریں۔"
+          : "Please speak in the call first, then prepare the handoff summary.",
+      );
+      return;
+    }
+
+    setIntakeStatus("preparing");
+    setIntakeMessage(
+      language === "urdu"
+        ? "ہم آپ کی گفتگو کو ولنگ ویز ٹیم کے لئے ترتیب دے رہے ہیں..."
+        : "We are organizing this call into a handoff for the Willing Ways team...",
+    );
+
+    try {
+      const response = await fetch("/api/intake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          focus: voiceFocus,
+          language,
+          mode,
+          transcript,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { draft?: BookingRequestPayload; error?: string; ok?: boolean }
+        | null;
+
+      if (!response.ok || !data?.draft) {
+        throw new Error(
+          data?.error ??
+            (language === "urdu"
+              ? "AI handoff summary اس وقت تیار نہیں ہو سکی۔"
+              : "The AI handoff summary could not be prepared right now."),
+        );
+      }
+
+      setIntakeDraft({
+        ...createInitialIntakeDraft(language),
+        ...data.draft,
+        consent: false,
+        source: "ai-guided-intake",
+        website: "",
+      });
+      setIntakeStatus("ready");
+      setIntakeMessage(
+        language === "urdu"
+          ? "Summary تیار ہے۔ اب نیچے details چیک کر کے ولنگ ویز ٹیم کو بھیج دیں۔"
+          : "Your handoff summary is ready. Review the details below and send it to the Willing Ways team.",
+      );
+    } catch (error) {
+      setIntakeStatus("error");
+      setIntakeMessage(
+        error instanceof Error
+          ? error.message
+          : language === "urdu"
+            ? "AI handoff summary اس وقت تیار نہیں ہو سکی۔"
+            : "The AI handoff summary could not be prepared right now.",
+      );
+    }
+  }
+
+  async function submitIntake(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (intakeStatus === "submitting") {
+      return;
+    }
+
+    setIntakeStatus("submitting");
+    setIntakeMessage(
+      language === "urdu"
+        ? "ہم یہ handoff ولنگ ویز ٹیم کو بھیج رہے ہیں..."
+        : "We are sending this handoff to the Willing Ways team...",
+    );
+
+    try {
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...intakeDraft,
+          source: "ai-guided-intake",
+          website: "",
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string; ok?: boolean }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ??
+            (language === "urdu"
+              ? "یہ handoff اس وقت بھیجا نہیں جا سکا۔"
+              : "This handoff could not be sent right now."),
+        );
+      }
+
+      setIntakeStatus("success");
+      setIntakeMessage(
+        language === "urdu"
+          ? "ہینڈ آف ولنگ ویز ٹیم کو بھیج دیا گیا ہے۔ اگر معاملہ فوری ہے تو ابھی 0300-7413639 پر کال کریں۔"
+          : "The handoff has been sent to the Willing Ways team. If the matter is urgent, call 0300-7413639 right away.",
+      );
+    } catch (error) {
+      setIntakeStatus("error");
+      setIntakeMessage(
+        error instanceof Error
+          ? error.message
+          : language === "urdu"
+            ? "یہ handoff اس وقت بھیجا نہیں جا سکا۔"
+            : "This handoff could not be sent right now.",
+      );
+    }
+  }
+
   const selectedFocus = useMemo(
     () =>
       VOICE_CALL_FOCUS_OPTIONS.find((focus) => focus.id === voiceFocus) ??
@@ -580,6 +810,10 @@ export function RealtimeVoicePanel({
       : careSignal?.severity === "watch"
       ? "border-amber-200 bg-amber-50 text-amber-950"
       : "border-emerald-200 bg-emerald-50 text-emerald-950";
+  const hasCallerTranscript = userTranscriptTexts.length > 0;
+  const canOfferHandoff = bookingConfigured && mode === "patient";
+  const shouldShowHandoffReview =
+    canOfferHandoff && (Boolean(intakeDraft.aiIntake) || intakeStatus !== "idle");
 
   return (
     <div className="rounded-[28px] border border-[#ead6dc] bg-white/95 p-5 shadow-card backdrop-blur-xl">
@@ -854,6 +1088,122 @@ export function RealtimeVoicePanel({
           </section>
         </div>
       </div>
+
+      {canOfferHandoff ? (
+        <section className="mt-4 rounded-[28px] border border-[#ead6dc] bg-[#fff8fa] p-5 shadow-soft">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <div
+                className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
+                  language === "urdu" ? "font-urdu normal-case text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {language === "urdu"
+                  ? "ولنگ ویز team handoff"
+                  : "Willing Ways team handoff"}
+              </div>
+              <h3
+                className={`mt-2 text-2xl font-semibold text-[#3b1725] ${
+                  language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {language === "urdu"
+                  ? "اگر آپ چاہیں تو یہ کال callback یا intervention follow-up میں بدل سکتی ہے"
+                  : "If you want, this call can become a callback or intervention follow-up"}
+              </h3>
+              <p
+                className={`mt-3 text-sm leading-7 text-[#5a3743] ${
+                  language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {language === "urdu"
+                  ? "اپنی پوری صورتحال بیان کریں، سوالات کے جواب دیں، پھر ہم اسی کال سے ایک صاف summary تیار کر کے ولنگ ویز ٹیم کو بھیجنے کے لئے review کے ساتھ دکھائیں گے۔"
+                  : "Tell the full story, answer the follow-up questions, and we will turn this call into a clean reviewed summary you can send to the Willing Ways team."}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 lg:min-w-[280px]">
+              <Button
+                type="button"
+                className="h-12 text-base"
+                disabled={
+                  !hasCallerTranscript ||
+                  intakeStatus === "preparing" ||
+                  intakeStatus === "submitting" ||
+                  callIsStarting
+                }
+                onClick={prepareIntakeDraft}
+              >
+                {intakeStatus === "preparing" ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MessageSquareHeart className="h-4 w-4" />
+                )}
+                {language === "urdu"
+                  ? "AI handoff summary تیار کریں"
+                  : "Prepare AI handoff summary"}
+              </Button>
+
+              <Link href="/book-session" className="site-action-link justify-center">
+                <CalendarDays className="h-4 w-4" />
+                <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
+                  {language === "urdu"
+                    ? "اگر چاہیں تو عام booking form استعمال کریں"
+                    : "Use the regular booking form instead"}
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <div
+            className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-3 text-sm leading-7 text-[#5a3743] ${
+              language === "urdu" ? "font-urdu text-right" : ""
+            }`}
+            dir={language === "urdu" ? "rtl" : "ltr"}
+          >
+            {!hasCallerTranscript
+              ? language === "urdu"
+                ? "پہلے کال میں اپنی بات بتائیں، پھر handoff summary تیار کریں۔ AI-guided intake focus اس کام کے لئے سب سے بہتر ہے۔"
+                : "Speak in the call first, then prepare the handoff summary. The AI intake handoff focus is the best fit for this."
+              : voiceFocus === "guided-intake"
+                ? language === "urdu"
+                  ? "یہ بہترین intake mode ہے۔ AI آپ کی کہانی، history، family context اور expectations کو منظم کرے گی۔"
+                  : "This is the best intake mode. The AI will organize the story, history, family context, and expectations."
+                : language === "urdu"
+                  ? "آپ کسی بھی support call کو follow-up handoff میں بدل سکتے ہیں، مگر مکمل story-based handoff کے لئے AI intake focus بہتر ہے۔"
+                  : "You can turn any support call into a follow-up handoff, but the AI intake focus works best for a full story-based handoff."}
+          </div>
+
+          {intakeMessage && !intakeDraft.aiIntake ? (
+            <div
+              className={`mt-4 rounded-[22px] border px-4 py-3 text-sm ${
+                intakeStatus === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-900"
+                  : "border-[#ead6dc] bg-white text-[#5a3743]"
+              } ${language === "urdu" ? "font-urdu text-right" : ""}`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {intakeMessage}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {shouldShowHandoffReview && intakeDraft.aiIntake ? (
+        <VoiceIntakeReview
+          draft={intakeDraft}
+          language={language}
+          message={intakeMessage}
+          onFieldChange={updateIntakeField}
+          onRefreshDraft={prepareIntakeDraft}
+          onSubmit={submitIntake}
+          preparing={intakeStatus === "preparing"}
+          status={intakeStatus}
+        />
+      ) : null}
 
       {careSignal ? (
         <section

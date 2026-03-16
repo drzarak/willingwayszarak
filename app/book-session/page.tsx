@@ -42,7 +42,7 @@ export default function BookSessionPage() {
                 </a>
                 <Link href="/ai" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
-                  <LocalizedText english="Ask Willing Ways AI first" urdu="پہلے ولنگ ویز اے آئی سے پوچھیں" />
+                  <LocalizedText english="Use AI guided intake instead" urdu="اس کے بجائے AI guided intake استعمال کریں" />
                 </Link>
               </div>
             </div>
@@ -65,6 +65,10 @@ export default function BookSessionPage() {
                   {
                     english: "Your request goes to the intake team so they can respond outside the AI chat.",
                     urdu: "آپ کی درخواست intake team تک جاتی ہے تاکہ وہ اے آئی چیٹ سے ہٹ کر آپ سے رابطہ کر سکیں۔",
+                  },
+                  {
+                    english: "If you prefer speaking instead of typing, the AI page can turn your voice story into a reviewed intake handoff before you send it.",
+                    urdu: "اگر آپ لکھنے کے بجائے بولنا چاہیں تو AI page آپ کی voice story کو reviewed intake handoff میں بدل سکتا ہے، پھر آپ اسے بھیج سکتے ہیں۔",
                   },
                 ].map((item) => (
                   <div key={item.english} className="rounded-[24px] border border-white/12 bg-white/10 p-4">

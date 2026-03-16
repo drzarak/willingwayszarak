@@ -284,6 +284,7 @@ export function ChatApp() {
           <div className="surface-panel chat-shell overflow-hidden">
             <ChatPane
               key={chatPaneKey}
+              bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}
               modelId={DEFAULT_CHAT_MODEL_ID}
               onMessagesChange={handleMessagesChange}
               realtimeConfigured={runtimeStatus.realtimeConfigured}

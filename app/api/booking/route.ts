@@ -1,4 +1,5 @@
 import {
+  AI_INTAKE_URGENCY_OPTIONS,
   BOOKING_AVAILABILITY_OPTIONS,
   BOOKING_BRANCH_OPTIONS,
   BOOKING_CONTACT_METHOD_OPTIONS,
@@ -8,7 +9,9 @@ import {
   BOOKING_SERVICE_OPTIONS,
   NOTION_API_VERSION,
   getBookingOptionLabel,
+  type AiIntakePayload,
   type BookingRequestPayload,
+  type BookingSourceId,
 } from "@/lib/booking";
 
 export const maxDuration = 30;
@@ -23,6 +26,10 @@ const LANGUAGE_IDS: Set<string> = new Set(BOOKING_LANGUAGE_OPTIONS.map((option) 
 const AVAILABILITY_IDS: Set<string> = new Set(
   BOOKING_AVAILABILITY_OPTIONS.map((option) => option.id),
 );
+const AI_INTAKE_URGENCY_IDS: Set<string> = new Set(
+  AI_INTAKE_URGENCY_OPTIONS.map((option) => option.id),
+);
+const BOOKING_SOURCE_IDS: Set<string> = new Set(["form", "ai-guided-intake"]);
 
 function trimSingleLine(value: unknown, maxLength: number) {
   if (typeof value !== "string") {
@@ -38,6 +45,17 @@ function trimMultiline(value: unknown, maxLength: number) {
   }
 
   return value.replace(/\r\n/g, "\n").trim().slice(0, maxLength);
+}
+
+function trimItems(value: unknown, maxItems = 5, maxLength = 220) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => trimSingleLine(item, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
 }
 
 function makeTextContent(content: string) {
@@ -71,15 +89,69 @@ function makeBulletedItem(content: string) {
   };
 }
 
+function makeHeadingBlock(
+  type: "heading_2" | "heading_3",
+  content: string,
+) {
+  return {
+    object: "block" as const,
+    type,
+    [type]: {
+      rich_text: [makeTextContent(content)],
+    },
+  };
+}
+
+function makeCalloutBlock(
+  content: string,
+  color:
+    | "default"
+    | "gray_background"
+    | "brown_background"
+    | "orange_background"
+    | "yellow_background"
+    | "green_background"
+    | "blue_background"
+    | "purple_background"
+    | "pink_background"
+    | "red_background",
+  emoji: string,
+) {
+  return {
+    object: "block" as const,
+    type: "callout" as const,
+    callout: {
+      rich_text: [makeTextContent(content)],
+      icon: {
+        type: "emoji" as const,
+        emoji,
+      },
+      color,
+    },
+  };
+}
+
 function makeToggleBlock(
   content: string,
   children: Array<Record<string, unknown>> = [],
+  color:
+    | "default"
+    | "gray_background"
+    | "brown_background"
+    | "orange_background"
+    | "yellow_background"
+    | "green_background"
+    | "blue_background"
+    | "purple_background"
+    | "pink_background"
+    | "red_background" = "default",
 ) {
   return {
     object: "block" as const,
     type: "toggle" as const,
     toggle: {
       rich_text: [makeTextContent(content)],
+      color,
       children,
     },
   };
@@ -208,6 +280,7 @@ async function appendBlockChildren(
   notionToken: string,
   blockId: string,
   children: Array<Record<string, unknown>>,
+  position?: { type: "start" | "after"; after?: string },
 ) {
   return notionRequest<{ results?: NotionBlock[] }>(
     notionToken,
@@ -216,6 +289,12 @@ async function appendBlockChildren(
       method: "PATCH",
       bodyJson: {
         children,
+        ...(position?.type === "after" && position.after
+          ? { after: position.after }
+          : {}),
+        ...(position?.type === "start"
+          ? { position: { type: "start" as const } }
+          : {}),
       },
     },
   );
@@ -253,6 +332,150 @@ function getBookingTimeParts() {
   };
 }
 
+function getUrgencyLabel(urgency: AiIntakePayload["urgency"]) {
+  return (
+    AI_INTAKE_URGENCY_OPTIONS.find((option) => option.id === urgency)?.english ?? urgency
+  );
+}
+
+function getSubmissionUrgency(payload: ReturnType<typeof validatePayload>): AiIntakePayload["urgency"] {
+  if (payload.aiIntake?.urgency) {
+    return payload.aiIntake.urgency;
+  }
+
+  if (
+    payload.serviceInterest === "family-intervention" ||
+    payload.serviceInterest === "follow-up"
+  ) {
+    return "priority";
+  }
+
+  return "routine";
+}
+
+function getSubmissionSourceLabel(source: BookingSourceId) {
+  return source === "ai-guided-intake" ? "AI-guided intake" : "Website form";
+}
+
+function getFollowUpQueueColor(
+  urgency: AiIntakePayload["urgency"],
+): "green_background" | "yellow_background" | "red_background" {
+  if (urgency === "urgent") {
+    return "red_background";
+  }
+
+  if (urgency === "priority") {
+    return "yellow_background";
+  }
+
+  return "green_background";
+}
+
+function getFollowUpQueueEmoji(urgency: AiIntakePayload["urgency"]) {
+  if (urgency === "urgent") {
+    return "🚨";
+  }
+
+  if (urgency === "priority") {
+    return "📞";
+  }
+
+  return "🗂️";
+}
+
+function createFollowUpQueueEntry(
+  payload: ReturnType<typeof validatePayload>,
+  timeParts: ReturnType<typeof getBookingTimeParts>,
+) {
+  const urgency = getSubmissionUrgency(payload);
+  const branchLabel = getBookingOptionLabel(
+    BOOKING_BRANCH_OPTIONS,
+    payload.branchPreference,
+  );
+  const serviceLabel = getBookingOptionLabel(
+    BOOKING_SERVICE_OPTIONS,
+    payload.serviceInterest,
+  );
+  const contactMethodLabel = getBookingOptionLabel(
+    BOOKING_CONTACT_METHOD_OPTIONS,
+    payload.contactMethod,
+  );
+  const sourceLabel = getSubmissionSourceLabel(payload.source);
+  const urgencyLabel = getUrgencyLabel(urgency).toUpperCase();
+
+  const children: Array<Record<string, unknown>> = [
+    makeCalloutBlock(
+      `New ${sourceLabel} submission. Call ${payload.phone} via ${contactMethodLabel}. Best contact time: ${getBookingOptionLabel(
+        BOOKING_AVAILABILITY_OPTIONS,
+        payload.availability,
+      )}.`,
+      getFollowUpQueueColor(urgency),
+      getFollowUpQueueEmoji(urgency),
+    ),
+    makeBulletedItem(`Requester: ${payload.requesterName}`),
+    makeBulletedItem(`Patient: ${payload.patientName || "Not provided"}`),
+    makeBulletedItem(`Service: ${serviceLabel}`),
+    makeBulletedItem(`Branch: ${branchLabel}`),
+    makeBulletedItem(`Urgency: ${getUrgencyLabel(urgency)}`),
+  ];
+
+  if (payload.aiIntake?.nextStepRecommendation) {
+    children.push(makeBulletedItem(`Recommended next step: ${payload.aiIntake.nextStepRecommendation}`));
+  }
+
+  children.push(...makeParagraphBlocks(payload.notes));
+
+  return makeToggleBlock(
+    `[${urgencyLabel}] ${timeParts.timestampLabel} - ${payload.requesterName} - ${serviceLabel}`.slice(
+      0,
+      180,
+    ),
+    children,
+    getFollowUpQueueColor(urgency),
+  );
+}
+
+async function ensureFollowUpQueueBlock(
+  notionToken: string,
+  notionPageId: string,
+  pageChildren: NotionBlock[],
+) {
+  const existingQueue = pageChildren.find(
+    (block) => block.type === "toggle" && getNotionBlockText(block) === "Open follow-up queue",
+  );
+
+  if (existingQueue) {
+    return existingQueue.id;
+  }
+
+  const response = await appendBlockChildren(
+    notionToken,
+    notionPageId,
+    [
+      makeToggleBlock(
+        "Open follow-up queue",
+        [
+          makeCalloutBlock(
+            "Newest submissions are inserted at the top of this queue. Move or archive items here once the team has followed up.",
+            "yellow_background",
+            "📌",
+          ),
+        ],
+        "yellow_background",
+      ),
+    ],
+    { type: "start" },
+  );
+
+  const createdId = response.results?.[0]?.id;
+
+  if (!createdId) {
+    throw new Error("The follow-up queue could not be created in Notion.");
+  }
+
+  return createdId;
+}
+
 function createRequestLogBlock(
   payload: ReturnType<typeof validatePayload>,
   timeParts: ReturnType<typeof getBookingTimeParts>,
@@ -279,6 +502,79 @@ function createRequestLogBlock(
     payload.availability,
   );
   const { timeLabel, timestampLabel } = timeParts;
+  const sourceLabel = getSubmissionSourceLabel(payload.source);
+  const urgency = getSubmissionUrgency(payload);
+  const aiSections: Array<Record<string, unknown>> = [];
+
+  if (payload.aiIntake) {
+    aiSections.push(
+      makeHeadingBlock("heading_3", "AI handoff summary"),
+      ...makeParagraphBlocks(payload.aiIntake.teamSummary),
+    );
+
+    if (payload.aiIntake.presentingProblem) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Presenting problem"),
+        ...makeParagraphBlocks(payload.aiIntake.presentingProblem),
+      );
+    }
+
+    if (payload.aiIntake.historyContext) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "History and context"),
+        ...makeParagraphBlocks(payload.aiIntake.historyContext),
+      );
+    }
+
+    if (payload.aiIntake.familyContext) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Family context"),
+        ...makeParagraphBlocks(payload.aiIntake.familyContext),
+      );
+    }
+
+    if (payload.aiIntake.expectations) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Expectations"),
+        ...makeParagraphBlocks(payload.aiIntake.expectations),
+      );
+    }
+
+    if (payload.aiIntake.nextStepRecommendation) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Recommended next step"),
+        ...makeParagraphBlocks(payload.aiIntake.nextStepRecommendation),
+      );
+    }
+
+    if (payload.aiIntake.interventionPreparation.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Preparation before intervention or first contact"),
+        ...payload.aiIntake.interventionPreparation.map((item) => makeBulletedItem(item)),
+      );
+    }
+
+    if (payload.aiIntake.treatmentExpectations.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "What to expect from treatment"),
+        ...payload.aiIntake.treatmentExpectations.map((item) => makeBulletedItem(item)),
+      );
+    }
+
+    if (payload.aiIntake.familyFollowAlong.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "How family can follow along"),
+        ...payload.aiIntake.familyFollowAlong.map((item) => makeBulletedItem(item)),
+      );
+    }
+
+    if (payload.aiIntake.missingInformation.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Still missing or to reconfirm"),
+        ...payload.aiIntake.missingInformation.map((item) => makeBulletedItem(item)),
+      );
+    }
+  }
 
   return makeToggleBlock(
     `${timeLabel} - ${payload.requesterName} - ${serviceLabel}`.slice(0, 180),
@@ -287,7 +583,11 @@ function createRequestLogBlock(
         object: "block" as const,
         type: "paragraph" as const,
         paragraph: {
-          rich_text: [makeTextContent(`Submitted from drzarak.org on ${timestampLabel}.`)],
+          rich_text: [
+            makeTextContent(
+              `Submitted from drzarak.org on ${timestampLabel}. Source: ${sourceLabel}.`,
+            ),
+          ],
         },
       },
       makeBulletedItem(`Requester name: ${payload.requesterName}`),
@@ -300,14 +600,10 @@ function createRequestLogBlock(
       makeBulletedItem(`Preferred contact method: ${contactMethodLabel}`),
       makeBulletedItem(`Preferred language: ${languageLabel}`),
       makeBulletedItem(`Best time to contact: ${availabilityLabel}`),
-      {
-        object: "block" as const,
-        type: "heading_3" as const,
-        heading_3: {
-          rich_text: [makeTextContent("Summary")],
-        },
-      },
+      makeBulletedItem(`Urgency: ${getUrgencyLabel(urgency)}`),
+      makeHeadingBlock("heading_3", "Summary"),
       ...makeParagraphBlocks(payload.notes),
+      ...aiSections,
     ],
   );
 }
@@ -321,6 +617,18 @@ async function appendBookingRequestToNotionPage(
   const { monthLabel, dayLabel } = timeParts;
   const requestBlock = createRequestLogBlock(payload, timeParts);
   const pageChildren = await listAllBlockChildren(notionToken, notionPageId);
+  const followUpQueueId = await ensureFollowUpQueueBlock(
+    notionToken,
+    notionPageId,
+    pageChildren,
+  );
+
+  await appendBlockChildren(
+    notionToken,
+    followUpQueueId,
+    [createFollowUpQueueEntry(payload, timeParts)],
+    { type: "start" },
+  );
 
   const monthBlock = pageChildren.find(
     (block) => block.type === "toggle" && getNotionBlockText(block) === monthLabel,
@@ -376,6 +684,8 @@ function jsonError(error: string, status: number) {
 }
 
 function validatePayload(raw: Partial<BookingRequestPayload>) {
+  const source = trimSingleLine(raw.source, 40);
+  const aiIntakeRaw = raw.aiIntake as Partial<AiIntakePayload> | undefined;
   const payload = {
     requesterName: trimSingleLine(raw.requesterName, BOOKING_MAX_LENGTHS.requesterName),
     patientName: trimSingleLine(raw.patientName, BOOKING_MAX_LENGTHS.patientName),
@@ -389,6 +699,34 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
     availability: trimSingleLine(raw.availability, 80),
     notes: trimMultiline(raw.notes, BOOKING_MAX_LENGTHS.notes),
     consent: raw.consent === true,
+    source: BOOKING_SOURCE_IDS.has(source) ? (source as BookingSourceId) : "form",
+    aiIntake:
+      aiIntakeRaw && typeof aiIntakeRaw === "object"
+        ? {
+            urgency: AI_INTAKE_URGENCY_IDS.has(trimSingleLine(aiIntakeRaw.urgency, 20))
+              ? (trimSingleLine(aiIntakeRaw.urgency, 20) as AiIntakePayload["urgency"])
+              : "routine",
+            detectedLanguage:
+              trimSingleLine(aiIntakeRaw.detectedLanguage, 20) === "urdu" ||
+              trimSingleLine(aiIntakeRaw.detectedLanguage, 20) === "punjabi" ||
+              trimSingleLine(aiIntakeRaw.detectedLanguage, 20) === "mixed"
+                ? (trimSingleLine(
+                    aiIntakeRaw.detectedLanguage,
+                    20,
+                  ) as AiIntakePayload["detectedLanguage"])
+                : "english",
+            presentingProblem: trimMultiline(aiIntakeRaw.presentingProblem, 500),
+            historyContext: trimMultiline(aiIntakeRaw.historyContext, 700),
+            familyContext: trimMultiline(aiIntakeRaw.familyContext, 600),
+            expectations: trimMultiline(aiIntakeRaw.expectations, 500),
+            teamSummary: trimMultiline(aiIntakeRaw.teamSummary, 1100),
+            nextStepRecommendation: trimMultiline(aiIntakeRaw.nextStepRecommendation, 500),
+            interventionPreparation: trimItems(aiIntakeRaw.interventionPreparation, 5, 220),
+            treatmentExpectations: trimItems(aiIntakeRaw.treatmentExpectations, 5, 220),
+            familyFollowAlong: trimItems(aiIntakeRaw.familyFollowAlong, 5, 220),
+            missingInformation: trimItems(aiIntakeRaw.missingInformation, 6, 220),
+          }
+        : undefined,
     website: trimSingleLine(raw.website, 120),
   };
 
@@ -438,6 +776,10 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
 
   if (!payload.consent) {
     throw new Error("Please confirm consent before sending the request.");
+  }
+
+  if (payload.source === "ai-guided-intake" && !payload.aiIntake) {
+    throw new Error("The AI intake handoff could not be prepared. Please try again.");
   }
 
   return payload;

@@ -5,6 +5,7 @@ export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
 export type VoiceCallFocusId =
   | "general-support"
+  | "guided-intake"
   | "family-coach"
   | "crisis-triage"
   | "founder-method"
@@ -92,6 +93,17 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     urduDescription: "داخلے، علاج، برانچ رہنمائی اور پرسکون ابتدائی مدد۔",
     englishStarter: "I need help understanding the next step for my family.",
     urduStarter: "مجھے اپنے خاندان کے لئے اگلا قدم سمجھنے میں مدد چاہیے۔",
+  },
+  {
+    id: "guided-intake",
+    englishLabel: "AI intake handoff",
+    urduLabel: "اے آئی intake handoff",
+    englishTag: "For booking",
+    urduTag: "رابطے کے لئے",
+    englishDescription: "Tell your story, answer guided intake questions, and prepare a clean handoff for the Willing Ways team.",
+    urduDescription: "اپنی کہانی سنائیں، guided intake سوالات کے جواب دیں، اور ولنگ ویز ٹیم کے لئے صاف handoff تیار کریں۔",
+    englishStarter: "I want to explain our full situation so the Willing Ways team can follow up properly.",
+    urduStarter: "میں اپنی پوری صورتحال سمجھانا چاہتا ہوں تاکہ ولنگ ویز ٹیم درست follow-up کر سکے۔",
   },
   {
     id: "family-coach",
@@ -312,6 +324,9 @@ export function voiceCallFocusLabel(focusId: VoiceCallFocusId, language: ChatLan
 
 export function voiceCallActionLabel(focusId: VoiceCallFocusId, language: ChatLanguage) {
   if (language === "urdu") {
+    if (focusId === "guided-intake") {
+      return "اے آئی intake کال شروع کریں";
+    }
     if (focusId === "family-coach") {
       return "فیملی کوچنگ کال شروع کریں";
     }
@@ -327,6 +342,9 @@ export function voiceCallActionLabel(focusId: VoiceCallFocusId, language: ChatLa
     return "ولنگ ویز اے آئی کو کال کریں";
   }
 
+  if (focusId === "guided-intake") {
+    return "Start AI intake call";
+  }
   if (focusId === "family-coach") {
     return "Start family coaching call";
   }

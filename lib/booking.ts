@@ -44,6 +44,12 @@ export const BOOKING_AVAILABILITY_OPTIONS = [
   { id: "this-week", english: "Any time this week", urdu: "اس ہفتے کسی بھی وقت" },
 ] as const;
 
+export const AI_INTAKE_URGENCY_OPTIONS = [
+  { id: "routine", english: "Routine", urdu: "روٹین" },
+  { id: "priority", english: "Priority", urdu: "ترجیحی" },
+  { id: "urgent", english: "Urgent", urdu: "فوری" },
+] as const;
+
 export type BookingRelationId = (typeof BOOKING_RELATION_OPTIONS)[number]["id"];
 export type BookingBranchId = (typeof BOOKING_BRANCH_OPTIONS)[number]["id"];
 export type BookingServiceId = (typeof BOOKING_SERVICE_OPTIONS)[number]["id"];
@@ -52,6 +58,23 @@ export type BookingContactMethodId =
 export type BookingLanguageId = (typeof BOOKING_LANGUAGE_OPTIONS)[number]["id"];
 export type BookingAvailabilityId =
   (typeof BOOKING_AVAILABILITY_OPTIONS)[number]["id"];
+export type AiIntakeUrgencyId = (typeof AI_INTAKE_URGENCY_OPTIONS)[number]["id"];
+export type BookingSourceId = "form" | "ai-guided-intake";
+
+export interface AiIntakePayload {
+  urgency: AiIntakeUrgencyId;
+  detectedLanguage: "english" | "urdu" | "punjabi" | "mixed";
+  presentingProblem: string;
+  historyContext: string;
+  familyContext: string;
+  expectations: string;
+  teamSummary: string;
+  nextStepRecommendation: string;
+  interventionPreparation: string[];
+  treatmentExpectations: string[];
+  familyFollowAlong: string[];
+  missingInformation: string[];
+}
 
 export interface BookingRequestPayload {
   requesterName: string;
@@ -66,6 +89,8 @@ export interface BookingRequestPayload {
   availability: BookingAvailabilityId;
   notes: string;
   consent: boolean;
+  source?: BookingSourceId;
+  aiIntake?: AiIntakePayload;
   website?: string;
 }
 

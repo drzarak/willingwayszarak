@@ -16,6 +16,7 @@ const ALLOWED_MODES = new Set<ChatMode>(["patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 const ALLOWED_FOCUSES = new Set<VoiceCallFocusId>([
   "general-support",
+  "guided-intake",
   "family-coach",
   "crisis-triage",
   "founder-method",
