@@ -1088,6 +1088,18 @@ export function RealtimeVoicePanel({
         const existingIndex = current.findIndex((entry) => entry.id === itemId);
 
         if (existingIndex === -1) {
+          const lastEntry = current[current.length - 1];
+
+          if (lastEntry?.role === "user") {
+            const mergedTranscript = `${lastEntry.text.trim()} ${transcriptText}`.trim();
+            const next = [...current];
+            next[next.length - 1] = {
+              ...lastEntry,
+              text: mergedTranscript,
+            };
+            return next;
+          }
+
           return [
             ...current,
             {
