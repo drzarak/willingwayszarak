@@ -67,6 +67,43 @@ interface RealtimeVoicePanelProps {
   onTranscriptChange: (chatId: string, transcript: VoiceTranscriptEntry[]) => void;
 }
 
+interface PendingRealtimeTurn {
+  itemId: string;
+  epoch: number;
+  peakLevel: number;
+  stoppedAt: number;
+  confidence?: number | null;
+  transcript?: string;
+  ignored?: boolean;
+  responded?: boolean;
+  scheduled?: boolean;
+}
+
+interface QueuedResponseRequest {
+  source: "turn" | "tool";
+  itemId?: string;
+}
+
+const RESPONSE_DEBOUNCE_MS = 420;
+const TURN_RESPONSE_COOLDOWN_MS = 650;
+const MIN_TRANSCRIPT_PROBABILITY = 0.45;
+const MIN_SHORT_TRANSCRIPT_PROBABILITY = 0.62;
+const MIN_TRANSCRIPT_CHARACTERS = 3;
+const MIN_SPEECH_LEVEL = 0.009;
+const ECHO_GUARD_WINDOW_MS = 1600;
+const FILLER_TRANSCRIPTS = new Set([
+  "uh",
+  "uhh",
+  "umm",
+  "um",
+  "hmm",
+  "hm",
+  "mmm",
+  "mm",
+  "ah",
+  "eh",
+]);
+
 function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
   const lowerMessage = message.toLowerCase();
 
@@ -177,7 +214,7 @@ function transcriptLooksLikeAssistantEcho(
   transcript: VoiceTranscriptEntry[],
   lastAssistantSpeechAt: number,
 ) {
-  if (!lastAssistantSpeechAt || Date.now() - lastAssistantSpeechAt > 8000) {
+  if (!lastAssistantSpeechAt || Date.now() - lastAssistantSpeechAt > ECHO_GUARD_WINDOW_MS) {
     return false;
   }
 
@@ -207,6 +244,38 @@ function transcriptLooksLikeAssistantEcho(
   );
 }
 
+function extractAverageLogprob(payload: Record<string, unknown>) {
+  const logprobs = Array.isArray(payload.logprobs) ? payload.logprobs : [];
+  const values = logprobs
+    .map((entry) => {
+      if (typeof entry === "number" && Number.isFinite(entry)) {
+        return entry;
+      }
+
+      if (entry && typeof entry === "object" && "logprob" in entry) {
+        const logprob = Number((entry as { logprob?: unknown }).logprob);
+        return Number.isFinite(logprob) ? logprob : null;
+      }
+
+      return null;
+    })
+    .filter((value): value is number => value !== null);
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function probabilityFromAverageLogprob(averageLogprob: number | null) {
+  if (averageLogprob === null) {
+    return null;
+  }
+
+  return Math.exp(Math.max(-8, Math.min(0, averageLogprob)));
+}
+
 export function RealtimeVoicePanel({
   bookingConfigured,
   enabled,
@@ -230,19 +299,37 @@ export function RealtimeVoicePanel({
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const analyserFrameRef = useRef<number | null>(null);
+  const analyserBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
   const activeResponseRef = useRef(false);
-  const queuedResponseCreateRef = useRef(false);
+  const queuedResponseRequestRef = useRef<QueuedResponseRequest | null>(null);
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
   const lastAssistantSpeechAtRef = useRef(0);
+  const pendingResponseTimerRef = useRef<number | null>(null);
+  const activeSpeechEpochRef = useRef(0);
+  const latestSpeechEpochRef = useRef(0);
+  const speechIsActiveRef = useRef(false);
+  const currentSpeechPeakLevelRef = useRef(0);
+  const stoppedTurnsQueueRef = useRef<Array<{ epoch: number; peakLevel: number; stoppedAt: number }>>(
+    [],
+  );
+  const pendingTurnsRef = useRef<Map<string, PendingRealtimeTurn>>(new Map());
+  const turnCooldownUntilRef = useRef(0);
+  const currentMicLevelRef = useRef(0);
+  const micNoiseFloorRef = useRef(0.004);
 
   useEffect(() => {
     const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
     const storedVersion = window.localStorage.getItem(REALTIME_VOICE_VERSION_STORAGE_KEY);
+    const shouldRefreshVoicePreference =
+      !storedVoice || storedVoice === "marin" || storedVoice === "marine";
     const nextVoice =
-      storedVersion !== CURRENT_REALTIME_VOICE_VERSION && (!storedVoice || storedVoice === "cedar")
+      storedVersion !== CURRENT_REALTIME_VOICE_VERSION && shouldRefreshVoicePreference
         ? DEFAULT_REALTIME_VOICE_ID
         : normalizeRealtimeVoiceId(storedVoice);
 
@@ -317,6 +404,16 @@ export function RealtimeVoicePanel({
   useEffect(() => () => cleanupSession(), []);
 
   function cleanupSession() {
+    if (pendingResponseTimerRef.current !== null) {
+      window.clearTimeout(pendingResponseTimerRef.current);
+      pendingResponseTimerRef.current = null;
+    }
+
+    if (analyserFrameRef.current !== null) {
+      window.cancelAnimationFrame(analyserFrameRef.current);
+      analyserFrameRef.current = null;
+    }
+
     dataChannelRef.current?.close();
     dataChannelRef.current = null;
 
@@ -330,11 +427,27 @@ export function RealtimeVoicePanel({
       audioRef.current.srcObject = null;
     }
 
+    void audioContextRef.current?.close().catch(() => {
+      // Ignore analyzer shutdown errors.
+    });
+    audioContextRef.current = null;
+    analyserNodeRef.current = null;
+    analyserBufferRef.current = null;
+
     assistantEntryIdRef.current = null;
     handledToolCallsRef.current.clear();
     activeResponseRef.current = false;
-    queuedResponseCreateRef.current = false;
+    queuedResponseRequestRef.current = null;
     pendingToolOutputsRef.current = [];
+    pendingTurnsRef.current.clear();
+    stoppedTurnsQueueRef.current = [];
+    activeSpeechEpochRef.current = 0;
+    latestSpeechEpochRef.current = 0;
+    speechIsActiveRef.current = false;
+    currentSpeechPeakLevelRef.current = 0;
+    currentMicLevelRef.current = 0;
+    micNoiseFloorRef.current = 0.004;
+    turnCooldownUntilRef.current = 0;
     setToolActivity(null);
   }
 
@@ -347,21 +460,245 @@ export function RealtimeVoicePanel({
     return false;
   }
 
-  function requestAssistantResponse() {
+  function trackMicrophoneLevel(localStream: MediaStream) {
+    const AudioContextCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextCtor) {
+      return;
+    }
+
+    const audioContext = new AudioContextCtor();
+    const source = audioContext.createMediaStreamSource(localStream);
+    const analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 2048;
+    analyserNode.smoothingTimeConstant = 0.84;
+    source.connect(analyserNode);
+
+    audioContextRef.current = audioContext;
+    analyserNodeRef.current = analyserNode;
+    analyserBufferRef.current = new Uint8Array(
+      new ArrayBuffer(analyserNode.fftSize),
+    );
+
+    const monitor = () => {
+      const analyser = analyserNodeRef.current;
+      const buffer = analyserBufferRef.current;
+
+      if (!analyser || !buffer) {
+        return;
+      }
+
+      analyser.getByteTimeDomainData(buffer);
+      let sumSquares = 0;
+
+      for (const sample of buffer) {
+        const normalizedSample = (sample - 128) / 128;
+        sumSquares += normalizedSample * normalizedSample;
+      }
+
+      const rms = Math.sqrt(sumSquares / buffer.length);
+      currentMicLevelRef.current = rms;
+
+      if (speechIsActiveRef.current) {
+        currentSpeechPeakLevelRef.current = Math.max(currentSpeechPeakLevelRef.current, rms);
+      } else if (!activeResponseRef.current) {
+        const nextNoiseFloor = micNoiseFloorRef.current * 0.92 + rms * 0.08;
+        micNoiseFloorRef.current = Math.min(Math.max(nextNoiseFloor, 0.0025), 0.03);
+      }
+
+      analyserFrameRef.current = window.requestAnimationFrame(monitor);
+    };
+
+    void audioContext.resume().catch(() => {
+      // Browser keeps the analyzer suspended until audio starts; the monitor still runs once resumed.
+    });
+
+    analyserFrameRef.current = window.requestAnimationFrame(monitor);
+  }
+
+  function clearPendingTurnResponse() {
+    if (pendingResponseTimerRef.current !== null) {
+      window.clearTimeout(pendingResponseTimerRef.current);
+      pendingResponseTimerRef.current = null;
+    }
+  }
+
+  function isLikelySpeechLevel(level = currentMicLevelRef.current) {
+    const adaptiveThreshold = Math.max(MIN_SPEECH_LEVEL, micNoiseFloorRef.current * 2.2);
+    return level >= adaptiveThreshold;
+  }
+
+  function createOrUpdateTurn(itemId: string) {
+    const existingTurn = pendingTurnsRef.current.get(itemId);
+
+    if (existingTurn) {
+      return existingTurn;
+    }
+
+    const stoppedTurn =
+      stoppedTurnsQueueRef.current.shift() ?? {
+        epoch: latestSpeechEpochRef.current || 1,
+        peakLevel: currentSpeechPeakLevelRef.current,
+        stoppedAt: Date.now(),
+      };
+    const pendingTurn: PendingRealtimeTurn = {
+      itemId,
+      epoch: stoppedTurn.epoch,
+      peakLevel: stoppedTurn.peakLevel,
+      stoppedAt: stoppedTurn.stoppedAt,
+    };
+
+    pendingTurnsRef.current.set(itemId, pendingTurn);
+    return pendingTurn;
+  }
+
+  function shouldIgnoreTranscript(
+    transcriptText: string,
+    turn: PendingRealtimeTurn,
+    confidence: number | null,
+  ) {
+    const normalizedTranscript = normalizeTranscriptComparisonText(transcriptText);
+
+    if (!normalizedTranscript) {
+      return true;
+    }
+
+    if (FILLER_TRANSCRIPTS.has(normalizedTranscript)) {
+      return true;
+    }
+
+    if (
+      transcriptLooksLikeAssistantEcho(
+        transcriptText,
+        localTranscriptRef.current,
+        lastAssistantSpeechAtRef.current,
+      )
+    ) {
+      return true;
+    }
+
+    if (confidence !== null && confidence < MIN_TRANSCRIPT_PROBABILITY) {
+      return true;
+    }
+
+    if (
+      normalizedTranscript.length < MIN_TRANSCRIPT_CHARACTERS &&
+      (confidence === null || confidence < MIN_SHORT_TRANSCRIPT_PROBABILITY) &&
+      !isLikelySpeechLevel(turn.peakLevel)
+    ) {
+      return true;
+    }
+
+    return !isLikelySpeechLevel(turn.peakLevel) && confidence !== null && confidence < 0.7;
+  }
+
+  function trySendQueuedResponse(request: QueuedResponseRequest | null) {
+    if (!request) {
+      return;
+    }
+
     if (activeResponseRef.current) {
-      queuedResponseCreateRef.current = true;
+      queuedResponseRequestRef.current = request;
       return;
     }
 
-    queuedResponseCreateRef.current = false;
+    if (request.source === "turn" && request.itemId) {
+      const pendingTurn = pendingTurnsRef.current.get(request.itemId);
 
-    if (sendRealtimeEvent({ type: "response.create" })) {
-      activeResponseRef.current = true;
-      setStatus("responding");
+      if (
+        !pendingTurn ||
+        pendingTurn.ignored ||
+        pendingTurn.responded ||
+        pendingTurn.epoch !== latestSpeechEpochRef.current ||
+        speechIsActiveRef.current
+      ) {
+        queuedResponseRequestRef.current = null;
+        return;
+      }
+    }
+
+    const sent = sendRealtimeEvent({ type: "response.create" });
+
+    if (!sent) {
+      queuedResponseRequestRef.current = request;
       return;
     }
 
-    queuedResponseCreateRef.current = true;
+    queuedResponseRequestRef.current = null;
+    activeResponseRef.current = true;
+    turnCooldownUntilRef.current = Date.now() + TURN_RESPONSE_COOLDOWN_MS;
+
+    if (request.source === "turn" && request.itemId) {
+      const pendingTurn = pendingTurnsRef.current.get(request.itemId);
+
+      if (pendingTurn) {
+        pendingTurn.responded = true;
+        pendingTurn.scheduled = false;
+      }
+    }
+
+    setStatus("responding");
+  }
+
+  function requestAssistantResponse(request: QueuedResponseRequest = { source: "tool" }) {
+    trySendQueuedResponse(request);
+  }
+
+  function queueTurnResponse(itemId: string) {
+    const pendingTurn = pendingTurnsRef.current.get(itemId);
+
+    if (
+      !pendingTurn ||
+      pendingTurn.ignored ||
+      pendingTurn.responded ||
+      pendingTurn.epoch !== latestSpeechEpochRef.current ||
+      speechIsActiveRef.current
+    ) {
+      return;
+    }
+
+    clearPendingTurnResponse();
+    pendingTurn.scheduled = true;
+
+    const waitUntil = Math.max(
+      pendingTurn.stoppedAt + RESPONSE_DEBOUNCE_MS,
+      turnCooldownUntilRef.current,
+    );
+    const delay = Math.max(0, waitUntil - Date.now());
+
+    pendingResponseTimerRef.current = window.setTimeout(() => {
+      pendingResponseTimerRef.current = null;
+      const latestPendingTurn = pendingTurnsRef.current.get(itemId);
+
+      if (
+        !latestPendingTurn ||
+        latestPendingTurn.ignored ||
+        latestPendingTurn.responded ||
+        latestPendingTurn.epoch !== latestSpeechEpochRef.current ||
+        speechIsActiveRef.current
+      ) {
+        return;
+      }
+
+      latestPendingTurn.scheduled = false;
+      requestAssistantResponse({ source: "turn", itemId });
+    }, delay);
+  }
+
+  function interruptAssistantResponse() {
+    clearPendingTurnResponse();
+    queuedResponseRequestRef.current = null;
+
+    if (!activeResponseRef.current) {
+      return;
+    }
+
+    sendRealtimeEvent({ type: "response.cancel" });
+    sendRealtimeEvent({ type: "output_audio_buffer.clear" });
+    assistantEntryIdRef.current = null;
+    setStatus("listening");
   }
 
   function queueFunctionCallOutput(callId: string, output: Record<string, unknown>) {
@@ -382,11 +719,11 @@ export function RealtimeVoicePanel({
         ...pendingToolOutputsRef.current,
         { callId, output: serializedOutput },
       ];
-      queuedResponseCreateRef.current = true;
+      queuedResponseRequestRef.current = { source: "tool" };
       return;
     }
 
-    requestAssistantResponse();
+    requestAssistantResponse({ source: "tool" });
   }
 
   function flushPendingRealtimeActions() {
@@ -413,17 +750,17 @@ export function RealtimeVoicePanel({
             pendingOutput,
             ...pendingToolOutputsRef.current,
           ];
-          queuedResponseCreateRef.current = true;
+          queuedResponseRequestRef.current = { source: "tool" };
           return;
         }
       }
 
-      requestAssistantResponse();
+      requestAssistantResponse({ source: "tool" });
       return;
     }
 
-    if (queuedResponseCreateRef.current) {
-      requestAssistantResponse();
+    if (queuedResponseRequestRef.current) {
+      trySendQueuedResponse(queuedResponseRequestRef.current);
     }
   }
 
@@ -612,7 +949,49 @@ export function RealtimeVoicePanel({
     const type = typeof payload.type === "string" ? payload.type : "";
 
     if (type === "input_audio_buffer.speech_started") {
+      latestSpeechEpochRef.current += 1;
+      activeSpeechEpochRef.current = latestSpeechEpochRef.current;
+      speechIsActiveRef.current = true;
+      currentSpeechPeakLevelRef.current = currentMicLevelRef.current;
+      clearPendingTurnResponse();
+      queuedResponseRequestRef.current = null;
+
+      const likelyEchoStart =
+        Date.now() - lastAssistantSpeechAtRef.current < ECHO_GUARD_WINDOW_MS &&
+        !isLikelySpeechLevel(currentMicLevelRef.current);
+
+      if (activeResponseRef.current && !likelyEchoStart && isLikelySpeechLevel()) {
+        interruptAssistantResponse();
+      }
+
       setStatus("listening");
+      return;
+    }
+
+    if (type === "input_audio_buffer.speech_stopped") {
+      speechIsActiveRef.current = false;
+      stoppedTurnsQueueRef.current.push({
+        epoch: activeSpeechEpochRef.current || latestSpeechEpochRef.current || 1,
+        peakLevel: currentSpeechPeakLevelRef.current,
+        stoppedAt: Date.now(),
+      });
+      currentSpeechPeakLevelRef.current = 0;
+      setStatus(activeResponseRef.current ? "responding" : "connected");
+      return;
+    }
+
+    if (type === "input_audio_buffer.committed") {
+      const itemId =
+        typeof payload.item_id === "string"
+          ? payload.item_id
+          : typeof payload.previous_item_id === "string"
+            ? payload.previous_item_id
+            : "";
+
+      if (itemId) {
+        createOrUpdateTurn(itemId);
+      }
+
       return;
     }
 
@@ -644,35 +1023,42 @@ export function RealtimeVoicePanel({
     }
 
     if (type === "conversation.item.input_audio_transcription.completed") {
+      const itemId =
+        typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID();
       const transcriptText =
         typeof payload.transcript === "string" ? payload.transcript.trim() : "";
+      const confidence = probabilityFromAverageLogprob(extractAverageLogprob(payload));
+      const pendingTurn = createOrUpdateTurn(itemId);
 
       if (!transcriptText) {
+        pendingTurn.ignored = true;
         setStatus("connected");
         return;
       }
 
-      if (
-        transcriptLooksLikeAssistantEcho(
-          transcriptText,
-          localTranscriptRef.current,
-          lastAssistantSpeechAtRef.current,
-        )
-      ) {
+      if (pendingTurn.epoch !== latestSpeechEpochRef.current) {
+        pendingTurn.ignored = true;
         setStatus("connected");
         return;
       }
+
+      if (shouldIgnoreTranscript(transcriptText, pendingTurn, confidence)) {
+        pendingTurn.ignored = true;
+        setStatus("connected");
+        return;
+      }
+
+      pendingTurn.transcript = transcriptText;
+      pendingTurn.confidence = confidence;
 
       setLocalTranscript((current) => {
-        const nextId =
-          typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID();
-        const existingIndex = current.findIndex((entry) => entry.id === nextId);
+        const existingIndex = current.findIndex((entry) => entry.id === itemId);
 
         if (existingIndex === -1) {
           return [
             ...current,
             {
-              id: nextId,
+              id: itemId,
               role: "user",
               text: transcriptText,
             },
@@ -687,8 +1073,25 @@ export function RealtimeVoicePanel({
         };
         return next;
       });
-      setStatus("connected");
-      requestAssistantResponse();
+
+      if (!speechIsActiveRef.current) {
+        queueTurnResponse(itemId);
+        setStatus(activeResponseRef.current ? "responding" : "connected");
+      }
+
+      return;
+    }
+
+    if (type === "conversation.item.input_audio_transcription.failed") {
+      const itemId =
+        typeof payload.item_id === "string" ? payload.item_id : null;
+
+      if (itemId) {
+        const pendingTurn = createOrUpdateTurn(itemId);
+        pendingTurn.ignored = true;
+      }
+
+      setStatus(activeResponseRef.current ? "responding" : "connected");
       return;
     }
 
@@ -745,11 +1148,19 @@ export function RealtimeVoicePanel({
         "message" in payload.error
           ? String((payload.error as { message?: string }).message ?? "Realtime voice failed.")
           : "Realtime voice failed.";
+      const lowerError = error.toLowerCase();
 
-      if (error.toLowerCase().includes("active response in progress")) {
+      if (lowerError.includes("active response in progress")) {
         activeResponseRef.current = true;
-        queuedResponseCreateRef.current = true;
         setStatus("responding");
+        return;
+      }
+
+      if (
+        lowerError.includes("no active response") ||
+        lowerError.includes("nothing to cancel") ||
+        lowerError.includes("buffer is empty")
+      ) {
         return;
       }
 
@@ -812,7 +1223,6 @@ export function RealtimeVoicePanel({
 
       dataChannel.onopen = () => {
         setStatus("connected");
-        requestAssistantResponse();
       };
 
       dataChannel.onerror = () => {
@@ -833,6 +1243,7 @@ export function RealtimeVoicePanel({
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
       });
+      trackMicrophoneLevel(localStream);
 
       setStatus("connecting");
 

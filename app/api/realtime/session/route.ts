@@ -45,6 +45,13 @@ const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
 ]);
 const PRIMARY_REALTIME_MODEL = "gpt-realtime-1.5";
 const FALLBACK_REALTIME_MODEL = "gpt-realtime";
+const REALTIME_VOICE_TURN_PROMPT = `You are a real-time voice assistant.
+Never interrupt the user.
+Only respond after the user has completely finished speaking.
+Ignore background noise or incomplete input.
+Ensure only one response per turn.
+If interrupted, immediately stop speaking and listen again.
+Maintain a calm, natural, human-like tone.`;
 
 function normalizeRealtimeError(status: number, body: string) {
   const trimmedBody = body.trim();
@@ -146,12 +153,13 @@ function buildRealtimeSession(
   return JSON.stringify({
     type: "realtime",
     model,
-    instructions: `${composeSystemPrompt(mode, language, {
+    instructions: `${REALTIME_VOICE_TURN_PROMPT}\n\n${composeSystemPrompt(mode, language, {
       preferredName,
       resumeContext,
       surface: "voice",
       voiceFocus: focus,
     })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
+    include: ["item.input_audio_transcription.logprobs"],
     tool_choice: "auto",
     tools: [
       {
