@@ -91,6 +91,9 @@ const MIN_SHORT_TRANSCRIPT_PROBABILITY = 0.62;
 const MIN_TRANSCRIPT_CHARACTERS = 3;
 const MIN_SPEECH_LEVEL = 0.009;
 const ECHO_GUARD_WINDOW_MS = 1600;
+const INTRODUCTORY_TURN_HOLD_MS = 1200;
+const SHORT_TURN_HOLD_MS = 900;
+const INCOMPLETE_TURN_HOLD_MS = 700;
 const FILLER_TRANSCRIPTS = new Set([
   "uh",
   "uhh",
@@ -274,6 +277,33 @@ function probabilityFromAverageLogprob(averageLogprob: number | null) {
   }
 
   return Math.exp(Math.max(-8, Math.min(0, averageLogprob)));
+}
+
+function getContinuationHoldDelay(transcriptText: string) {
+  const normalizedTranscript = normalizeTranscriptComparisonText(transcriptText);
+  const wordCount = normalizedTranscript.split(" ").filter(Boolean).length;
+  const introducesSelf =
+    /\b(hello|hi|hey|assalam|assalamu|salaam|my name is|i am|this is)\b/i.test(
+      normalizedTranscript,
+    ) &&
+    !/\b(help|need|using|problem|issue|brother|sister|mother|father|relapse|session|rehab|treatment|suic|admission)\b/i.test(
+      normalizedTranscript,
+    );
+  const endsAbruptly = !/[.!?؟]$/.test(transcriptText.trim());
+
+  if (introducesSelf) {
+    return INTRODUCTORY_TURN_HOLD_MS;
+  }
+
+  if (wordCount <= 5) {
+    return SHORT_TURN_HOLD_MS;
+  }
+
+  if (endsAbruptly) {
+    return INCOMPLETE_TURN_HOLD_MS;
+  }
+
+  return 0;
 }
 
 export function RealtimeVoicePanel({
@@ -661,9 +691,12 @@ export function RealtimeVoicePanel({
 
     clearPendingTurnResponse();
     pendingTurn.scheduled = true;
+    const continuationHoldDelay = pendingTurn.transcript
+      ? getContinuationHoldDelay(pendingTurn.transcript)
+      : 0;
 
     const waitUntil = Math.max(
-      pendingTurn.stoppedAt + RESPONSE_DEBOUNCE_MS,
+      pendingTurn.stoppedAt + RESPONSE_DEBOUNCE_MS + continuationHoldDelay,
       turnCooldownUntilRef.current,
     );
     const delay = Math.max(0, waitUntil - Date.now());
