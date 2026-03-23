@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import type { AiIntakePayload, BookingRequestPayload } from "@/lib/booking";
 import {
   buildVoiceResumeContext,
   CURRENT_REALTIME_VOICE_VERSION,
@@ -48,7 +49,6 @@ import {
 } from "@/lib/family-training";
 import { SITE_MEDIA } from "@/lib/site-assets";
 import {
-  buildBookingPayloadFromToolInput,
   getContactResult,
   getCrisisRedirectResult,
   getHumanEscalationResult,
@@ -63,6 +63,7 @@ import {
   type SendResourceToolInput,
 } from "@/lib/support-tools";
 
+import { VoiceIntakeReview } from "@/components/voice-intake-review";
 import { Button } from "@/components/ui/button";
 
 type VoiceStatus =
@@ -103,6 +104,14 @@ interface QueuedResponseRequest {
   itemId?: string;
 }
 
+type IntakeReviewStatus =
+  | "idle"
+  | "preparing"
+  | "ready"
+  | "submitting"
+  | "success"
+  | "error";
+
 const RESPONSE_DEBOUNCE_MS = 420;
 const TURN_RESPONSE_COOLDOWN_MS = 650;
 const MIN_TRANSCRIPT_PROBABILITY = 0.45;
@@ -128,6 +137,45 @@ const FILLER_TRANSCRIPTS = new Set([
   "ah",
   "eh",
 ]);
+
+function trimDraftSingleLine(value: string | null | undefined, maxLength: number) {
+  return (value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function trimDraftParagraph(value: string | null | undefined, maxLength: number) {
+  return (value ?? "").replace(/\r\n/g, "\n").trim().slice(0, maxLength);
+}
+
+function getFallbackServiceInterest(focus: VoiceCallFocusId): BookingRequestPayload["serviceInterest"] {
+  if (focus === "family-coach") {
+    return "family-intervention";
+  }
+
+  if (focus === "crisis-triage") {
+    return "follow-up";
+  }
+
+  if (focus === "guided-intake") {
+    return "consultation";
+  }
+
+  return "consultation";
+}
+
+function getFallbackUrgency(
+  focus: VoiceCallFocusId,
+  severity: "normal" | "watch" | "urgent",
+): AiIntakePayload["urgency"] {
+  if (severity === "urgent") {
+    return "urgent";
+  }
+
+  if (severity === "watch" || focus === "family-coach" || focus === "crisis-triage") {
+    return "priority";
+  }
+
+  return "routine";
+}
 
 function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
   const lowerMessage = message.toLowerCase();
@@ -393,6 +441,9 @@ export function RealtimeVoicePanel({
   );
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
+  const [intakeDraft, setIntakeDraft] = useState<BookingRequestPayload | null>(null);
+  const [intakeReviewStatus, setIntakeReviewStatus] = useState<IntakeReviewStatus>("idle");
+  const [intakeReviewMessage, setIntakeReviewMessage] = useState<string | null>(null);
   const [rememberedName, setRememberedName] = useState(preferredName);
   const [showNotes, setShowNotes] = useState(false);
   const [showFamilyTraining, setShowFamilyTraining] = useState(false);
@@ -415,6 +466,7 @@ export function RealtimeVoicePanel({
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
+  const bookingPrefillRef = useRef<Partial<BookSessionToolInput> | null>(null);
   const intentionalCloseRef = useRef(false);
   const activeResponseRef = useRef(false);
   const initialGreetingRequestedRef = useRef(false);
@@ -494,12 +546,16 @@ export function RealtimeVoicePanel({
     setRememberedName(preferredName);
     setSubmissionNotice(null);
     setToolActivity(null);
+    setIntakeDraft(null);
+    setIntakeReviewStatus("idle");
+    setIntakeReviewMessage(null);
     setErrorMessage(null);
     setShowFamilyTraining(Boolean(selectedFamilyLessonId));
     setShowNotes(false);
     setShowVoiceOptions(false);
     setIsMicMuted(false);
     setStatus("idle");
+    bookingPrefillRef.current = null;
   }, [preferredName, selectedFamilyLessonId, sessionId, transcript]);
 
   useEffect(() => {
@@ -551,7 +607,7 @@ export function RealtimeVoicePanel({
   }, [localTranscript, onTranscriptChange, sessionId, transcript]);
 
   useEffect(() => {
-    if (!rememberedName.trim() || rememberedName === preferredName) {
+    if (rememberedName.trim() === preferredName.trim()) {
       return;
     }
 
@@ -588,6 +644,311 @@ export function RealtimeVoicePanel({
 
   function clearFamilyCoachingSelection() {
     updateCallSelection("general-support", null);
+  }
+
+  function mergeDraftWithPrefill(
+    draft: BookingRequestPayload,
+    prefill?: Partial<BookSessionToolInput> | null,
+  ) {
+    if (!prefill) {
+      return {
+        ...draft,
+        consent: false,
+      };
+    }
+
+    const mergedNotes = trimDraftParagraph(
+      prefill.notes && draft.notes
+        ? `${draft.notes}\n\nAdditional caller detail: ${prefill.notes}`
+        : prefill.notes || draft.notes,
+      1500,
+    );
+
+    return {
+      ...draft,
+      requesterName: trimDraftSingleLine(
+        prefill.requesterName || draft.requesterName,
+        120,
+      ),
+      patientName: trimDraftSingleLine(
+        prefill.patientName || draft.patientName,
+        120,
+      ),
+      relation: prefill.relation ?? draft.relation,
+      phone: trimDraftSingleLine(prefill.phone || draft.phone, 40),
+      email: trimDraftSingleLine(prefill.email || draft.email, 160),
+      branchPreference: prefill.branchPreference ?? draft.branchPreference,
+      serviceInterest: prefill.serviceInterest ?? draft.serviceInterest,
+      contactMethod: prefill.contactMethod ?? draft.contactMethod,
+      contactLanguage: prefill.contactLanguage ?? draft.contactLanguage,
+      availability: prefill.availability ?? draft.availability,
+      notes: mergedNotes || draft.notes,
+      consent: false,
+    };
+  }
+
+  function buildFallbackIntakeDraft(
+    prefill?: Partial<BookSessionToolInput> | null,
+  ): BookingRequestPayload {
+    const transcriptSummary = trimDraftParagraph(
+      localTranscriptRef.current
+        .filter((entry) => entry.role === "user")
+        .map((entry) => entry.text)
+        .join(" "),
+      1200,
+    );
+    const careSignalLanguage = careSignal?.detectedLanguage ?? (language === "urdu" ? "urdu" : "english");
+    const careSignalSeverity = careSignal?.severity ?? "normal";
+    const detectedLanguage =
+      careSignalLanguage === "mixed"
+        ? language === "urdu"
+          ? "urdu"
+          : "english"
+        : careSignalLanguage;
+    const summarySource = trimDraftParagraph(
+      prefill?.notes || transcriptSummary,
+      1200,
+    );
+    const requesterName = trimDraftSingleLine(
+      prefill?.requesterName || rememberedName,
+      120,
+    );
+    const relation =
+      prefill?.relation ?? (mode === "doctor" ? "doctor" : "family");
+    const serviceInterest =
+      prefill?.serviceInterest ?? getFallbackServiceInterest(selectedFocus);
+    const nextStepRecommendation =
+      selectedFocus === "family-coach"
+        ? "Arrange a family coaching or intervention follow-up with the Willing Ways team."
+        : selectedFocus === "crisis-triage"
+          ? "Review immediate safety first, then request fast clinical follow-up from the Willing Ways team."
+          : "Arrange a follow-up call from the Willing Ways team for the next appropriate treatment step.";
+    const missingInformation = [
+      !prefill?.phone ? "Confirm the best callback number." : "",
+      !requesterName ? "Confirm the caller's preferred name." : "",
+      !summarySource ? "Add a short summary of what help is needed right now." : "",
+    ].filter(Boolean);
+
+    return {
+      requesterName,
+      patientName: trimDraftSingleLine(prefill?.patientName, 120),
+      relation,
+      phone: trimDraftSingleLine(prefill?.phone, 40),
+      email: trimDraftSingleLine(prefill?.email, 160),
+      branchPreference: prefill?.branchPreference ?? "first-available",
+      serviceInterest,
+      contactMethod: prefill?.contactMethod ?? "phone",
+      contactLanguage:
+        prefill?.contactLanguage ??
+        (detectedLanguage === "punjabi"
+          ? "punjabi"
+          : language === "urdu"
+            ? "urdu"
+            : "english"),
+      availability: prefill?.availability ?? "asap",
+      notes:
+        summarySource ||
+        (language === "urdu"
+          ? "کالر نے ولنگ ویز ٹیم سے follow-up کی درخواست کی ہے۔"
+          : "The caller requested follow-up from the Willing Ways team."),
+      consent: false,
+      source: "ai-guided-intake",
+        aiIntake: {
+        urgency: getFallbackUrgency(selectedFocus, careSignalSeverity),
+        detectedLanguage,
+        presentingProblem:
+          trimDraftParagraph(prefill?.notes || transcriptSummary, 500) ||
+          (language === "urdu"
+            ? "مزید context درکار ہے۔"
+            : "More context needs to be confirmed."),
+        historyContext: trimDraftParagraph(transcriptSummary, 700),
+        familyContext:
+          relation === "family"
+            ? "A family member is requesting support and follow-up."
+            : relation === "self"
+              ? "The patient is requesting direct support."
+              : relation === "doctor"
+                ? "A doctor or referrer is requesting follow-up."
+                : "The caller's role should be reconfirmed.",
+        expectations: "",
+        teamSummary:
+          trimDraftParagraph(summarySource || transcriptSummary, 1100) ||
+          nextStepRecommendation,
+        nextStepRecommendation,
+        interventionPreparation: [],
+        treatmentExpectations: [],
+        familyFollowAlong: [],
+        missingInformation,
+      },
+      website: "",
+    };
+  }
+
+  async function prepareIntakeDraft(prefill?: Partial<BookSessionToolInput> | null) {
+    bookingPrefillRef.current = prefill ?? bookingPrefillRef.current;
+    setSubmissionNotice(null);
+    setIntakeReviewStatus("preparing");
+    setIntakeReviewMessage(
+      language === "urdu"
+        ? "ہم آپ کی گفتگو کو ولنگ ویز ٹیم کے لئے ترتیب دے رہے ہیں..."
+        : "We are organizing your conversation into a handoff for the Willing Ways team...",
+    );
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/intake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language,
+          mode,
+          focus: selectedFocus,
+          transcript: localTranscriptRef.current,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { draft?: BookingRequestPayload; error?: string }
+        | null;
+
+      if (!response.ok || !data?.draft) {
+        if (prefill) {
+          const fallbackDraft = buildFallbackIntakeDraft(prefill);
+          setIntakeDraft(fallbackDraft);
+          setIntakeReviewStatus("ready");
+          setIntakeReviewMessage(null);
+          return fallbackDraft;
+        }
+
+        throw new Error(
+          data?.error ??
+            (language === "urdu"
+              ? "یہ handoff ابھی تیار نہیں ہو سکا۔"
+              : "The handoff could not be prepared right now."),
+        );
+      }
+
+      const nextDraft = mergeDraftWithPrefill(data.draft, prefill);
+      setIntakeDraft(nextDraft);
+      setIntakeReviewStatus("ready");
+      setIntakeReviewMessage(null);
+      return nextDraft;
+    } catch (error) {
+      setIntakeDraft(null);
+      setIntakeReviewStatus("error");
+      setIntakeReviewMessage(
+        error instanceof Error
+          ? error.message
+          : language === "urdu"
+            ? "ہینڈ آف summary اس وقت تیار نہیں ہو سکی۔"
+            : "The handoff summary could not be prepared right now.",
+      );
+      return null;
+    }
+  }
+
+  function handleIntakeDraftFieldChange<K extends keyof BookingRequestPayload>(
+    field: K,
+    value: BookingRequestPayload[K],
+  ) {
+    setIntakeDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [field]: value,
+      };
+    });
+
+    if (intakeReviewStatus === "error" || intakeReviewStatus === "success") {
+      setIntakeReviewStatus("ready");
+      setIntakeReviewMessage(null);
+    }
+  }
+
+  async function handleSubmitIntakeReview(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!intakeDraft) {
+      return;
+    }
+
+    setIntakeReviewStatus("submitting");
+    setIntakeReviewMessage(
+      language === "urdu"
+        ? "ہم summary ولنگ ویز ٹیم کو بھیج رہے ہیں..."
+        : "We are sending the handoff to the Willing Ways team...",
+    );
+
+    try {
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(intakeDraft),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(
+          data?.error ??
+            (language === "urdu"
+              ? "summary اس وقت نہیں بھیجی جا سکی۔"
+              : "The handoff could not be sent right now."),
+        );
+      }
+
+      setIntakeReviewStatus("success");
+      setIntakeReviewMessage(
+        language === "urdu"
+          ? "ولنگ ویز ٹیم کے لئے handoff بھیج دیا گیا ہے۔"
+          : "The handoff has been sent to the Willing Ways team.",
+      );
+      setSubmissionNotice(
+        language === "urdu"
+          ? "ولنگ ویز ٹیم آپ کے دیے گئے رابطے پر follow-up کرے گی۔"
+          : "The Willing Ways team will follow up on the contact route you confirmed.",
+      );
+    } catch (error) {
+      setIntakeReviewStatus("error");
+      setIntakeReviewMessage(
+        error instanceof Error
+          ? error.message
+          : language === "urdu"
+            ? "summary اس وقت نہیں بھیجی جا سکی۔"
+            : "The handoff could not be sent right now.",
+      );
+    }
+  }
+
+  function clearLocalVoiceMemory() {
+    const confirmed = window.confirm(
+      language === "urdu"
+        ? "کیا آپ اسی براؤزر سے محفوظ شدہ نام اور کال نوٹس صاف کرنا چاہتے ہیں؟"
+        : "Do you want to clear the saved name and call notes from this browser?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setLocalTranscript([]);
+    setRememberedName("");
+    setSubmissionNotice(null);
+    setToolActivity(null);
+    setIntakeDraft(null);
+    setIntakeReviewStatus("idle");
+    setIntakeReviewMessage(null);
+    setShowNotes(false);
+    setErrorMessage(null);
   }
 
   function cleanupSession() {
@@ -1162,49 +1523,22 @@ export function RealtimeVoicePanel({
         };
       }
 
-      if (!input?.consentConfirmed) {
-        return {
-          ok: false,
-          needsConsent: true,
-          message:
-            "Explicit permission to share the request with the Willing Ways team is still required before booking.",
-        };
-      }
+      const nextDraft = await prepareIntakeDraft(input);
 
-      const response = await fetch("/api/booking", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          buildBookingPayloadFromToolInput(input as BookSessionToolInput),
-        ),
-      });
-
-      const data = (await response.json().catch(() => null)) as
-        | { error?: string; ok?: boolean }
-        | null;
-
-      if (!response.ok) {
+      if (!nextDraft) {
         return {
           ok: false,
           message:
-            data?.error ??
-            "The request could not be noted right now. Ask the caller to use the helpline if it is urgent.",
+            "The handoff review could not be prepared right now. Ask the caller to use the helpline if it is urgent.",
         };
       }
-
-      setSubmissionNotice(
-        language === "urdu"
-          ? "ولنگ ویز ٹیم کے لئے follow-up request نوٹ کر دی گئی ہے۔"
-          : "The follow-up request has been noted for the Willing Ways team.",
-      );
 
       return {
         ok: true,
-        status: "noted",
+        status: "review-required",
+        needsUserReview: true,
         message:
-          "The request has been noted for the Willing Ways team. They should follow up within about 24 hours on the provided contact route.",
+          "A handoff draft is ready below. Ask the caller to review the details, confirm consent, and send it to the Willing Ways team.",
         helpline: "0300-7413639",
       };
     }
@@ -1257,8 +1591,8 @@ export function RealtimeVoicePanel({
           : "We are saving your name..."
         : toolName === "book_session"
           ? language === "urdu"
-            ? "ہم آپ کی follow-up request نوٹ کر رہے ہیں..."
-            : "We are noting your follow-up request..."
+            ? "ہم آپ کی گفتگو کو review-ready handoff میں بدل رہے ہیں..."
+            : "We are turning this call into a review-ready handoff..."
           : toolName === "crisis_redirect"
             ? language === "urdu"
               ? "ہم فوری حفاظتی رہنمائی تیار کر رہے ہیں..."
@@ -1732,6 +2066,16 @@ export function RealtimeVoicePanel({
     () => analyzeVoiceCareSignals(userTranscriptTexts),
     [userTranscriptTexts],
   );
+  const transcriptStoryLength = useMemo(
+    () =>
+      userTranscriptTexts
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim().length,
+    [userTranscriptTexts],
+  );
+  const canPrepareHandoff =
+    bookingConfigured && transcriptStoryLength >= 80;
   const callIsStarting = status === "requesting" || status === "connecting";
   const callIsLive =
     status === "connected" || status === "listening" || status === "responding";
@@ -2224,6 +2568,79 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
+            {intakeDraft ? (
+              <VoiceIntakeReview
+                draft={intakeDraft}
+                language={language}
+                message={intakeReviewMessage}
+                onFieldChange={handleIntakeDraftFieldChange}
+                onRefreshDraft={() => void prepareIntakeDraft(bookingPrefillRef.current)}
+                onSubmit={(event) => void handleSubmitIntakeReview(event)}
+                preparing={intakeReviewStatus === "preparing"}
+                status={intakeReviewStatus}
+              />
+            ) : canPrepareHandoff ? (
+              <div className="mt-4 rounded-[24px] border border-[#ead6dc] bg-white px-4 py-4 shadow-sm sm:px-5">
+                <div
+                  className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                    {language === "urdu" ? "ٹیم handoff" : "Team handoff"}
+                  </div>
+                  <div className="mt-2 text-base leading-7 text-slate-800">
+                    {language === "urdu"
+                      ? "اگر آپ چاہتے ہیں کہ ولنگ ویز ٹیم follow-up کرے تو اے آئی اس کال کو ایک صاف summary میں بدل سکتی ہے۔ بھیجنے سے پہلے آپ ہر detail خود چیک کریں گے۔"
+                      : "If you want Willing Ways to follow up, the AI can turn this call into a clear handoff summary. You will review every detail before anything is sent."}
+                  </div>
+                  <div className="mt-2 text-sm leading-7 text-slate-600">
+                    {language === "urdu"
+                      ? "یہ summary اسی براؤزر میں موجود نوٹس سے تیار ہوگی، پھر آپ کی رضامندی کے بعد ہی ٹیم کو بھیجی جائے گی۔"
+                      : "The summary is prepared from the notes saved in this browser, and it is only sent after you explicitly approve it."}
+                  </div>
+                </div>
+
+                {intakeReviewMessage ? (
+                  <div
+                    className={`mt-4 rounded-[20px] border px-4 py-3 text-sm ${
+                      intakeReviewStatus === "error"
+                        ? "border-rose-200 bg-rose-50 text-rose-900"
+                        : "border-[#ead6dc] bg-[#fff8fa] text-[#5a3743]"
+                    } ${language === "urdu" ? "font-urdu text-right" : ""}`}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {intakeReviewMessage}
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => void prepareIntakeDraft()}
+                    disabled={intakeReviewStatus === "preparing"}
+                    className="h-11"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {language === "urdu"
+                      ? "review کے لئے handoff تیار کریں"
+                      : "Prepare handoff review"}
+                  </Button>
+
+                  <a href="tel:+923007413639" className="site-inline-link">
+                    <PhoneCall className="h-4 w-4" />
+                    <span
+                      className={language === "urdu" ? "font-urdu" : ""}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu"
+                        ? "فوراً ٹیم کو کال کریں"
+                        : "Call the team now instead"}
+                    </span>
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
             {lastAssistantGuidance ? (
               <div
                 className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-4 ${
@@ -2262,6 +2679,26 @@ export function RealtimeVoicePanel({
                       ? "distress، privacy یا relapse cues موجود ہیں، اس لئے اگلا قدم احتیاط سے لیا جائے گا۔"
                       : "Distress, privacy, or relapse cues are present, so the next step should be handled carefully."}
                 </div>
+                {careSignal.severity === "urgent" ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href="tel:1122"
+                      className="inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white px-3 py-2 text-sm font-semibold text-rose-900 transition hover:bg-rose-100"
+                    >
+                      <PhoneCall className="h-4 w-4" />
+                      {language === "urdu" ? "1122 پر کال کریں" : "Call 1122"}
+                    </a>
+                    <a
+                      href="tel:+923007413639"
+                      className="inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white px-3 py-2 text-sm font-semibold text-rose-900 transition hover:bg-rose-100"
+                    >
+                      <PhoneCall className="h-4 w-4" />
+                      {language === "urdu"
+                        ? "0300-7413639 پر کال کریں"
+                        : "Call 0300-7413639"}
+                    </a>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -2310,9 +2747,40 @@ export function RealtimeVoicePanel({
                       : language === "urdu"
                         ? "نوٹس دیکھیں"
                         : "View notes"}
-                  </span>
+                    </span>
                 </button>
               </div>
+
+              {localTranscript.length > 0 ? (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={clearLocalVoiceMemory}
+                    disabled={callIsStarting || callIsLive}
+                    className="site-inline-link disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    <span
+                      className={language === "urdu" ? "font-urdu" : ""}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu"
+                        ? "محفوظ شدہ نام اور نوٹس صاف کریں"
+                        : "Clear saved name and notes"}
+                    </span>
+                  </button>
+                  <div
+                    className={`text-xs leading-6 text-slate-500 ${
+                      language === "urdu" ? "font-urdu text-right" : ""
+                    }`}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {language === "urdu"
+                      ? "یہ صرف اسی براؤزر سے مقامی نوٹس اور محفوظ شدہ نام ہٹاتا ہے۔"
+                      : "This removes only the locally saved notes and remembered name from this browser."}
+                  </div>
+                </div>
+              ) : null}
 
               {localTranscript.length === 0 ? (
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">

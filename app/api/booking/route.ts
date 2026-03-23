@@ -13,8 +13,13 @@ import {
   type BookingRequestPayload,
   type BookingSourceId,
 } from "@/lib/booking";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 
 export const maxDuration = 30;
+const BOOKING_RATE_LIMIT = {
+  limit: 10,
+  windowMs: 15 * 60 * 1000,
+};
 
 const RELATION_IDS: Set<string> = new Set(BOOKING_RELATION_OPTIONS.map((option) => option.id));
 const BRANCH_IDS: Set<string> = new Set(BOOKING_BRANCH_OPTIONS.map((option) => option.id));
@@ -679,8 +684,8 @@ async function appendBookingRequestToNotionPage(
   await appendBlockChildren(notionToken, dayBlock.id, [requestBlock]);
 }
 
-function jsonError(error: string, status: number) {
-  return Response.json({ error }, { status });
+function jsonError(error: string, status: number, headers?: HeadersInit) {
+  return Response.json({ error }, { status, headers });
 }
 
 function validatePayload(raw: Partial<BookingRequestPayload>) {
@@ -788,11 +793,27 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
 export async function POST(request: Request) {
   const notionToken = process.env.NOTION_TOKEN?.trim();
   const notionParentPageId = process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim();
+  const rateLimitResult = checkRateLimit(request, "booking", BOOKING_RATE_LIMIT);
+  const responseHeaders = rateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    return jsonError(
+      "Too many booking requests are coming from this connection right now. Please wait a moment and try again.",
+      429,
+      responseHeaders,
+    );
+  }
 
   if (!notionToken || !notionParentPageId) {
-    return jsonError(
-      "Booking requests are not configured on the server yet. Please call 0300-7413639 for immediate help.",
-      503,
+    return Response.json(
+      {
+        error:
+          "Booking requests are not configured on the server yet. Please call 0300-7413639 for immediate help.",
+      },
+      {
+        status: 503,
+        headers: responseHeaders,
+      },
     );
   }
 
@@ -801,7 +822,10 @@ export async function POST(request: Request) {
   try {
     rawBody = (await request.json()) as Partial<BookingRequestPayload>;
   } catch {
-    return jsonError("Invalid request payload.", 400);
+    return Response.json(
+      { error: "Invalid request payload." },
+      { status: 400, headers: responseHeaders },
+    );
   }
 
   let payload: ReturnType<typeof validatePayload>;
@@ -809,24 +833,41 @@ export async function POST(request: Request) {
   try {
     payload = validatePayload(rawBody);
   } catch (error) {
-    return jsonError(
-      error instanceof Error ? error.message : "Please review the booking form and try again.",
-      400,
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Please review the booking form and try again.",
+      },
+      {
+        status: 400,
+        headers: responseHeaders,
+      },
     );
   }
 
   try {
     await appendBookingRequestToNotionPage(notionToken, notionParentPageId, payload);
 
-    return Response.json({
-      ok: true,
-    });
+    return Response.json(
+      {
+        ok: true,
+      },
+      { headers: responseHeaders },
+    );
   } catch (error) {
-    return jsonError(
-      error instanceof Error
-        ? error.message
-        : "The booking request could not be sent right now. Please call 0300-7413639 if the matter is urgent.",
-      502,
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "The booking request could not be sent right now. Please call 0300-7413639 if the matter is urgent.",
+      },
+      {
+        status: 502,
+        headers: responseHeaders,
+      },
     );
   }
 }

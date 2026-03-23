@@ -1,6 +1,8 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   jsonSchema,
   stepCountIs,
   streamText,
@@ -9,7 +11,14 @@ import {
 } from "ai";
 
 import { POST as submitBookingRequest } from "@/app/api/booking/route";
-import { type ChatLanguage, type ChatMode, type ModelId } from "@/lib/chat";
+import {
+  analyzeVoiceCareSignals,
+  getMessageText,
+  type ChatLanguage,
+  type ChatMode,
+  type ModelId,
+} from "@/lib/chat";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 import {
   BOOK_SESSION_TOOL_PARAMETERS,
@@ -38,6 +47,10 @@ export const maxDuration = 30;
 const ALLOWED_MODELS = new Set<ModelId>(["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"]);
 const ALLOWED_MODES = new Set<ChatMode>(["adaptive", "patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
+const CHAT_RATE_LIMIT = {
+  limit: 18,
+  windowMs: 5 * 60 * 1000,
+};
 
 interface ChatRequestBody {
   id?: string;
@@ -51,55 +64,59 @@ interface ChatRequestBody {
   trigger?: string;
 }
 
-function createChatTools(request: Request) {
+function createChatTools(request: Request, bookingConfigured: boolean) {
   return {
-    book_session: tool({
-      description:
-        "Use when the user wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
-      inputSchema: jsonSchema<BookSessionToolInput>(BOOK_SESSION_TOOL_PARAMETERS),
-      execute: async (input: BookSessionToolInput) => {
-        if (!input.consentConfirmed) {
-          return {
-            ok: false,
-            needsConsent: true,
-            message:
-              "Explicit permission to note this request for the Willing Ways team is still required before booking.",
-          };
-        }
+    ...(bookingConfigured
+      ? {
+          book_session: tool({
+            description:
+              "Use when the user wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
+            inputSchema: jsonSchema<BookSessionToolInput>(BOOK_SESSION_TOOL_PARAMETERS),
+            execute: async (input: BookSessionToolInput) => {
+              if (!input.consentConfirmed) {
+                return {
+                  ok: false,
+                  needsConsent: true,
+                  message:
+                    "Explicit permission to note this request for the Willing Ways team is still required before booking.",
+                };
+              }
 
-        const bookingRequest = buildBookingPayloadFromToolInput(input);
-        const response = await submitBookingRequest(
-          new Request(new URL("/api/booking", request.url), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+              const bookingRequest = buildBookingPayloadFromToolInput(input);
+              const response = await submitBookingRequest(
+                new Request(new URL("/api/booking", request.url), {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(bookingRequest),
+                }),
+              );
+
+              const data = (await response.json().catch(() => null)) as
+                | { error?: string; ok?: boolean }
+                | null;
+
+              if (!response.ok) {
+                return {
+                  ok: false,
+                  message:
+                    data?.error ??
+                    "The request could not be noted right now. Ask the user to call 0300-7413639 if it is urgent.",
+                };
+              }
+
+              return {
+                ok: true,
+                status: "noted",
+                message:
+                  "The request has been noted for the Willing Ways team. They should follow up within about 24 hours on the provided contact route.",
+                helpline: "0300-7413639",
+              };
             },
-            body: JSON.stringify(bookingRequest),
           }),
-        );
-
-        const data = (await response.json().catch(() => null)) as
-          | { error?: string; ok?: boolean }
-          | null;
-
-        if (!response.ok) {
-          return {
-            ok: false,
-            message:
-              data?.error ??
-              "The request could not be noted right now. Ask the user to call 0300-7413639 if it is urgent.",
-          };
         }
-
-        return {
-          ok: true,
-          status: "noted",
-          message:
-            "The request has been noted for the Willing Ways team. They should follow up within about 24 hours on the provided contact route.",
-          helpline: "0300-7413639",
-        };
-      },
-    }),
+      : {}),
     get_contact: tool({
       description:
         "Use when the user asks for a phone number, branch contact, city, address, or general helpline information.",
@@ -136,30 +153,114 @@ function createChatTools(request: Request) {
   };
 }
 
+function createDeterministicCrisisResponse(
+  language: ChatLanguage,
+  messages: UIMessage[],
+  matchedCues: string[],
+  headers: HeadersInit,
+) {
+  const crisisPlan = getCrisisRedirectResult({
+    reason: matchedCues.length > 0 ? matchedCues.join(", ") : "Immediate safety concern",
+  });
+
+  const text =
+    language === "urdu"
+      ? `مجھے ابھی آپ کی فوری حفاظت کی فکر ہے۔ اگر اوورڈوز، خودکشی، خود کو نقصان، یا تشدد کا خطرہ ہے تو ابھی 1122 یا نزدیک ترین ایمرجنسی سے رابطہ کریں۔ ولنگ ویز کے لئے 0300-7413639 پر بھی فوراً کال کریں۔ جب فوری حفاظتی قدم اٹھا لیا جائے تو ہم اگلے مرحلے میں مدد کریں گے۔`
+      : `I am concerned about immediate safety right now. If there is overdose, suicide risk, self-harm risk, or violence risk, contact 1122 or the nearest emergency room now. Please also call Willing Ways immediately on 0300-7413639. Once the immediate safety step has been taken, we can help with the next step.`;
+
+  const stream = createUIMessageStream({
+    originalMessages: messages,
+    execute: ({ writer }) => {
+      const textId = crypto.randomUUID();
+
+      writer.write({ type: "start" });
+      writer.write({
+        type: "data-crisis-plan",
+        data: crisisPlan,
+        transient: true,
+      });
+      writer.write({ type: "text-start", id: textId });
+      writer.write({ type: "text-delta", id: textId, delta: text });
+      writer.write({ type: "text-end", id: textId });
+      writer.write({ type: "finish", finishReason: "stop" });
+    },
+  });
+
+  return createUIMessageStreamResponse({
+    headers,
+    stream,
+  });
+}
+
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const bookingConfigured = Boolean(
+    process.env.NOTION_TOKEN?.trim() &&
+      process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim(),
+  );
+  const rateLimitResult = checkRateLimit(request, "chat", CHAT_RATE_LIMIT);
+  const responseHeaders = rateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      "Too many requests are coming from this connection right now. Please wait a moment and try again.",
+      {
+        status: 429,
+        headers: responseHeaders,
+      },
+    );
+  }
 
   if (!apiKey) {
     return new Response("Willing Ways AI is not configured on the server yet.", {
       status: 401,
+      headers: responseHeaders,
     });
   }
 
   if (!body.modelId || !ALLOWED_MODELS.has(body.modelId)) {
-    return new Response("Unsupported model selected.", { status: 400 });
+    return new Response("Unsupported model selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!body.mode || !ALLOWED_MODES.has(body.mode)) {
-    return new Response("Unsupported chat mode selected.", { status: 400 });
+    return new Response("Unsupported chat mode selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!body.language || !ALLOWED_LANGUAGES.has(body.language)) {
-    return new Response("Unsupported chat language selected.", { status: 400 });
+    return new Response("Unsupported chat language selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
-    return new Response("Please include at least one message.", { status: 400 });
+    return new Response("Please include at least one message.", {
+      status: 400,
+      headers: responseHeaders,
+    });
+  }
+
+  const recentUserTexts = body.messages
+    .filter((message) => message.role === "user")
+    .slice(-4)
+    .map((message) => getMessageText(message))
+    .filter(Boolean);
+  const careSignal = analyzeVoiceCareSignals(recentUserTexts);
+
+  if (careSignal?.severity === "urgent") {
+    return createDeterministicCrisisResponse(
+      body.language,
+      body.messages,
+      careSignal.matchedCues,
+      responseHeaders,
+    );
   }
 
   try {
@@ -180,11 +281,12 @@ export async function POST(request: Request) {
         ),
       ),
       toolChoice: "auto",
-      tools: createChatTools(request),
+      tools: createChatTools(request, bookingConfigured),
       stopWhen: stepCountIs(6),
     });
 
     return result.toUIMessageStreamResponse({
+      headers: responseHeaders,
       onError: (error) => {
         const message = error instanceof Error ? error.message.toLowerCase() : "";
 
@@ -202,6 +304,9 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "The request could not be completed.";
 
-    return new Response(message, { status: 500 });
+    return new Response(message, {
+      status: 500,
+      headers: responseHeaders,
+    });
   }
 }

@@ -25,12 +25,17 @@ import {
   type ChatMode,
   type VoiceCallFocusId,
 } from "@/lib/chat";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 
 export const maxDuration = 30;
 
 const ALLOWED_MODES = new Set<ChatMode>(["adaptive", "patient", "doctor"]);
 const ALLOWED_LANGUAGES = new Set<ChatLanguage>(["english", "urdu"]);
 const INTAKE_MODEL = "gpt-4o-mini";
+const INTAKE_RATE_LIMIT = {
+  limit: 8,
+  windowMs: 10 * 60 * 1000,
+};
 
 type IntakeTranscriptRole = "assistant" | "user";
 
@@ -187,11 +192,23 @@ function buildTeamSummary(
 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const rateLimitResult = checkRateLimit(request, "intake", INTAKE_RATE_LIMIT);
+  const responseHeaders = rateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    return Response.json(
+      {
+        error:
+          "Too many intake summaries are being prepared from this connection right now. Please wait a moment and try again.",
+      },
+      { status: 429, headers: responseHeaders },
+    );
+  }
 
   if (!apiKey) {
     return Response.json(
       { error: "Willing Ways AI intake is not configured on the server yet." },
-      { status: 401 },
+      { status: 401, headers: responseHeaders },
     );
   }
 
@@ -200,7 +217,10 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as IntakeRequestBody;
   } catch {
-    return Response.json({ error: "Invalid intake request payload." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid intake request payload." },
+      { status: 400, headers: responseHeaders },
+    );
   }
 
   const mode = body.mode ?? "adaptive";
@@ -216,11 +236,17 @@ export async function POST(request: Request) {
     : [];
 
   if (!ALLOWED_MODES.has(mode)) {
-    return Response.json({ error: "Unsupported intake mode selected." }, { status: 400 });
+    return Response.json(
+      { error: "Unsupported intake mode selected." },
+      { status: 400, headers: responseHeaders },
+    );
   }
 
   if (!ALLOWED_LANGUAGES.has(language)) {
-    return Response.json({ error: "Unsupported intake language selected." }, { status: 400 });
+    return Response.json(
+      { error: "Unsupported intake language selected." },
+      { status: 400, headers: responseHeaders },
+    );
   }
 
   if (transcript.length === 0 || countCallerTurns(transcript) === 0) {
@@ -229,7 +255,7 @@ export async function POST(request: Request) {
         error:
           "Please speak with Willing Ways AI first so a guided intake summary can be prepared.",
       },
-      { status: 400 },
+      { status: 400, headers: responseHeaders },
     );
   }
 
@@ -241,7 +267,7 @@ export async function POST(request: Request) {
         error:
           "There is not enough story context yet. Please continue the call a little longer before preparing the handoff.",
       },
-      { status: 400 },
+      { status: 400, headers: responseHeaders },
     );
   }
 
@@ -398,10 +424,13 @@ export async function POST(request: Request) {
       website: "",
     };
 
-    return Response.json({
-      ok: true,
-      draft: formDraft,
-    });
+    return Response.json(
+      {
+        ok: true,
+        draft: formDraft,
+      },
+      { headers: responseHeaders },
+    );
   } catch (error) {
     return Response.json(
       {
@@ -410,7 +439,7 @@ export async function POST(request: Request) {
             ? error.message
             : "The AI intake summary could not be prepared right now.",
       },
-      { status: 500 },
+      { status: 500, headers: responseHeaders },
     );
   }
 }

@@ -21,6 +21,7 @@ import {
   SEND_RESOURCE_TOOL_PARAMETERS,
   normalizePreferredName,
 } from "@/lib/support-tools";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 
 export const maxDuration = 30;
@@ -49,6 +50,10 @@ const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
 ]);
 const PRIMARY_REALTIME_MODEL = "gpt-realtime-1.5";
 const FALLBACK_REALTIME_MODEL = "gpt-realtime";
+const REALTIME_RATE_LIMIT = {
+  limit: 8,
+  windowMs: 5 * 60 * 1000,
+};
 const REALTIME_VOICE_TURN_PROMPT = `You are a real-time relapse-prevention voice assistant for Willing Ways.
 Never interrupt the user.
 Only respond after the user has completely finished speaking.
@@ -156,6 +161,7 @@ function buildRealtimeSession(
   preferredName: string,
   resumeContext: string,
   model: string,
+  bookingConfigured: boolean,
 ) {
   return JSON.stringify({
     type: "realtime",
@@ -177,13 +183,17 @@ function buildRealtimeSession(
           "Use right after the caller confirms the name they want Willing Ways AI to use for them.",
         parameters: REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
       },
-      {
-        type: "function",
-        name: "book_session",
-        description:
-          "Use when the caller wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
-        parameters: BOOK_SESSION_TOOL_PARAMETERS,
-      },
+      ...(bookingConfigured
+        ? [
+            {
+              type: "function" as const,
+              name: "book_session",
+              description:
+                "Use when the caller wants a session, callback, intervention planning, counseling, admission guidance, or human follow-up and you have the minimum details plus explicit consent to share them with the Willing Ways team.",
+              parameters: BOOK_SESSION_TOOL_PARAMETERS,
+            },
+          ]
+        : []),
       {
         type: "function",
         name: "get_contact",
@@ -241,9 +251,28 @@ function buildRealtimeSession(
 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const bookingConfigured = Boolean(
+    process.env.NOTION_TOKEN?.trim() &&
+      process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim(),
+  );
+  const rateLimitResult = checkRateLimit(request, "realtime-session", REALTIME_RATE_LIMIT);
+  const responseHeaders = rateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      "Too many AI call attempts are coming from this connection right now. Please wait a moment and try again.",
+      {
+        status: 429,
+        headers: responseHeaders,
+      },
+    );
+  }
 
   if (!apiKey) {
-    return new Response("Missing OPENAI_API_KEY on the server.", { status: 401 });
+    return new Response("Missing OPENAI_API_KEY on the server.", {
+      status: 401,
+      headers: responseHeaders,
+    });
   }
 
   const url = new URL(request.url);
@@ -260,25 +289,40 @@ export async function POST(request: Request) {
   const resumeContext = (url.searchParams.get("resumeContext") ?? "").slice(0, 900);
 
   if (!ALLOWED_MODES.has(mode)) {
-    return new Response("Unsupported realtime mode selected.", { status: 400 });
+    return new Response("Unsupported realtime mode selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!ALLOWED_LANGUAGES.has(language)) {
-    return new Response("Unsupported realtime language selected.", { status: 400 });
+    return new Response("Unsupported realtime language selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!ALLOWED_FOCUSES.has(focus)) {
-    return new Response("Unsupported realtime focus selected.", { status: 400 });
+    return new Response("Unsupported realtime focus selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   if (!ALLOWED_VOICES.has(voice)) {
-    return new Response("Unsupported realtime voice selected.", { status: 400 });
+    return new Response("Unsupported realtime voice selected.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   const sdp = await request.text();
 
   if (!sdp.trim()) {
-    return new Response("Missing SDP offer for realtime voice.", { status: 400 });
+    return new Response("Missing SDP offer for realtime voice.", {
+      status: 400,
+      headers: responseHeaders,
+    });
   }
 
   let response = await postRealtimeCall(
@@ -293,6 +337,7 @@ export async function POST(request: Request) {
         preferredName,
         resumeContext,
         PRIMARY_REALTIME_MODEL,
+        bookingConfigured,
       ),
     );
 
@@ -312,24 +357,31 @@ export async function POST(request: Request) {
             preferredName,
             resumeContext,
             FALLBACK_REALTIME_MODEL,
+            bookingConfigured,
           ),
         );
     } else {
       const message = normalizeRealtimeError(response.status, primaryBody);
-      return new Response(message, { status: response.status });
+      return new Response(message, {
+        status: response.status,
+        headers: responseHeaders,
+      });
     }
   }
 
   if (!response.ok) {
     const message = normalizeRealtimeError(response.status, await response.text());
-    return new Response(message, { status: response.status });
+    return new Response(message, {
+      status: response.status,
+      headers: responseHeaders,
+    });
   }
 
   const answerSdp = await response.text();
 
   return new Response(answerSdp, {
     headers: {
-      "Cache-Control": "no-store",
+      ...responseHeaders,
       "Content-Type": "application/sdp",
     },
     status: 200,
