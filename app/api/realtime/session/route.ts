@@ -45,13 +45,15 @@ const ALLOWED_VOICES = new Set<RealtimeVoiceId>([
 ]);
 const PRIMARY_REALTIME_MODEL = "gpt-realtime-1.5";
 const FALLBACK_REALTIME_MODEL = "gpt-realtime";
-const REALTIME_VOICE_TURN_PROMPT = `You are a real-time voice assistant.
+const REALTIME_VOICE_TURN_PROMPT = `You are a real-time relapse-prevention voice assistant for Willing Ways.
 Never interrupt the user.
 Only respond after the user has completely finished speaking.
 Ignore background noise or incomplete input.
 Ensure only one response per turn.
 If interrupted, immediately stop speaking and listen again.
-Maintain a calm, natural, human-like tone.`;
+Maintain a calm, natural, human-like tone.
+When a new call is answered, greet first, confirm the caller's name, and ask what feels most at risk today.
+Prefer one short practical exercise or next step over long lectures.`;
 
 function normalizeRealtimeError(status: number, body: string) {
   const trimmedBody = body.trim();
@@ -158,7 +160,7 @@ function buildRealtimeSession(
       resumeContext,
       surface: "voice",
       voiceFocus: focus,
-    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
+    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. In most turns, give one high-yield exercise, one calm reframe, or one next step instead of many options at once. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
     include: ["item.input_audio_transcription.logprobs"],
     tool_choice: "auto",
     tools: [
@@ -194,7 +196,7 @@ function buildRealtimeSession(
         type: "function",
         name: "send_resource",
         description:
-          "Use for short practical guidance on family conversations, intervention preparation, treatment expectations, calming steps, relapse next steps, or family follow-through.",
+          "Use for short practical relapse-prevention exercises and guidance such as HALT reset, urge surfing, trigger map, daily recovery structure, calming steps, treatment expectations, family boundaries, lapse response, or family follow-through.",
         parameters: SEND_RESOURCE_TOOL_PARAMETERS,
       },
       {

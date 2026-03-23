@@ -214,8 +214,8 @@ export function ChatPane({
           id="ai-text-input"
           placeholder={
             session.language === "urdu"
-              ? "اپنی صورتحال لکھ دیں۔ ہم فوری رہنمائی، pre-treatment اور post-treatment family support، relapse follow-up اور session request میں مدد کریں گے۔"
-              : "Tell us what is happening. We can help with urgent guidance, pre-treatment and post-treatment family support, relapse follow-up, or a session request."
+              ? "اپنی صورتحال لکھ دیں۔ ہم cravings، relapse warning signs، family stress، post-rehab follow-up اور session request میں مدد کریں گے۔"
+              : "Tell us what is happening. We can help with cravings, relapse warning signs, family stress, post-rehab follow-up, or a session request."
           }
           dir={inputIsUrdu ? "rtl" : "ltr"}
           value={input}
@@ -312,11 +312,11 @@ export function ChatPane({
                   >
                     {session.language === "urdu"
                       ? rememberedName
-                        ? `${rememberedName}، اپنی بات آرام سے لکھ دیں`
-                        : "اپنی بات آرام سے لکھ دیں"
+                        ? `${rememberedName}، cravings یا family stress کے بارے میں لکھیں`
+                        : "cravings یا family stress کے بارے میں لکھیں"
                       : rememberedName
-                        ? `Write what is happening, ${rememberedName}`
-                        : "Write what is happening"}
+                        ? `Write what is happening with cravings or family stress, ${rememberedName}`
+                        : "Write what is happening with cravings or family stress"}
                   </h1>
 
                   <p

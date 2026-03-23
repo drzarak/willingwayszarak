@@ -220,7 +220,12 @@ export function ChatApp({ surface }: ChatAppProps) {
         <header className="rounded-[30px] border border-white/80 bg-white/88 px-4 py-4 shadow-[0_18px_60px_rgba(47,24,32,0.08)] backdrop-blur sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <Button variant="outline" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Button
+                variant="outline"
+                size="icon"
+                className={surface === "voice" ? "lg:hidden" : ""}
+                onClick={() => setSidebarOpen(true)}
+              >
                 <Menu className="h-5 w-5" />
               </Button>
 
@@ -238,12 +243,14 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <Link href={alternateAction.href} className="site-action-link hidden sm:inline-flex">
-                <AlternateActionIcon className="h-4 w-4" />
-                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                  {alternateAction.label}
-                </span>
-              </Link>
+              {surface === "chat" ? (
+                <Link href={alternateAction.href} className="site-action-link hidden sm:inline-flex">
+                  <AlternateActionIcon className="h-4 w-4" />
+                  <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                    {alternateAction.label}
+                  </span>
+                </Link>
+              ) : null}
               <a
                 href="tel:+923007413639"
                 className="inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-[#fff8fa] px-4 py-2 text-sm font-semibold text-[#651328] transition hover:bg-[#fff1f4]"
@@ -255,7 +262,11 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div
+            className={`border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center ${
+              surface === "voice" ? "mt-3 hidden gap-3 sm:grid" : "mt-4 grid gap-3"
+            }`}
+          >
             <div
               className={`${isUrdu ? "font-urdu text-right" : ""}`}
               dir={isUrdu ? "rtl" : "ltr"}
@@ -263,8 +274,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
                 {surface === "voice"
                   ? isUrdu
-                    ? "ہوم اے آئی کال"
-                    : "Home AI call"
+                    ? "24/7 relapse prevention line"
+                    : "24/7 relapse prevention line"
                   : isUrdu
                     ? "ٹیکسٹ چیٹ"
                     : "Text chat"}
@@ -272,8 +283,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
                 {surface === "voice"
                   ? isUrdu
-                    ? "ولنگ ویز اے آئی کے ساتھ ایک سادہ، پرسکون کال"
-                    : "A calm, simple call with Willing Ways AI"
+                    ? "cravings، relapse warning signs اور family follow-through کے لئے پرسکون مدد"
+                    : "Calm help for cravings, relapse warning signs, and family follow-through"
                   : isUrdu
                     ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں"
                     : "Type here if speaking is not easy right now"}
@@ -281,8 +292,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="mt-1 text-sm leading-6 text-slate-600">
                 {surface === "voice"
                   ? isUrdu
-                    ? "یہی ہوم اسکرین اب مریضوں اور خاندانوں کے لئے فوری رہنمائی، family counselling اور follow-up کے لئے ہے۔"
-                    : "This home screen is now voice-first for urgent guidance, family counseling, and follow-up."
+                    ? "مریض اور خاندان دونوں یہاں سے فوری رہنمائی، relapse prevention exercises، family counseling اور follow-up کی مدد لے سکتے ہیں۔"
+                    : "Patients and families can start here for immediate guidance, relapse-prevention exercises, family counseling, and follow-up."
                   : isUrdu
                     ? "اگر آپ خاموشی سے اپنی بات لکھنا چاہیں تو یہی دوسرا آسان راستہ ہے۔"
                     : "If you would rather type quietly, this is the simpler second route."}
@@ -290,26 +301,21 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
-              <Link href={alternateAction.href} className="site-action-link sm:hidden">
-                <AlternateActionIcon className="h-4 w-4" />
-                <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                  {surface === "voice"
-                    ? isUrdu
-                      ? "ٹیکسٹ چیٹ"
-                      : "Text chat"
-                    : isUrdu
-                      ? "اے آئی کال"
-                      : "AI call"}
-                </span>
-              </Link>
-              <div
-                className={`text-xs font-semibold tracking-[0.14em] text-slate-500 ${
-                  isUrdu ? "font-urdu text-right normal-case" : "uppercase"
-                }`}
-                dir={isUrdu ? "rtl" : "ltr"}
-              >
-                {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
-              </div>
+              {surface === "chat" ? (
+                <Link href={alternateAction.href} className="site-action-link sm:hidden">
+                  <AlternateActionIcon className="h-4 w-4" />
+                  <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                    {isUrdu ? "اے آئی کال" : "AI call"}
+                  </span>
+                </Link>
+              ) : (
+                <div
+                  className={`text-sm text-slate-500 ${isUrdu ? "font-urdu text-right" : ""}`}
+                  dir={isUrdu ? "rtl" : "ltr"}
+                >
+                  {isUrdu ? "چاہیں تو نیچے سے ٹیکسٹ چیٹ کھول سکتے ہیں" : "If needed, text chat is available below"}
+                </div>
+              )}
             </div>
           </div>
         </header>

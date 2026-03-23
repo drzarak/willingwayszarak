@@ -76,6 +76,7 @@ export const CURRENT_REALTIME_VOICE_VERSION = "3";
 export const DEFAULT_CHAT_MODEL_ID: ModelId = "gpt-4o-mini";
 export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "cedar";
 export const DEFAULT_VOICE_CALL_FOCUS_ID: VoiceCallFocusId = "general-support";
+export const MAX_PERSISTED_VOICE_TURNS = 24;
 
 export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string }> = [
   { id: "marin", label: "Marin" },
@@ -185,16 +186,16 @@ export function normalizeVoiceCallFocusId(
 
 export const SUGGESTION_CHIPS: Record<ChatLanguage, string[]> = {
   english: [
-    "My son is using ICE and our family needs urgent guidance",
-    "How should we prepare for treatment before admission?",
-    "How can we support a patient during treatment and after discharge?",
-    "I want to request a callback or counseling session",
+    "I am having cravings right now and need a safe next step",
+    "Our family keeps fighting after rehab and I need a calm plan",
+    "What warning signs should we watch for after discharge?",
+    "I want Willing Ways to follow up with our family",
   ],
   urdu: [
-    "میرا بیٹا آئس استعمال کر رہا ہے اور ہمارے خاندان کو فوری رہنمائی چاہیے",
-    "داخلے سے پہلے treatment کے لئے خود کو کیسے تیار کریں؟",
-    "علاج کے دوران اور discharge کے بعد مریض کی مدد کیسے کریں؟",
-    "میں callback یا counseling session کی درخواست کرنا چاہتا ہوں",
+    "مجھے ابھی craving ہو رہی ہے اور محفوظ اگلا قدم چاہیے",
+    "rehab کے بعد گھر میں بار بار لڑائی ہو رہی ہے، مجھے پرسکون منصوبہ چاہیے",
+    "discharge کے بعد relapse کی کون سی warning signs دیکھنی چاہئیں؟",
+    "میں چاہتا ہوں ولنگ ویز ہماری فیملی سے follow-up کرے",
   ],
 };
 

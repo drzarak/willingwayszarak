@@ -4,7 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
   MessageSquare,
+  Mic,
+  MicOff,
   PhoneCall,
   PhoneOff,
   ShieldAlert,
@@ -17,6 +22,7 @@ import {
   buildVoiceResumeContext,
   CURRENT_REALTIME_VOICE_VERSION,
   DEFAULT_REALTIME_VOICE_ID,
+  MAX_PERSISTED_VOICE_TURNS,
   REALTIME_VOICE_OPTIONS,
   REALTIME_VOICE_STORAGE_KEY,
   REALTIME_VOICE_VERSION_STORAGE_KEY,
@@ -80,7 +86,7 @@ interface PendingRealtimeTurn {
 }
 
 interface QueuedResponseRequest {
-  source: "turn" | "tool";
+  source: "turn" | "tool" | "greeting";
   itemId?: string;
 }
 
@@ -94,6 +100,9 @@ const ECHO_GUARD_WINDOW_MS = 1600;
 const INTRODUCTORY_TURN_HOLD_MS = 1200;
 const SHORT_TURN_HOLD_MS = 900;
 const INCOMPLETE_TURN_HOLD_MS = 700;
+const PICKUP_TONE_DELAY_MS = 280;
+const UI_TONE_VOLUME = 0.024;
+const RING_TONE_GAP_MS = 1600;
 const FILLER_TRANSCRIPTS = new Set([
   "uh",
   "uhh",
@@ -140,19 +149,19 @@ function getStatusLabel(status: VoiceStatus, language: ChatLanguage) {
   }
 
   if (status === "connecting") {
-    return language === "urdu" ? "فون بج رہا ہے" : "Phone is ringing";
+    return language === "urdu" ? "لائن مل رہی ہے" : "Ringing the line";
   }
 
   if (status === "connected") {
-    return language === "urdu" ? "ولنگ ویز اے آئی ساتھ ہے" : "Willing Ways AI is here";
+    return language === "urdu" ? "کال اٹھا لی گئی" : "Call picked up";
   }
 
   if (status === "listening") {
-    return language === "urdu" ? "ہم سن رہے ہیں" : "Listening to you";
+    return language === "urdu" ? "ہم سن رہے ہیں" : "Listening";
   }
 
   if (status === "responding") {
-    return language === "urdu" ? "ولنگ ویز اے آئی جواب دے رہی ہے" : "Willing Ways AI is replying";
+    return language === "urdu" ? "اے آئی رہنمائی دے رہی ہے" : "Speaking";
   }
 
   if (status === "error") {
@@ -171,26 +180,26 @@ function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
 
   if (status === "connecting") {
     return language === "urdu"
-      ? "براہ کرم ایک لمحہ رکیں، لائن مل رہی ہے۔"
-      : "Please hold for a moment while the line connects.";
+      ? "ایک لمحہ رکیں، relapse prevention line سے رابطہ کیا جا رہا ہے۔"
+      : "Please hold for a moment while we connect the relapse prevention line.";
   }
 
   if (status === "connected") {
     return language === "urdu"
-      ? "سلام کریں اور آرام سے بتائیں کیا مسئلہ ہے۔ اے آئی پہلے آپ کا نام کنفرم کرے گی۔"
-      : "Say hello and explain what is happening. The AI will first confirm your name.";
+      ? "اے آئی اب پہلے سلام کرے گی، آپ کا نام کنفرم کرے گی اور پھر آپ کی بات سنے گی۔"
+      : "The AI will greet you first, confirm your name, and then listen.";
   }
 
   if (status === "listening") {
     return language === "urdu"
-      ? "قدرتی انداز میں بولیں۔ آپ اردو، انگریزی یا پاکستانی پنجابی میں بات کر سکتے ہیں۔"
-      : "Speak naturally. You can talk in English, Urdu, or Pakistani Punjabi.";
+      ? "آرام سے بولیں۔ آپ اردو، انگریزی یا پاکستانی پنجابی میں بات کر سکتے ہیں۔"
+      : "Speak naturally. You can use English, Urdu, or Pakistani Punjabi.";
   }
 
   if (status === "responding") {
     return language === "urdu"
-      ? "اے آئی آپ کی بات سمجھ کر اگلا مفید قدم بتا رہی ہے۔"
-      : "The AI is working out the next useful step for you.";
+      ? "اے آئی relapse prevention کے لئے اگلا مفید قدم، exercise یا رہنمائی دے رہی ہے۔"
+      : "The AI is giving the next useful step, exercise, or guidance for relapse prevention.";
   }
 
   if (status === "error") {
@@ -200,8 +209,8 @@ function getStatusDescription(status: VoiceStatus, language: ChatLanguage) {
   }
 
   return language === "urdu"
-    ? "کال شروع کریں اور سادہ الفاظ میں بتائیں کہ آپ کون ہیں اور آپ کو کس مدد کی ضرورت ہے۔"
-    : "Start the call and simply say who you are and what kind of help you need.";
+    ? "کال شروع کریں۔ اے آئی پہلے آپ سے نام پوچھے گی، پھر cravings، warning signs یا family stress کے بارے میں مدد دے گی۔"
+    : "Start the call. The AI will greet you first, ask your name, and then help with cravings, warning signs, or family stress.";
 }
 
 function normalizeTranscriptComparisonText(value: string) {
@@ -306,6 +315,21 @@ function getContinuationHoldDelay(transcriptText: string) {
   return 0;
 }
 
+function trimPersistedTranscript(entries: VoiceTranscriptEntry[]) {
+  return entries.slice(-MAX_PERSISTED_VOICE_TURNS);
+}
+
+function formatCallDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = Math.floor(totalSeconds % 60)
+    .toString()
+    .padStart(2, "0");
+
+  return `${minutes}:${seconds}`;
+}
+
 export function RealtimeVoicePanel({
   bookingConfigured,
   enabled,
@@ -319,27 +343,40 @@ export function RealtimeVoicePanel({
 }: RealtimeVoicePanelProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<VoiceStatus>("idle");
-  const [localTranscript, setLocalTranscript] = useState<VoiceTranscriptEntry[]>(transcript);
+  const [localTranscript, setLocalTranscript] = useState<VoiceTranscriptEntry[]>(
+    trimPersistedTranscript(transcript),
+  );
   const [voiceId, setVoiceId] = useState<RealtimeVoiceId>(DEFAULT_REALTIME_VOICE_ID);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
   const [rememberedName, setRememberedName] = useState(preferredName);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showVoiceOptions, setShowVoiceOptions] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [callConnectedAt, setCallConnectedAt] = useState<number | null>(null);
+  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const localTranscriptRef = useRef<VoiceTranscriptEntry[]>(transcript);
+  const statusRef = useRef<VoiceStatus>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const uiAudioContextRef = useRef<AudioContext | null>(null);
   const analyserNodeRef = useRef<AnalyserNode | null>(null);
   const analyserFrameRef = useRef<number | null>(null);
   const analyserBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const ringToneTimerRef = useRef<number | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
+  const intentionalCloseRef = useRef(false);
   const activeResponseRef = useRef(false);
+  const initialGreetingRequestedRef = useRef(false);
   const queuedResponseRequestRef = useRef<QueuedResponseRequest | null>(null);
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
   const lastAssistantSpeechAtRef = useRef(0);
+  const recentAssistantDeltaSignatureRef = useRef<{ signature: string; at: number } | null>(null);
   const pendingResponseTimerRef = useRef<number | null>(null);
   const activeSpeechEpochRef = useRef(0);
   const latestSpeechEpochRef = useRef(0);
@@ -386,11 +423,14 @@ export function RealtimeVoicePanel({
 
     lastSessionIdRef.current = sessionId;
     cleanupSession();
-    setLocalTranscript(transcript);
+    setLocalTranscript(trimPersistedTranscript(transcript));
     setRememberedName(preferredName);
     setSubmissionNotice(null);
     setToolActivity(null);
     setErrorMessage(null);
+    setShowNotes(false);
+    setShowVoiceOptions(false);
+    setIsMicMuted(false);
     setStatus("idle");
   }, [preferredName, sessionId, transcript]);
 
@@ -405,6 +445,25 @@ export function RealtimeVoicePanel({
   useEffect(() => {
     localTranscriptRef.current = localTranscript;
   }, [localTranscript]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (!callConnectedAt || status === "idle" || status === "error") {
+      setCallDurationSeconds(0);
+      return;
+    }
+
+    setCallDurationSeconds(Math.max(0, Math.floor((Date.now() - callConnectedAt) / 1000)));
+
+    const intervalId = window.setInterval(() => {
+      setCallDurationSeconds(Math.max(0, Math.floor((Date.now() - callConnectedAt) / 1000)));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [callConnectedAt, status]);
 
   useEffect(() => {
     const transcriptIsUnchanged =
@@ -434,6 +493,13 @@ export function RealtimeVoicePanel({
   useEffect(() => () => cleanupSession(), []);
 
   function cleanupSession() {
+    intentionalCloseRef.current = true;
+
+    if (ringToneTimerRef.current !== null) {
+      window.clearTimeout(ringToneTimerRef.current);
+      ringToneTimerRef.current = null;
+    }
+
     if (pendingResponseTimerRef.current !== null) {
       window.clearTimeout(pendingResponseTimerRef.current);
       pendingResponseTimerRef.current = null;
@@ -461,12 +527,17 @@ export function RealtimeVoicePanel({
       // Ignore analyzer shutdown errors.
     });
     audioContextRef.current = null;
+    void uiAudioContextRef.current?.close().catch(() => {
+      // Ignore UI tone shutdown errors.
+    });
+    uiAudioContextRef.current = null;
     analyserNodeRef.current = null;
     analyserBufferRef.current = null;
 
     assistantEntryIdRef.current = null;
     handledToolCallsRef.current.clear();
     activeResponseRef.current = false;
+    initialGreetingRequestedRef.current = false;
     queuedResponseRequestRef.current = null;
     pendingToolOutputsRef.current = [];
     pendingTurnsRef.current.clear();
@@ -478,7 +549,93 @@ export function RealtimeVoicePanel({
     currentMicLevelRef.current = 0;
     micNoiseFloorRef.current = 0.004;
     turnCooldownUntilRef.current = 0;
+    recentAssistantDeltaSignatureRef.current = null;
+    setCallConnectedAt(null);
+    setCallDurationSeconds(0);
+    setIsMicMuted(false);
     setToolActivity(null);
+  }
+
+  function ensureUiAudioContext() {
+    const AudioContextCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextCtor) {
+      return null;
+    }
+
+    if (!uiAudioContextRef.current || uiAudioContextRef.current.state === "closed") {
+      uiAudioContextRef.current = new AudioContextCtor();
+    }
+
+    return uiAudioContextRef.current;
+  }
+
+  function scheduleUiTone(
+    audioContext: AudioContext,
+    frequency: number,
+    startDelaySeconds: number,
+    durationSeconds: number,
+    volume = UI_TONE_VOLUME,
+  ) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const startAt = audioContext.currentTime + startDelaySeconds;
+    const endAt = startAt + durationSeconds;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gainNode.gain.setValueAtTime(0.0001, startAt);
+    gainNode.gain.exponentialRampToValueAtTime(volume, startAt + 0.015);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, endAt);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(endAt);
+  }
+
+  function playPickupTone() {
+    const audioContext = ensureUiAudioContext();
+
+    if (!audioContext) {
+      return;
+    }
+
+    void audioContext.resume().catch(() => {
+      // Ignore browser resume issues for UI tones.
+    });
+    scheduleUiTone(audioContext, 920, 0, 0.12, 0.028);
+    scheduleUiTone(audioContext, 690, 0.16, 0.14, 0.022);
+  }
+
+  function startRingToneLoop() {
+    if (ringToneTimerRef.current !== null) {
+      return;
+    }
+
+    const playRingBurst = () => {
+      const audioContext = ensureUiAudioContext();
+
+      if (audioContext) {
+        void audioContext.resume().catch(() => {
+          // Ignore browser resume issues for UI tones.
+        });
+        scheduleUiTone(audioContext, 480, 0, 0.16, 0.02);
+        scheduleUiTone(audioContext, 620, 0.24, 0.2, 0.02);
+      }
+
+      ringToneTimerRef.current = window.setTimeout(playRingBurst, RING_TONE_GAP_MS);
+    };
+
+    playRingBurst();
+  }
+
+  function stopRingToneLoop() {
+    if (ringToneTimerRef.current !== null) {
+      window.clearTimeout(ringToneTimerRef.current);
+      ringToneTimerRef.current = null;
+    }
   }
 
   function sendRealtimeEvent(payload: Record<string, unknown>) {
@@ -488,6 +645,45 @@ export function RealtimeVoicePanel({
     }
 
     return false;
+  }
+
+  function setMicMutedState(nextMuted: boolean) {
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !nextMuted;
+    });
+    setIsMicMuted(nextMuted);
+  }
+
+  function handleConnectionLost(message: string) {
+    if (intentionalCloseRef.current) {
+      return;
+    }
+
+    if (statusRef.current === "idle" || statusRef.current === "error") {
+      return;
+    }
+
+    cleanupSession();
+    setErrorMessage(message);
+    setStatus("error");
+  }
+
+  function startInitialGreeting() {
+    if (initialGreetingRequestedRef.current) {
+      return;
+    }
+
+    initialGreetingRequestedRef.current = true;
+    stopRingToneLoop();
+    playPickupTone();
+
+    window.setTimeout(() => {
+      if (statusRef.current === "error" || statusRef.current === "idle") {
+        return;
+      }
+
+      requestAssistantResponse({ source: "greeting" });
+    }, PICKUP_TONE_DELAY_MS);
   }
 
   function trackMicrophoneLevel(localStream: MediaStream) {
@@ -803,6 +999,18 @@ export function RealtimeVoicePanel({
     }
 
     const nextId = itemId ?? assistantEntryIdRef.current ?? crypto.randomUUID();
+    const signature = `${nextId}:${delta}`;
+    const lastSignature = recentAssistantDeltaSignatureRef.current;
+
+    if (
+      lastSignature &&
+      lastSignature.signature === signature &&
+      Date.now() - lastSignature.at < 240
+    ) {
+      return;
+    }
+
+    recentAssistantDeltaSignatureRef.current = { signature, at: Date.now() };
     assistantEntryIdRef.current = nextId;
     lastAssistantSpeechAtRef.current = Date.now();
 
@@ -810,7 +1018,10 @@ export function RealtimeVoicePanel({
       const existingIndex = current.findIndex((entry) => entry.id === nextId);
 
       if (existingIndex === -1) {
-        return [...current, { id: nextId, role: "assistant", text: delta }];
+        return trimPersistedTranscript([
+          ...current,
+          { id: nextId, role: "assistant", text: delta },
+        ]);
       }
 
       const next = [...current];
@@ -818,7 +1029,7 @@ export function RealtimeVoicePanel({
         ...next[existingIndex],
         text: `${next[existingIndex].text}${delta}`,
       };
-      return next;
+      return trimPersistedTranscript(next);
     });
   }
 
@@ -1009,7 +1220,7 @@ export function RealtimeVoicePanel({
         stoppedAt: Date.now(),
       });
       currentSpeechPeakLevelRef.current = 0;
-      setStatus(activeResponseRef.current ? "responding" : "connected");
+      setStatus(activeResponseRef.current ? "responding" : "listening");
       return;
     }
 
@@ -1038,7 +1249,7 @@ export function RealtimeVoicePanel({
       activeResponseRef.current = false;
       lastAssistantSpeechAtRef.current = Date.now();
       assistantEntryIdRef.current = null;
-      setStatus("connected");
+      setStatus("listening");
       setToolActivity(null);
       flushPendingRealtimeActions();
       return;
@@ -1065,19 +1276,19 @@ export function RealtimeVoicePanel({
 
       if (!transcriptText) {
         pendingTurn.ignored = true;
-        setStatus("connected");
+        setStatus("listening");
         return;
       }
 
       if (pendingTurn.epoch !== latestSpeechEpochRef.current) {
         pendingTurn.ignored = true;
-        setStatus("connected");
+        setStatus("listening");
         return;
       }
 
       if (shouldIgnoreTranscript(transcriptText, pendingTurn, confidence)) {
         pendingTurn.ignored = true;
-        setStatus("connected");
+        setStatus("listening");
         return;
       }
 
@@ -1097,17 +1308,17 @@ export function RealtimeVoicePanel({
               ...lastEntry,
               text: mergedTranscript,
             };
-            return next;
+            return trimPersistedTranscript(next);
           }
 
-          return [
+          return trimPersistedTranscript([
             ...current,
             {
               id: itemId,
               role: "user",
               text: transcriptText,
             },
-          ];
+          ]);
         }
 
         const next = [...current];
@@ -1116,12 +1327,12 @@ export function RealtimeVoicePanel({
           role: "user",
           text: transcriptText,
         };
-        return next;
+        return trimPersistedTranscript(next);
       });
 
       if (!speechIsActiveRef.current) {
         queueTurnResponse(itemId);
-        setStatus(activeResponseRef.current ? "responding" : "connected");
+        setStatus(activeResponseRef.current ? "responding" : "listening");
       }
 
       return;
@@ -1136,7 +1347,7 @@ export function RealtimeVoicePanel({
         pendingTurn.ignored = true;
       }
 
-      setStatus(activeResponseRef.current ? "responding" : "connected");
+      setStatus(activeResponseRef.current ? "responding" : "listening");
       return;
     }
 
@@ -1240,6 +1451,12 @@ export function RealtimeVoicePanel({
     setSubmissionNotice(null);
     setToolActivity(null);
     handledToolCallsRef.current.clear();
+    intentionalCloseRef.current = false;
+    initialGreetingRequestedRef.current = false;
+    setCallConnectedAt(null);
+    setCallDurationSeconds(0);
+    setIsMicMuted(false);
+    stopRingToneLoop();
     setStatus("requesting");
 
     try {
@@ -1267,16 +1484,25 @@ export function RealtimeVoicePanel({
       };
 
       dataChannel.onopen = () => {
+        setCallConnectedAt(Date.now());
         setStatus("connected");
+        startInitialGreeting();
       };
 
       dataChannel.onerror = () => {
-        setErrorMessage(
+        handleConnectionLost(
           language === "urdu"
             ? "کال غیر متوقع طور پر منقطع ہو گئی۔"
             : "The call disconnected unexpectedly.",
         );
-        setStatus("error");
+      };
+
+      dataChannel.onclose = () => {
+        handleConnectionLost(
+          language === "urdu"
+            ? "کال منقطع ہو گئی۔ نئی کال شروع کر کے دوبارہ کوشش کریں۔"
+            : "The call line closed unexpectedly. Please start a fresh call.",
+        );
       };
 
       peerConnection.ontrack = (event) => {
@@ -1285,12 +1511,26 @@ export function RealtimeVoicePanel({
         }
       };
 
+      peerConnection.onconnectionstatechange = () => {
+        const connectionState = peerConnection.connectionState;
+
+        if (connectionState === "failed" || connectionState === "disconnected") {
+          handleConnectionLost(
+            language === "urdu"
+              ? "کال لائن برقرار نہیں رہ سکی۔ براہ کرم دوبارہ کوشش کریں۔"
+              : "The call line could not stay connected. Please try again.",
+          );
+        }
+      };
+
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
       });
       trackMicrophoneLevel(localStream);
+      setMicMutedState(false);
 
       setStatus("connecting");
+      startRingToneLoop();
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
@@ -1343,11 +1583,16 @@ export function RealtimeVoicePanel({
 
   function stopSession() {
     cleanupSession();
+    setErrorMessage(null);
     setStatus("idle");
   }
 
   const selectedVoiceLabel =
     REALTIME_VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? voiceId;
+  const lastAssistantGuidance = useMemo(
+    () => [...localTranscript].reverse().find((entry) => entry.role === "assistant") ?? null,
+    [localTranscript],
+  );
   const userTranscriptTexts = useMemo(
     () => localTranscript.filter((entry) => entry.role === "user").map((entry) => entry.text),
     [localTranscript],
@@ -1362,38 +1607,45 @@ export function RealtimeVoicePanel({
   const starterPrompts =
     language === "urdu"
       ? [
-          "میں مریض نہیں، خاندان سے ہوں اور فوری رہنمائی چاہیے۔",
-          "علاج کے بعد relapse سے بچنے کے لئے ہمیں کیا کرنا چاہیے؟",
-          "ہم intervention سے پہلے خود کو کیسے تیار کریں؟",
+          "مجھے craving ہو رہی ہے اور مجھے ابھی محفوظ اگلا قدم چاہیے۔",
+          "rehab کے بعد warning signs بڑھ رہی ہیں، گھر میں ہمیں کیا کرنا چاہیے؟",
+          "میں خاندان سے ہوں اور enabling کے بغیر مدد کرنا چاہتا ہوں۔",
         ]
       : [
-          "I am a family member and need urgent guidance.",
-          "How do we prevent relapse after treatment?",
-          "How should we prepare before an intervention?",
+          "I am having cravings and need a safe next step right now.",
+          "Warning signs are showing up after rehab. What should we do at home?",
+          "I am a family member and want to help without enabling.",
         ];
+  const guidancePreview = lastAssistantGuidance?.text
+    ? lastAssistantGuidance.text.length > 300
+      ? `${lastAssistantGuidance.text.slice(0, 300).trimEnd()}...`
+      : lastAssistantGuidance.text
+    : "";
 
   return (
-    <section className="mx-auto max-w-4xl space-y-4">
+    <section className="mx-auto max-w-3xl space-y-4">
       <audio ref={audioRef} autoPlay />
 
-      <section className="relative overflow-hidden rounded-[36px] border border-white/80 bg-white/92 px-5 py-6 shadow-[0_20px_70px_rgba(47,24,32,0.08)] backdrop-blur sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.07),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(255,242,246,0.92),_transparent_28%)]" />
+      <section className="relative overflow-hidden rounded-[38px] border border-white/80 bg-white/94 px-5 py-6 shadow-[0_20px_70px_rgba(47,24,32,0.07)] backdrop-blur sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.06),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(255,248,250,0.92),_transparent_28%)]" />
 
-        <div className="relative mx-auto max-w-3xl">
-          <div className="text-center">
+        <div className="relative">
+          <div className="mx-auto max-w-2xl text-center">
             <div className="section-kicker bg-white/85">
-              {language === "urdu" ? "24/7 ولنگ ویز اے آئی" : "24/7 Willing Ways AI"}
+              {language === "urdu"
+                ? "ولنگ ویز relapse prevention line"
+                : "Willing Ways relapse prevention line"}
             </div>
 
             <h1
-              className={`mt-5 text-4xl font-semibold leading-[1.05] text-slate-950 sm:text-[3.4rem] ${
+              className={`mt-5 text-[2.4rem] font-semibold leading-[1.05] text-slate-950 sm:text-[3.35rem] ${
                 language === "urdu" ? "font-urdu" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {language === "urdu"
-                ? "ایک سادہ، پرسکون اے آئی کال"
-                : "A simple, calming AI call"}
+                ? "ایک پرسکون کال، فوری رہنمائی اور اگلا محفوظ قدم"
+                : "A calm call, immediate guidance, and the next safe step"}
             </h1>
 
             <p
@@ -1403,13 +1655,38 @@ export function RealtimeVoicePanel({
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {language === "urdu"
-                ? "کال شروع کریں۔ اے آئی پہلے آپ کا نام کنفرم کرے گی، پھر خود سمجھے گی کہ آپ کو family guidance، treatment support، relapse follow-up یا فوری رابطہ درکار ہے۔"
-                : "Start the call. The AI first confirms your name, then works out whether you need family guidance, treatment support, relapse follow-up, or a human callback."}
+                ? "یہ اے آئی مریض اور خاندان دونوں کے لئے cravings، relapse warning signs، post-rehab follow-through اور family boundaries میں رہنمائی دیتی ہے۔"
+                : "This AI helps patients and families with cravings, relapse warning signs, post-rehab follow-through, and family boundaries."}
             </p>
           </div>
 
-          <div className="mt-7 rounded-[32px] border border-[#ead6dc] bg-[#fcf8f9] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-6 sm:py-6">
-            <div className="flex flex-col items-center text-center">
+          <div className="mx-auto mt-7 max-w-2xl rounded-[34px] border border-[#ead6dc] bg-[#fdf9fa] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-6 sm:py-6">
+            <div className="flex items-center justify-between gap-3">
+              <div
+                className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                  {language === "urdu"
+                    ? "ولنگ ویز اے آئی counselor"
+                    : "Willing Ways AI Counselor"}
+                </div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {language === "urdu"
+                    ? "professionally guided relapse prevention support"
+                    : "Professionally guided relapse-prevention support"}
+                </div>
+              </div>
+
+              {callIsLive ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-white px-3 py-2 text-sm font-semibold text-[#651328] shadow-sm">
+                  <Clock3 className="h-4 w-4" />
+                  {formatCallDuration(callDurationSeconds)}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 flex flex-col items-center text-center">
               <div
                 className={`voice-orb h-32 w-32 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
@@ -1458,27 +1735,99 @@ export function RealtimeVoicePanel({
 
             {rememberedName ? (
               <div
-                className={`mt-5 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-3 text-sm text-[#651328] ${
-                  language === "urdu" ? "font-urdu text-right" : ""
+                className={`mt-5 inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-white px-4 py-2 text-sm font-semibold text-[#651328] shadow-sm ${
+                  language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <div className="flex items-center gap-2 font-semibold">
-                  <UserRound className="h-4 w-4" />
-                  {language === "urdu"
-                    ? `محفوظ نام: ${rememberedName}`
-                    : `Saved name: ${rememberedName}`}
-                </div>
-                <div className="mt-2 leading-6">
-                  {language === "urdu"
-                    ? "اگلی بار کال وہیں سے زیادہ قدرتی انداز میں شروع ہو سکے گی۔"
-                    : "The next visit can start more naturally from where you left off."}
-                </div>
+                <UserRound className="h-4 w-4" />
+                {language === "urdu"
+                  ? `ہم آپ کو ${rememberedName} کہہ کر مخاطب کریں گے`
+                  : `We will address you as ${rememberedName}`}
               </div>
             ) : null}
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-              <label className="block space-y-2">
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {[
+                language === "urdu"
+                  ? "اے آئی پہلے سلام اور نام سے آغاز کرے گی"
+                  : "The AI greets and starts with your name",
+                language === "urdu"
+                  ? "اردو، انگریزی، پاکستانی پنجابی"
+                  : "English, Urdu, Pakistani Punjabi",
+                language === "urdu"
+                  ? "cravings، family conflict، post-rehab support"
+                  : "Cravings, family conflict, post-rehab support",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/90 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            {status === "idle" || status === "error" ? (
+              <Button onClick={startSession} className="mt-6 h-12 w-full text-base shadow-sm">
+                <PhoneCall className="h-4 w-4" />
+                {language === "urdu"
+                  ? "relapse prevention line کو کال کریں"
+                  : "Call the relapse prevention line"}
+              </Button>
+            ) : (
+              <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_1fr]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMicMutedState(!isMicMuted)}
+                  className="h-12 border-[#d6c4ca] bg-white text-base shadow-sm"
+                >
+                  {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {language === "urdu"
+                    ? isMicMuted
+                      ? "مائیک آن کریں"
+                      : "مائیک خاموش کریں"
+                    : isMicMuted
+                      ? "Unmute mic"
+                      : "Mute mic"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={stopSession}
+                  className="h-12 border-[#d6c4ca] bg-white text-base shadow-sm"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  {language === "urdu" ? "کال ختم کریں" : "End the call"}
+                </Button>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowVoiceOptions((current) => !current)}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-[#651328]"
+              >
+                <Volume2 className="h-4 w-4" />
+                <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
+                  {language === "urdu"
+                    ? `کال options (${selectedVoiceLabel})`
+                    : `Call options (${selectedVoiceLabel})`}
+                </span>
+                {showVoiceOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              <Link href="/chat" className="site-inline-link">
+                <MessageSquare className="h-4 w-4" />
+                <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
+                  {language === "urdu" ? "اگر چاہیں تو لکھ کر بات کریں" : "Prefer typing? Open text chat"}
+                </span>
+              </Link>
+            </div>
+
+            {showVoiceOptions ? (
+              <label className="mt-4 block space-y-2">
                 <div
                   className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
                     language === "urdu" ? "font-urdu justify-end normal-case" : ""
@@ -1503,46 +1852,7 @@ export function RealtimeVoicePanel({
                   ))}
                 </select>
               </label>
-
-              {status === "idle" || status === "error" ? (
-                <Button onClick={startSession} className="h-12 min-w-[220px] text-base shadow-sm">
-                  <PhoneCall className="h-4 w-4" />
-                  {language === "urdu"
-                    ? "ولنگ ویز اے آئی کال شروع کریں"
-                    : "Start the Willing Ways AI call"}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={stopSession}
-                  className="h-12 min-w-[220px] border-[#d6c4ca] bg-white text-base shadow-sm"
-                >
-                  <PhoneOff className="h-4 w-4" />
-                  {language === "urdu" ? "کال ختم کریں" : "End the call"}
-                </Button>
-              )}
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {[
-                language === "urdu"
-                  ? "اے آئی پہلے آپ کا نام پوچھے گی"
-                  : "The AI asks your name first",
-                language === "urdu"
-                  ? "اردو، انگریزی، پاکستانی پنجابی"
-                  : "English, Urdu, Pakistani Punjabi",
-                language === "urdu"
-                  ? "گفتگو اسی براؤزر میں محفوظ رہتی ہے"
-                  : "The conversation stays in this browser",
-              ].map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-white/90 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
+            ) : null}
 
             {toolActivity ? (
               <div
@@ -1567,6 +1877,20 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
+            {lastAssistantGuidance ? (
+              <div
+                className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-4 ${
+                  language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                  {language === "urdu" ? "آج کا اگلا قدم" : "Today's next step"}
+                </div>
+                <div className="mt-2 text-base leading-7 text-slate-800">{guidancePreview}</div>
+              </div>
+            ) : null}
+
             {careSignal && careSignal.severity !== "normal" ? (
               <div
                 className={`mt-4 rounded-[20px] border px-4 py-3 text-sm leading-7 ${
@@ -1585,10 +1909,10 @@ export function RealtimeVoicePanel({
                 <div className="mt-2">
                   {careSignal.severity === "urgent"
                     ? language === "urdu"
-                      ? "فوری خطرے کے اشارے نظر آ رہے ہیں۔ 1122 یا 0300-7413639 کو ترجیح دیں۔"
-                      : "Urgent-risk cues are showing up. Prioritize 1122 or 0300-7413639."
+                      ? "فوری خطرے کے اشارے موجود ہیں۔ 1122 یا 0300-7413639 کو ترجیح دیں۔"
+                      : "Urgent-risk cues are present. Prioritize 1122 or 0300-7413639."
                     : language === "urdu"
-                      ? "distress، privacy یا relapse کے اشارے موجود ہیں، اس لئے اگلا قدم احتیاط سے لیا جائے گا۔"
+                      ? "distress، privacy یا relapse cues موجود ہیں، اس لئے اگلا قدم احتیاط سے لیا جائے گا۔"
                       : "Distress, privacy, or relapse cues are present, so the next step should be handled carefully."}
                 </div>
               </div>
@@ -1607,37 +1931,40 @@ export function RealtimeVoicePanel({
 
             <div className="mt-6 border-t border-[#ead6dc] pt-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div
-                    className={`text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d] ${
-                      language === "urdu" ? "font-urdu normal-case text-right" : ""
-                    }`}
-                    dir={language === "urdu" ? "rtl" : "ltr"}
-                  >
-                    {language === "urdu" ? "گفتگو" : "Conversation"}
+                <div
+                  className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                    {language === "urdu" ? "کال نوٹس" : "Call notes"}
                   </div>
-                  <div
-                    className={`mt-1 text-sm text-slate-600 ${
-                      language === "urdu" ? "font-urdu text-right" : ""
-                    }`}
-                    dir={language === "urdu" ? "rtl" : "ltr"}
-                  >
+                  <div className="mt-1 text-sm text-slate-600">
                     {localTranscript.length > 0
                       ? language === "urdu"
-                        ? "پچھلی گفتگو یہیں محفوظ ہے تاکہ آپ اگلی بار وہیں سے بات جاری رکھ سکیں۔"
-                        : "Your saved conversation stays here so you can continue later."
+                        ? "آپ کی پچھلی گفتگو اسی براؤزر میں محفوظ رہتی ہے تاکہ آپ اگلی بار وہیں سے بات جاری رکھ سکیں۔"
+                        : "Your previous call notes stay in this browser so you can continue later."
                       : language === "urdu"
-                        ? "اگر سمجھ نہ آئے کہ کیا کہیں تو ان جملوں جیسے سادہ الفاظ سے آغاز کریں۔"
-                        : "If you do not know how to begin, start with something simple like these."}
+                        ? "اگر سمجھ نہ آئے کہ کہاں سے شروع کریں تو نیچے دیے گئے جملوں میں سے کسی ایک سے آغاز کریں۔"
+                        : "If you are not sure how to begin, start with one of the prompts below."}
                   </div>
                 </div>
 
-                <Link href="/chat" className="site-action-link justify-center self-start sm:self-auto">
-                  <MessageSquare className="h-4 w-4" />
+                <button
+                  type="button"
+                  onClick={() => setShowNotes((current) => !current)}
+                  className="site-action-link justify-center self-start sm:self-auto"
+                >
+                  {showNotes ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
-                    {language === "urdu" ? "لکھ کر بات کریں" : "Continue by text instead"}
+                    {showNotes
+                      ? language === "urdu"
+                        ? "نوٹس بند کریں"
+                        : "Hide notes"
+                      : language === "urdu"
+                        ? "نوٹس دیکھیں"
+                        : "View notes"}
                   </span>
-                </Link>
+                </button>
               </div>
 
               {localTranscript.length === 0 ? (
@@ -1654,7 +1981,7 @@ export function RealtimeVoicePanel({
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : showNotes ? (
                 <div className="mt-4 grid gap-3">
                   {localTranscript.slice(-8).map((entry) => (
                     <div
@@ -1685,7 +2012,7 @@ export function RealtimeVoicePanel({
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

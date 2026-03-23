@@ -22,7 +22,14 @@ export type SupportResourceId =
   | "treatment-expectations"
   | "family-follow-along"
   | "calming-steps"
-  | "relapse-next-step";
+  | "relapse-next-step"
+  | "halt-reset"
+  | "urge-surfing"
+  | "trigger-map"
+  | "daily-recovery-structure"
+  | "family-boundary-script"
+  | "lapse-response"
+  | "post-rehab-check-in";
 
 export interface RememberPreferredNameToolInput {
   preferredName: string;
@@ -72,6 +79,13 @@ const RESOURCE_IDS: SupportResourceId[] = [
   "family-follow-along",
   "calming-steps",
   "relapse-next-step",
+  "halt-reset",
+  "urge-surfing",
+  "trigger-map",
+  "daily-recovery-structure",
+  "family-boundary-script",
+  "lapse-response",
+  "post-rehab-check-in",
 ];
 
 const BRANCH_CONTACT_LOOKUP: Record<
@@ -119,6 +133,8 @@ const RESOURCE_CONTENT: Record<
   {
     title: string;
     summary: string;
+    useWhen?: string;
+    duration?: string;
     points: string[];
   }
 > = {
@@ -126,6 +142,8 @@ const RESOURCE_CONTENT: Record<
     title: "Family conversation guide",
     summary:
       "Start calm, stay specific, and avoid blame. The goal is to open a path to treatment, not to win an argument.",
+    useWhen:
+      "Use when a family member is preparing for a difficult conversation with a loved one.",
     points: [
       "Speak when everyone is relatively calm, not in the middle of a fight or intoxication.",
       "Use short facts about what you have seen instead of labels or insults.",
@@ -137,6 +155,8 @@ const RESOURCE_CONTENT: Record<
     title: "Intervention preparation",
     summary:
       "Willing Ways usually prepares the family first so the patient meets a calm, united, and structured system.",
+    useWhen:
+      "Use when the family wants to help but the patient is still denying the need for treatment.",
     points: [
       "Agree on one lead family contact before approaching the patient.",
       "Write down recent safety issues, substance use pattern, and past treatment attempts.",
@@ -148,6 +168,8 @@ const RESOURCE_CONTENT: Record<
     title: "What treatment may feel like",
     summary:
       "Treatment is more than stopping the substance. It usually includes detox planning, mood work, counseling, family work, and follow-up.",
+    useWhen:
+      "Use when the patient or family is scared about what Willing Ways treatment will actually involve.",
     points: [
       "Early days may feel uncomfortable as the body and mood start adjusting.",
       "The team may recommend inpatient, outpatient, psychiatric review, or family intervention depending on risk and severity.",
@@ -159,6 +181,8 @@ const RESOURCE_CONTENT: Record<
     title: "How families can follow along",
     summary:
       "Families usually help most when they stay aligned, informed, and consistent instead of trying to control every moment.",
+    useWhen:
+      "Use when a patient is in treatment or just came home and the family wants to support recovery without enabling.",
     points: [
       "Stay in touch with the assigned Willing Ways team contact rather than creating many separate instructions.",
       "Learn the difference between support and enabling.",
@@ -170,6 +194,9 @@ const RESOURCE_CONTENT: Record<
     title: "Immediate calming steps",
     summary:
       "These steps do not replace treatment. They help someone slow the moment down enough to choose a safer next step.",
+    useWhen:
+      "Use when the caller is distressed, impulsive, panicky, or close to acting without thinking clearly.",
+    duration: "1-2 minutes",
     points: [
       "Take one slow breath in through the nose for 4 counts, then out for 6 counts, three times.",
       "Move away from arguments, locked rooms, substances, and sharp objects if the situation feels unsafe.",
@@ -181,11 +208,111 @@ const RESOURCE_CONTENT: Record<
     title: "Relapse next step",
     summary:
       "Relapse is a warning sign that the plan needs adjustment. It does not mean recovery is over.",
+    useWhen:
+      "Use right after a lapse or relapse, especially when shame is starting to take over the conversation.",
     points: [
       "Focus first on immediate safety and the amount or type of substance being used now.",
       "Do not turn the conversation into shame or punishment.",
       "Reconnect the patient and family with follow-up support quickly instead of waiting for the crisis to grow.",
       "Review what changed before the relapse: mood, company, secrecy, conflict, or stopping follow-up.",
+    ],
+  },
+  "halt-reset": {
+    title: "HALT reset",
+    summary:
+      "Check whether hunger, anger, loneliness, or tiredness is making relapse risk worse right now, then act on the biggest one first.",
+    useWhen:
+      "Use when cravings, irritability, hopelessness, or emotional overload are rising but the situation is not yet a medical emergency.",
+    duration: "60-90 seconds",
+    points: [
+      "Ask: what is strongest right now, hungry, angry, lonely, or tired?",
+      "Choose one immediate reset: eat something simple, step away from conflict, call one safe person, or protect sleep and rest.",
+      "Delay any major decision until that one body-state issue is handled.",
+      "If risk stays high after the reset, move quickly into follow-up support or a human callback.",
+    ],
+  },
+  "urge-surfing": {
+    title: "Urge surfing",
+    summary:
+      "Treat the craving like a wave. Notice it, breathe through it, and let it rise and fall without obeying it.",
+    useWhen:
+      "Use when the patient feels a strong craving and needs a short exercise instead of a lecture.",
+    duration: "60-120 seconds",
+    points: [
+      "Say out loud what the urge feels like in the body: tight chest, restless legs, hot face, racing thoughts, or something else.",
+      "Rate the urge from 0 to 10, then take five slower breaths than usual.",
+      "Tell yourself: this urge is strong but temporary; I do not have to act on it.",
+      "When the wave drops even a little, move immediately to one safer action such as leaving the place, calling support, or drinking water and walking.",
+    ],
+  },
+  "trigger-map": {
+    title: "Trigger map",
+    summary:
+      "Name the people, places, feelings, and times of day that make relapse more likely, then change one of them today.",
+    useWhen:
+      "Use when the user says they keep ending up in the same risky situation.",
+    duration: "2-3 minutes",
+    points: [
+      "Pick one high-risk person, one place, and one emotional trigger that repeatedly comes before use.",
+      "Choose one prevention move for today: avoid, shorten exposure, take a safe person with you, or leave earlier.",
+      "Decide on one replacement activity for the most risky time window.",
+      "Save one support number and one exit sentence before the high-risk situation happens.",
+    ],
+  },
+  "daily-recovery-structure": {
+    title: "Daily recovery structure",
+    summary:
+      "Relapse risk rises when the day becomes empty, chaotic, or emotionally unstructured. Recovery needs a daily frame.",
+    useWhen:
+      "Use after discharge or whenever the patient says things felt better in treatment than at home.",
+    duration: "2 minutes",
+    points: [
+      "Anchor the day with wake time, meals, medicine if prescribed, movement, and one follow-up or support touchpoint.",
+      "Protect the most risky hours with a planned activity instead of unstructured isolation.",
+      "Keep money, transport, and contacts around risky places more controlled for now.",
+      "Review the next 24 hours, not the next six months. Stability grows one day at a time.",
+    ],
+  },
+  "family-boundary-script": {
+    title: "Family boundary script",
+    summary:
+      "A clear family stand should sound loving, steady, and specific, not shaming or dramatic.",
+    useWhen:
+      "Use when the family needs to say no to enabling while still inviting treatment and follow-up.",
+    duration: "60-90 seconds",
+    points: [
+      "Start with care: we love you and we want recovery, not a fight.",
+      "State one clear stand: we will support treatment and follow-up, but we will not fund, hide, or normalize use.",
+      "Keep the consequence real and consistent. Do not threaten anything the family will not do.",
+      "End with the treatment path, not with blame: we are ready to help you take the next step now.",
+    ],
+  },
+  "lapse-response": {
+    title: "Lapse response plan",
+    summary:
+      "If use happened, do the next right thing fast: reduce danger, reduce shame, and reconnect to help before the lapse becomes a full relapse cycle.",
+    useWhen:
+      "Use when the caller reports recent use, secrecy after discharge, or a frightening slip.",
+    duration: "2-3 minutes",
+    points: [
+      "First check immediate danger: overdose risk, self-harm risk, violent conflict, or unsafe intoxication.",
+      "Remove access to the most immediate trigger, risky company, or place if possible.",
+      "Speak without humiliation: this lapse is serious, but it is a signal to act, not a reason to give up.",
+      "Reconnect to Willing Ways follow-up support quickly instead of waiting for the situation to get worse.",
+    ],
+  },
+  "post-rehab-check-in": {
+    title: "Post-rehab check-in",
+    summary:
+      "The weeks after rehab need active follow-up. Overconfidence, emotional swings, and stopping structure too early can raise relapse risk.",
+    useWhen:
+      "Use when the patient is back home, saying they are fine now, or skipping follow-up because they feel better.",
+    duration: "2 minutes",
+    points: [
+      "Ask how cravings, sleep, anger, loneliness, and daily structure have been in the last few days.",
+      "Check whether follow-up counseling, medicine routines, and family agreements are still being followed.",
+      "Normalize that discomfort after rehab does not mean treatment failed; it often means support still needs to stay active.",
+      "If warning signs are rising, act early with follow-up support instead of waiting for a bigger setback.",
     ],
   },
 };
@@ -382,6 +509,8 @@ export function getSupportResourceResult(input: SendResourceToolInput) {
     resourceId: input.resourceId,
     title: resource.title,
     summary: resource.summary,
+    useWhen: resource.useWhen,
+    duration: resource.duration,
     points: resource.points,
     helpline: "0300-7413639",
   };
