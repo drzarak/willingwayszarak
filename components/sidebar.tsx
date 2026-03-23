@@ -154,24 +154,27 @@ export function Sidebar({
             </div>
           </ScrollArea>
 
-          <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-            <div
-              className={`${isUrdu ? "font-urdu text-right" : ""}`}
-              dir={isUrdu ? "rtl" : "ltr"}
-            >
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+              <div
+                className={`${isUrdu ? "font-urdu text-right" : ""}`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
               {isUrdu
                 ? "محبت سے تعمیر: ڈاکٹر زارک خان"
                 : "Built with love by Dr Zarak Khan"}
             </div>
-            <div className="mt-3 flex items-center gap-3 text-sm">
-              <Link href="/about" className="site-inline-link">
-                {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
-              </Link>
-              <Link href="/book-session" className="site-inline-link">
-                {isUrdu ? "بکنگ فارم" : "Booking form"}
-              </Link>
+              <div className="mt-3 flex items-center gap-3 text-sm">
+                <Link href="/about" className="site-inline-link">
+                  {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
+                </Link>
+                <Link href="/family-training" className="site-inline-link">
+                  {isUrdu ? "فیملی کوچنگ" : "Family coaching"}
+                </Link>
+                <Link href="/book-session" className="site-inline-link">
+                  {isUrdu ? "بکنگ فارم" : "Booking form"}
+                </Link>
+              </div>
             </div>
-          </div>
         </div>
       </aside>
     </>

@@ -13,6 +13,7 @@ import { useSiteLanguage } from "@/components/site-language-provider";
 
 const navigation = [
   { href: "/", english: "AI Assistant", urdu: "اے آئی معاون" },
+  { href: "/family-training", english: "Family Coaching", urdu: "فیملی کوچنگ" },
   { href: "/about", english: "About", urdu: "تعارف" },
   { href: "/our-services", english: "Services", urdu: "خدمات" },
   { href: "/treatments", english: "Treatments", urdu: "علاج" },

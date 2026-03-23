@@ -10,7 +10,8 @@ import { SITE_MEDIA } from "@/lib/site-assets";
 import { useSiteLanguage } from "@/components/site-language-provider";
 
 const footerLinks = [
-  { href: "/about-us", english: "About", urdu: "تعارف" },
+  { href: "/about", english: "About", urdu: "تعارف" },
+  { href: "/family-training", english: "Family Coaching", urdu: "فیملی کوچنگ" },
   { href: "/our-services", english: "Services", urdu: "خدمات" },
   { href: "/treatments", english: "Treatments", urdu: "علاج" },
   { href: "/library", english: "Library", urdu: "لائبریری" },

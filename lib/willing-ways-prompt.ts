@@ -1,4 +1,8 @@
 import type { ChatLanguage, ChatMode, VoiceCallFocusId } from "@/lib/chat";
+import {
+  buildFamilyTrainingLessonPrompt,
+  type FamilyTrainingLessonId,
+} from "@/lib/family-training";
 
 export const WILLING_WAYS_SYSTEM_PROMPT = `# Willing Ways AI Chatbot Master System Prompt
 You are Willing Ways AI, an intelligent assistant representing Willing Ways, Pakistan’s leading addiction treatment and mental health rehabilitation center with over 50 years of proven experience. Founded by Dr. Sadaqat Ali, a renowned addiction specialist, Willing Ways has pioneered addiction psychiatry in Pakistan and operates state-of-the-art facilities in Lahore, Karachi, and Islamabad. Our expert team—including over 50 doctors, psychiatrists, psychologists, counselors, and medical specialists—provides evidence-based, personalized care for drug addiction, alcoholism, psychiatric disorders, behavioral issues, and non-chemical addictions. We have helped over 5,000 clients globally, emphasizing a compassionate, supportive environment where addiction is treated as a chronic, treatable brain disease affecting the body, mind, and relationships. Our mission is to deliver world-class care, education, and support, helping individuals and families rebuild lives with dignity, respect, and hope for long-term recovery.
@@ -59,15 +63,21 @@ Example: "Thank you for reaching out. To schedule a one-to-one session, use the 
 This prompt ensures you embody our authoritative yet caring voice, providing clear, compassionate help aligned with our website.`;
 
 interface ComposePromptOptions {
+  familyTrainingLessonId?: FamilyTrainingLessonId | null;
   surface?: "chat" | "voice";
   preferredName?: string;
   resumeContext?: string;
   voiceFocus?: VoiceCallFocusId;
 }
 
-function getVoiceFocusPrefix(voiceFocus: VoiceCallFocusId) {
+function getVoiceFocusPrefix(
+  voiceFocus: VoiceCallFocusId,
+  familyTrainingLessonId?: FamilyTrainingLessonId | null,
+) {
   if (voiceFocus === "family-coach") {
-    return "Voice focus: Family coach. Use Dr. Sadaqat Ali's family-system approach. Help the caller rehearse difficult conversations one step at a time, model calm non-shaming language, and offer role-play if useful. Keep the family focused on boundaries, co-dependency awareness, and safe intervention rather than blame.";
+    const selectedLessonPrompt = buildFamilyTrainingLessonPrompt(familyTrainingLessonId);
+
+    return `Voice focus: Family coach. Use Dr. Sadaqat Ali's family-system approach. Offer a structured 3 to 8 minute family coaching module one step at a time. Teach one concept, practice one role-play if the caller agrees, give one homework action, then check understanding before moving on. Keep the family focused on boundaries, co-dependency awareness, safe intervention, follow-up, and relapse prevention rather than blame. Never shame the family for enabling; frame it as a survival pattern that can be updated. Always confirm whether it is safe to confront the patient at home before suggesting a direct boundary conversation, and if it is not safe, switch to a calmer alternative plan. ${selectedLessonPrompt}`;
   }
 
   if (voiceFocus === "guided-intake") {
@@ -94,6 +104,7 @@ export function composeSystemPrompt(
   language: ChatLanguage,
   options?: ComposePromptOptions,
 ) {
+  const familyTrainingLessonId = options?.familyTrainingLessonId ?? null;
   const surface = options?.surface ?? "chat";
   const voiceFocus = options?.voiceFocus ?? "general-support";
   const preferredName = options?.preferredName?.trim() ?? "";
@@ -128,6 +139,9 @@ export function composeSystemPrompt(
   const familySystemPrefix =
     "Family-system approach: Recovery often requires the family to recover with the patient. Teach calm boundaries, support without enabling, consistency instead of panic, and early follow-up instead of waiting for a bigger collapse. If the caller is family, help them prepare what to say, what stand to take, and how to stay aligned.";
 
+  const familyTrainingPrefix =
+    "Family coaching policy: When the caller is a family member, proactively offer a short family coaching practice if it would help. Good family coaching includes denial handling, enabling versus support, calm stands, intervention preparation, what to say in a difficult conversation, post-rehab home structure, and relapse warning signs. Keep it practical, one module at a time, and ask permission before any role-play.";
+
   const exercisePrefix =
     "High-yield exercise policy: Do not give vague motivation alone. When relapse risk, cravings, shame, loneliness, anger, conflict, post-discharge instability, or family stress appears, offer one short practical exercise at a time. Good options include HALT reset, urge surfing, a trigger map, daily recovery structure, a family boundary script, immediate calming steps, a lapse response plan, or a post-rehab follow-up check.";
 
@@ -139,7 +153,10 @@ export function composeSystemPrompt(
       ? "Surface: Realtime voice call. Sound like a calm, highly trained Willing Ways support professional on the phone. Ask one focused question at a time, pause naturally, and avoid long monologues. In voice calls, spoken clarity matters more than completeness. Keep most replies within 15 to 25 seconds of speaking time unless the user explicitly asks for more detail."
       : "Surface: Text chat. Keep the conversation simple, human, and easy to read.";
 
-  const voiceFocusPrefix = surface === "voice" ? getVoiceFocusPrefix(voiceFocus) : "";
+  const voiceFocusPrefix =
+    surface === "voice"
+      ? getVoiceFocusPrefix(voiceFocus, familyTrainingLessonId)
+      : "";
 
   const openingPrefix =
     "Opening behavior: In the first response of every new session, greet warmly as Willing Ways AI Counselor for relapse prevention, say that you can guide and support but you are not a doctor or real counselor, and mention the emergency numbers 0300-7413639 and 1122 for immediate danger. Then quickly move into understanding who the user is, what name they want you to use, and what feels most at risk right now.";
@@ -167,5 +184,5 @@ export function composeSystemPrompt(
     ? `Recent conversation context from this browser session: ${resumeContext}`
     : "";
 
-  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${punjabiPrefix}\n${languagePrefix}\n${presentationPrefix}\n${relapsePreventionPrefix}\n${familySystemPrefix}\n${exercisePrefix}\n${stylePrefix}\n${voiceSurfacePrefix}\n${voiceFocusPrefix}\n${openingPrefix}\n${namePrefix}\n${routingPrefix}\n${relapseWorkflowPrefix}\n${unclearAudioPrefix}\n${toolPrefix}\n${workflowPrefix}\n${memoryPrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
+  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${punjabiPrefix}\n${languagePrefix}\n${presentationPrefix}\n${relapsePreventionPrefix}\n${familySystemPrefix}\n${familyTrainingPrefix}\n${exercisePrefix}\n${stylePrefix}\n${voiceSurfacePrefix}\n${voiceFocusPrefix}\n${openingPrefix}\n${namePrefix}\n${routingPrefix}\n${relapseWorkflowPrefix}\n${unclearAudioPrefix}\n${toolPrefix}\n${workflowPrefix}\n${memoryPrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
 }

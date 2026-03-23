@@ -9,6 +9,10 @@ import {
   type VoiceCallFocusId,
 } from "@/lib/chat";
 import {
+  normalizeFamilyTrainingLessonId,
+  type FamilyTrainingLessonId,
+} from "@/lib/family-training";
+import {
   BOOK_SESSION_TOOL_PARAMETERS,
   CRISIS_REDIRECT_TOOL_PARAMETERS,
   ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
@@ -147,6 +151,7 @@ function buildRealtimeSession(
   mode: ChatMode,
   language: ChatLanguage,
   focus: VoiceCallFocusId,
+  familyTrainingLessonId: FamilyTrainingLessonId | null,
   voice: RealtimeVoiceId,
   preferredName: string,
   resumeContext: string,
@@ -156,6 +161,7 @@ function buildRealtimeSession(
     type: "realtime",
     model,
     instructions: `${REALTIME_VOICE_TURN_PROMPT}\n\n${composeSystemPrompt(mode, language, {
+      familyTrainingLessonId,
       preferredName,
       resumeContext,
       surface: "voice",
@@ -196,7 +202,7 @@ function buildRealtimeSession(
         type: "function",
         name: "send_resource",
         description:
-          "Use for short practical relapse-prevention exercises and guidance such as HALT reset, urge surfing, trigger map, daily recovery structure, calming steps, treatment expectations, family boundaries, lapse response, or family follow-through.",
+          "Use for short practical relapse-prevention exercises and family coaching guidance such as HALT reset, urge surfing, trigger map, daily recovery structure, calming steps, treatment expectations, family boundaries, intervention preparation, conversation rehearsal, lapse response, or family follow-through.",
         parameters: SEND_RESOURCE_TOOL_PARAMETERS,
       },
       {
@@ -246,6 +252,9 @@ export async function POST(request: Request) {
   const focus = normalizeVoiceCallFocusId(
     url.searchParams.get("focus") ?? DEFAULT_VOICE_CALL_FOCUS_ID,
   );
+  const familyTrainingLessonId = normalizeFamilyTrainingLessonId(
+    url.searchParams.get("module"),
+  );
   const voice = normalizeRealtimeVoiceId(url.searchParams.get("voice") ?? DEFAULT_REALTIME_VOICE_ID);
   const preferredName = normalizePreferredName(url.searchParams.get("preferredName"));
   const resumeContext = (url.searchParams.get("resumeContext") ?? "").slice(0, 900);
@@ -279,6 +288,7 @@ export async function POST(request: Request) {
         mode,
         language,
         focus,
+        focus === "family-coach" ? familyTrainingLessonId : null,
         voice,
         preferredName,
         resumeContext,
@@ -297,6 +307,7 @@ export async function POST(request: Request) {
             mode,
             language,
             focus,
+            focus === "family-coach" ? familyTrainingLessonId : null,
             voice,
             preferredName,
             resumeContext,

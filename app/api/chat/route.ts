@@ -123,7 +123,7 @@ function createChatTools(request: Request) {
     }),
     send_resource: tool({
       description:
-        "Use to send short practical relapse-prevention exercises and guidance such as HALT reset, urge surfing, trigger map, daily recovery structure, calming steps, family boundaries, treatment expectations, or lapse response.",
+        "Use to send short practical relapse-prevention exercises and family coaching guidance such as HALT reset, urge surfing, trigger map, daily recovery structure, calming steps, family boundaries, treatment expectations, intervention preparation, conversation rehearsal, or lapse response.",
       inputSchema: jsonSchema<SendResourceToolInput>(SEND_RESOURCE_TOOL_PARAMETERS),
       execute: async (input: SendResourceToolInput) => getSupportResourceResult(input),
     }),

@@ -283,8 +283,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
                 {surface === "voice"
                   ? isUrdu
-                    ? "cravings، relapse warning signs اور family follow-through کے لئے پرسکون مدد"
-                    : "Calm help for cravings, relapse warning signs, and family follow-through"
+                    ? "cravings، relapse warning signs اور family coaching کے لئے پرسکون مدد"
+                    : "Calm help for cravings, relapse warning signs, and family coaching"
                   : isUrdu
                     ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں"
                     : "Type here if speaking is not easy right now"}
@@ -292,8 +292,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="mt-1 text-sm leading-6 text-slate-600">
                 {surface === "voice"
                   ? isUrdu
-                    ? "مریض اور خاندان دونوں یہاں سے فوری رہنمائی، relapse prevention exercises، family counseling اور follow-up کی مدد لے سکتے ہیں۔"
-                    : "Patients and families can start here for immediate guidance, relapse-prevention exercises, family counseling, and follow-up."
+                    ? "مریض اور خاندان دونوں یہاں سے فوری رہنمائی، relapse prevention exercises، family coaching practice اور follow-up کی مدد لے سکتے ہیں۔"
+                    : "Patients and families can start here for immediate guidance, relapse-prevention exercises, family coaching practice, and follow-up."
                   : isUrdu
                     ? "اگر آپ خاموشی سے اپنی بات لکھنا چاہیں تو یہی دوسرا آسان راستہ ہے۔"
                     : "If you would rather type quietly, this is the simpler second route."}
