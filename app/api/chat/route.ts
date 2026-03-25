@@ -10,7 +10,6 @@ import {
   type UIMessage,
 } from "ai";
 
-import { POST as submitBookingRequest } from "@/app/api/booking/route";
 import {
   analyzeVoiceCareSignals,
   getMessageText,
@@ -83,15 +82,13 @@ function createChatTools(request: Request, bookingConfigured: boolean) {
               }
 
               const bookingRequest = buildBookingPayloadFromToolInput(input);
-              const response = await submitBookingRequest(
-                new Request(new URL("/api/booking", request.url), {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(bookingRequest),
-                }),
-              );
+              const response = await fetch(new URL("/api/booking", request.url), {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(bookingRequest),
+              });
 
               const data = (await response.json().catch(() => null)) as
                 | { error?: string; ok?: boolean }

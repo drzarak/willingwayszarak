@@ -257,11 +257,11 @@ function getStatusDescription(
   if (status === "connected") {
     return language === "urdu"
       ? focus === "family-coach" && moduleTitle
-        ? `اے آئی پہلے سلام کرے گی، نام کنفرم کرے گی، پھر "${moduleTitle}" کی مشق شروع کرے گی۔`
-        : "اے آئی اب پہلے سلام کرے گی، آپ کا نام کنفرم کرے گی اور پھر آپ کی بات سنے گی۔"
+        ? `اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مشق شروع کرے گی۔`
+        : "اے آئی پہلے سلام کرے گی اور پھر آپ کی بات سنے گی۔"
       : focus === "family-coach" && moduleTitle
-        ? `The AI will greet you first, confirm your name, and then begin "${moduleTitle}" coaching.`
-        : "The AI will greet you first, confirm your name, and then listen.";
+        ? `The AI will greet you first and then begin "${moduleTitle}" coaching.`
+        : "The AI will greet you first and then listen.";
   }
 
   if (status === "listening") {
@@ -288,11 +288,11 @@ function getStatusDescription(
 
   return language === "urdu"
     ? focus === "family-coach" && moduleTitle
-      ? `کال شروع کریں۔ اے آئی پہلے سلام کرے گی، آپ کا نام پوچھے گی، پھر "${moduleTitle}" کی مختصر practice شروع کرے گی۔`
-      : "کال شروع کریں۔ اے آئی پہلے آپ سے نام پوچھے گی، پھر cravings، warning signs یا family stress کے بارے میں مدد دے گی۔"
+      ? `کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مختصر practice شروع کرے گی۔`
+      : "کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر اگلے محفوظ قدم میں مدد دے گی۔"
     : focus === "family-coach" && moduleTitle
-      ? `Start the call. The AI will greet you, confirm your name, and then coach you through "${moduleTitle}".`
-      : "Start the call. The AI will greet you first, ask your name, and then help with cravings, warning signs, or family stress.";
+      ? `Start the call. The AI will greet you and then coach you through "${moduleTitle}".`
+      : "Start the call. The AI greets you first and helps with the next safe step.";
 }
 
 function normalizeTranscriptComparisonText(value: string) {
@@ -448,6 +448,8 @@ export function RealtimeVoicePanel({
   const [showNotes, setShowNotes] = useState(false);
   const [showFamilyTraining, setShowFamilyTraining] = useState(false);
   const [showVoiceOptions, setShowVoiceOptions] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [identityHint, setIdentityHint] = useState<"self" | "family" | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [callConnectedAt, setCallConnectedAt] = useState<number | null>(null);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
@@ -553,6 +555,8 @@ export function RealtimeVoicePanel({
     setShowFamilyTraining(Boolean(selectedFamilyLessonId));
     setShowNotes(false);
     setShowVoiceOptions(false);
+    setShowMoreOptions(false);
+    setIdentityHint(null);
     setIsMicMuted(false);
     setStatus("idle");
     bookingPrefillRef.current = null;
@@ -948,6 +952,8 @@ export function RealtimeVoicePanel({
     setIntakeReviewStatus("idle");
     setIntakeReviewMessage(null);
     setShowNotes(false);
+    setShowMoreOptions(false);
+    setIdentityHint(null);
     setErrorMessage(null);
   }
 
@@ -1869,13 +1875,19 @@ export function RealtimeVoicePanel({
         : null;
     const selectedCallLesson = getFamilyTrainingLesson(callLessonId);
     const baseResumeContext = buildVoiceResumeContext(localTranscript);
+    const callerIdentityContext =
+      identityHint === "self"
+        ? "Caller says they are the patient."
+        : identityHint === "family"
+          ? "Caller says they are a family member or loved one seeking help."
+          : "";
     const sessionResumeContext =
       callFocus === "family-coach" && selectedCallLesson
-        ? `Preselected family coaching module: ${selectedCallLesson.englishTitle}. ${selectedCallLesson.englishTagline}${baseResumeContext ? ` | ${baseResumeContext}` : ""}`.slice(
+        ? `Preselected family coaching module: ${selectedCallLesson.englishTitle}. ${selectedCallLesson.englishTagline}${callerIdentityContext ? ` | ${callerIdentityContext}` : ""}${baseResumeContext ? ` | ${baseResumeContext}` : ""}`.slice(
             0,
             900,
           )
-        : baseResumeContext;
+        : [callerIdentityContext, baseResumeContext].filter(Boolean).join(" | ").slice(0, 900);
 
     if (!enabled) {
       setErrorMessage(
@@ -2066,6 +2078,7 @@ export function RealtimeVoicePanel({
     () => analyzeVoiceCareSignals(userTranscriptTexts),
     [userTranscriptTexts],
   );
+  const hasConversationHistory = localTranscript.length > 0;
   const transcriptStoryLength = useMemo(
     () =>
       userTranscriptTexts
@@ -2079,28 +2092,41 @@ export function RealtimeVoicePanel({
   const callIsStarting = status === "requesting" || status === "connecting";
   const callIsLive =
     status === "connected" || status === "listening" || status === "responding";
+  const showContinuityCard = hasConversationHistory && !callIsStarting && !callIsLive;
+  const showMinimalIdleIntro =
+    !showContinuityCard && !callIsStarting && !callIsLive && !selectedFamilyLesson;
+  const showUtilityPanels =
+    showMoreOptions ||
+    showFamilyTraining ||
+    showVoiceOptions ||
+    Boolean(selectedFamilyLesson) ||
+    Boolean(intakeDraft) ||
+    Boolean(submissionNotice) ||
+    Boolean(toolActivity) ||
+    Boolean(errorMessage);
   const selectedCallActionLabel =
     selectedFocus === "general-support"
       ? language === "urdu"
-        ? "relapse prevention line کو کال کریں"
-        : "Call the relapse prevention line"
+        ? "relapse prevention support شروع کریں"
+        : "Start relapse-prevention support"
       : voiceCallActionLabel(selectedFocus, language);
-  const starterPrompts =
-    selectedFamilyLesson
+  const primaryCallActionLabel = selectedFamilyLesson
+    ? selectedCallActionLabel
+    : showContinuityCard
       ? language === "urdu"
-        ? selectedFamilyLesson.urduDoSay.slice(0, 3)
-        : selectedFamilyLesson.englishDoSay.slice(0, 3)
+        ? "جہاں بات ختم ہوئی تھی وہیں سے جاری رکھیں"
+        : "Continue where you left off"
+      : identityHint === "family"
+        ? language === "urdu"
+          ? "اپنے پیارے کے لئے پرسکون رہنمائی لیں"
+          : "Get calm guidance for your loved one"
+      : identityHint === "self"
+          ? language === "urdu"
+            ? "اپنے لئے پرسکون رہنمائی لیں"
+            : "Get calm guidance for yourself"
       : language === "urdu"
-        ? [
-            "مجھے craving ہو رہی ہے اور مجھے ابھی محفوظ اگلا قدم چاہیے۔",
-            "rehab کے بعد warning signs بڑھ رہی ہیں، گھر میں ہمیں کیا کرنا چاہیے؟",
-            "میں خاندان سے ہوں اور enabling کے بغیر مدد کرنا چاہتا ہوں۔",
-          ]
-        : [
-            "I am having cravings and need a safe next step right now.",
-            "Warning signs are showing up after rehab. What should we do at home?",
-            "I am a family member and want to help without enabling.",
-          ];
+        ? "نجی اے آئی وائس کال شروع کریں"
+        : "Start private AI voice call";
   const guidancePreview = lastAssistantGuidance?.text
     ? lastAssistantGuidance.text.length > 300
       ? `${lastAssistantGuidance.text.slice(0, 300).trimEnd()}...`
@@ -2114,66 +2140,97 @@ export function RealtimeVoicePanel({
 
     updateCallSelection("family-coach", lessonId);
     setShowFamilyTraining(true);
+    setShowMoreOptions(true);
     await startSession({ focus: "family-coach", lessonId });
   }
 
   return (
-    <section id="call" className="mx-auto max-w-3xl space-y-4">
+    <section id="call" className="mx-auto max-w-2xl space-y-4">
       <audio ref={audioRef} autoPlay />
 
-      <section className="relative overflow-hidden rounded-[38px] border border-white/80 bg-white/94 px-5 py-6 shadow-[0_20px_70px_rgba(47,24,32,0.07)] backdrop-blur sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.06),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(255,248,250,0.92),_transparent_28%)]" />
+      <section className="relative overflow-hidden rounded-[34px] border border-black/5 bg-white/96 px-4 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.045),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.96),_transparent_28%)]" />
 
         <div className="relative">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="section-kicker bg-white/85">
-              {selectedFamilyLesson
-                ? language === "urdu"
-                  ? "ولنگ ویز family coaching line"
-                  : "Willing Ways family coaching line"
-                : language === "urdu"
-                  ? "ولنگ ویز relapse prevention line"
-                  : "Willing Ways relapse prevention line"}
-            </div>
-
+          <div className="mx-auto max-w-xl text-center">
             <h1
-              className={`mt-5 text-[2.4rem] font-semibold leading-[1.05] text-slate-950 sm:text-[3.35rem] ${
+              className={`text-[2rem] font-semibold leading-[1.02] tracking-[-0.03em] text-slate-950 sm:text-[3.2rem] ${
                 language === "urdu" ? "font-urdu" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {selectedFamilyLesson
                 ? language === "urdu"
-                  ? "ایک پرسکون family coaching call، مختصر practice اور واضح script"
-                  : "A calm family coaching call, short practice, and a clear script"
+                  ? "فیملی کوچنگ کی ایک پرسکون کال"
+                  : "A calm family coaching call"
                 : language === "urdu"
-                  ? "ایک پرسکون کال، فوری رہنمائی اور اگلا محفوظ قدم"
-                  : "A calm call, immediate guidance, and the next safe step"}
+                  ? "ایک پرسکون، نجی اور مددگار کال"
+                  : "A calm, private support call"}
             </h1>
 
             <p
-              className={`mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600 ${
+              className={`mx-auto mt-3 max-w-xl text-base leading-8 text-slate-600 ${
                 language === "urdu" ? "font-urdu" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {selectedFamilyLesson
                 ? language === "urdu"
-                  ? "یہ selected family coaching module آپ کو پرسکون گفتگو، boundaries، roleplay اور گھر کے اگلے قدم کی practice کرائے گا۔"
-                  : "This selected family coaching module helps you practise calm conversations, boundaries, roleplay, and the next step at home."
+                  ? "اے آئی پہلے سلام کرے گی، پھر گھر میں بات کرنے کی practice، boundaries اور اگلا قدم واضح کرے گی۔"
+                  : "The AI greets you first and then helps you practise what to say, where to hold boundaries, and what to do next at home."
                 : language === "urdu"
-                  ? "یہ اے آئی مریض اور خاندان دونوں کے لئے cravings، relapse warning signs، post-rehab follow-through اور family boundaries میں رہنمائی دیتی ہے۔"
-                  : "This AI helps patients and families with cravings, relapse warning signs, post-rehab follow-through, and family boundaries."}
+                  ? "اے آئی پہلے سلام کرے گی اور پھر اگلے محفوظ قدم میں مدد دے گی۔"
+                  : "The AI greets you first and then helps with the next safe step."}
             </p>
           </div>
 
-          <div className="mx-auto mt-7 max-w-2xl rounded-[34px] border border-[#ead6dc] bg-[#fdf9fa] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:px-6 sm:py-6">
+          {showContinuityCard ? (
+            <div className="mx-auto mt-6 max-w-xl rounded-[24px] border border-black/5 bg-[#fcfbf8] px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+              <div
+                className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {language === "urdu"
+                    ? rememberedName
+                      ? `${rememberedName}، آہستگی سے دوبارہ شروع کریں`
+                      : "جہاں بات ختم ہوئی تھی وہیں سے شروع کریں"
+                    : rememberedName
+                      ? `Continue gently, ${rememberedName}`
+                      : "Continue gently"}
+                </div>
+                <div className="mt-2 text-[0.98rem] leading-7 text-slate-800">
+                  {guidancePreview ||
+                    (language === "urdu"
+                      ? "آپ کی پچھلی گفتگو اسی براؤزر میں محفوظ ہے تاکہ آپ وہیں سے دوبارہ بات جاری رکھ سکیں۔"
+                      : "Your last conversation is saved in this browser so you can continue from the same place.")}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={clearLocalVoiceMemory}
+                    className="site-inline-link"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    <span
+                      className={language === "urdu" ? "font-urdu" : ""}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu" ? "آج نئی شروعات کریں" : "Start fresh today"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mx-auto mt-6 max-w-xl rounded-[30px] border border-black/5 bg-[#fcfbf8] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:px-6 sm:py-6">
             <div className="flex items-center justify-between gap-3">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                <div className="text-[13px] font-medium text-slate-500">
                   {language === "urdu"
                     ? "ولنگ ویز اے آئی counselor"
                     : "Willing Ways AI Counselor"}
@@ -2181,16 +2238,16 @@ export function RealtimeVoicePanel({
                 <div className="mt-1 text-sm text-slate-600">
                   {selectedFamilyLesson
                     ? language === "urdu"
-                      ? "professionally guided family coaching support"
-                      : "Professionally guided family coaching support"
+                      ? "نجی فیملی کوچنگ سپورٹ"
+                      : "Private family coaching support"
                     : language === "urdu"
-                      ? "professionally guided relapse prevention support"
-                      : "Professionally guided relapse-prevention support"}
+                      ? "نجی clinical support"
+                      : "Private clinical support"}
                 </div>
               </div>
 
               {callIsLive ? (
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-white px-3 py-2 text-sm font-semibold text-[#651328] shadow-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                   <Clock3 className="h-4 w-4" />
                   {formatCallDuration(callDurationSeconds)}
                 </div>
@@ -2199,7 +2256,7 @@ export function RealtimeVoicePanel({
 
             <div className="mt-6 flex flex-col items-center text-center">
               <div
-                className={`voice-orb h-32 w-32 ${
+                className={`voice-orb h-28 w-28 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
@@ -2208,30 +2265,28 @@ export function RealtimeVoicePanel({
                   alt="Willing Ways"
                   width={110}
                   height={110}
-                  className="h-16 w-auto object-contain"
+                  className="h-14 w-auto object-contain"
                   unoptimized
                 />
               </div>
 
-              <div
-                className={`voice-wave ${
-                  callIsLive
-                    ? "voice-wave-live"
-                    : callIsStarting
-                      ? "voice-wave-ringing"
-                      : "voice-wave-idle"
-                }`}
-              >
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <span
-                    key={index}
-                    className="voice-wave-bar"
-                    style={{ animationDelay: `${index * 0.12}s` }}
-                  />
-                ))}
-              </div>
+              {callIsStarting || callIsLive ? (
+                <div
+                  className={`voice-wave ${
+                    callIsLive ? "voice-wave-live" : "voice-wave-ringing"
+                  }`}
+                >
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="voice-wave-bar"
+                      style={{ animationDelay: `${index * 0.12}s` }}
+                    />
+                  ))}
+                </div>
+              ) : null}
 
-              <div className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#8a4b5d]">
+              <div className="mt-4 text-[13px] font-medium text-slate-500">
                 {getStatusLabel(status, language)}
               </div>
               <div
@@ -2251,9 +2306,9 @@ export function RealtimeVoicePanel({
               </div>
             </div>
 
-            {rememberedName ? (
+            {showContinuityCard ? null : rememberedName ? (
               <div
-                className={`mt-5 inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-white px-4 py-2 text-sm font-semibold text-[#651328] shadow-sm ${
+                className={`mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2266,13 +2321,13 @@ export function RealtimeVoicePanel({
             ) : null}
 
             {selectedFamilyLesson ? (
-              <div className="mt-5 rounded-[24px] border border-[#ead6dc] bg-white px-4 py-4 text-left shadow-sm">
+              <div className="mt-5 rounded-[24px] border border-black/5 bg-white px-4 py-4 text-left shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div
                     className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                     dir={language === "urdu" ? "rtl" : "ltr"}
                   >
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                       {language === "urdu" ? "منتخب family coaching" : "Selected family coaching"}
                     </div>
                     <div className="mt-2 text-lg font-semibold text-slate-950">
@@ -2305,34 +2360,18 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              {[
-                selectedFamilyLesson
-                  ? language === "urdu"
-                    ? `${selectedFamilyLesson.durationMinutes} منٹ کی practice`
-                    : `${selectedFamilyLesson.durationMinutes}-minute practice`
-                  : language === "urdu"
-                    ? "اے آئی پہلے سلام اور نام سے آغاز کرے گی"
-                    : "The AI greets and starts with your name",
-                language === "urdu"
-                  ? "اردو، انگریزی، پاکستانی پنجابی"
-                  : "English, Urdu, Pakistani Punjabi",
-                selectedFamilyLesson
-                  ? language === "urdu"
-                    ? "roleplay، boundary script، homework"
-                    : "Roleplay, boundary script, homework"
-                  : language === "urdu"
-                    ? "cravings، family conflict، post-rehab support"
-                    : "Cravings, family conflict, post-rehab support",
-              ].map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-white/90 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
+            {showMinimalIdleIntro ? (
+              <div
+                className={`mt-5 text-center text-sm leading-7 text-slate-500 ${
+                  language === "urdu" ? "font-urdu" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {language === "urdu"
+                  ? "مائیک درکار ہے۔ کال چند لمحوں میں شروع ہو جاتی ہے، اور اگر چاہیں تو آپ کبھی بھی ٹیکسٹ پر جا سکتے ہیں۔"
+                  : "Mic required. The call starts in a few seconds, and you can switch to text anytime."}
+              </div>
+            ) : null}
 
             {status === "idle" || status === "error" ? (
               <Button
@@ -2342,10 +2381,10 @@ export function RealtimeVoicePanel({
                     lessonId: selectedFamilyLessonId,
                   });
                 }}
-                className="mt-6 h-12 w-full text-base shadow-sm"
+                className="mt-5 h-13 w-full rounded-full text-base shadow-[0_14px_30px_rgba(101,19,40,0.16)]"
               >
                 <PhoneCall className="h-4 w-4" />
-                {selectedCallActionLabel}
+                {primaryCallActionLabel}
               </Button>
             ) : (
               <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_1fr]">
@@ -2375,53 +2414,106 @@ export function RealtimeVoicePanel({
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowFamilyTraining((current) => !current)}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[#651328]"
-              >
-                <HeartHandshake className="h-4 w-4" />
-                <span
-                  className={language === "urdu" ? "font-urdu" : ""}
+            {!showUtilityPanels ? (
+              <div className="mt-5 space-y-3">
+                <div
+                  className={`text-center text-sm leading-7 text-slate-500 ${
+                    language === "urdu" ? "font-urdu" : ""
+                  }`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
                   {language === "urdu"
-                    ? "فیملی کوچنگ (۳ تا ۵ منٹ)"
-                    : "Family coaching (3 to 5 min)"}
-                </span>
-                {showFamilyTraining ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <Link href="/family-training" className="site-inline-link">
-                  <HeartHandshake className="h-4 w-4" />
-                  <span
-                    className={language === "urdu" ? "font-urdu" : ""}
-                    dir={language === "urdu" ? "rtl" : "ltr"}
-                  >
-                    {language === "urdu" ? "تمام modules دیکھیں" : "View all modules"}
-                  </span>
-                </Link>
+                    ? "کال نوٹس اسی براؤزر میں رکھے جاتے ہیں، اور ولنگ ویز ٹیم کے ساتھ کچھ بھی صرف آپ کی منظوری کے بعد شیئر ہوتا ہے۔ اگر فوری خطرہ ہو تو 1122 پر فوراً رابطہ کریں۔"
+                    : "Call notes stay in this browser, and anything shared with the Willing Ways team only goes after your approval. If there is immediate danger, call 1122 right away."}
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link href="/chat" className="site-inline-link">
                   <MessageSquare className="h-4 w-4" />
                   <span
                     className={language === "urdu" ? "font-urdu" : ""}
                     dir={language === "urdu" ? "rtl" : "ltr"}
                   >
-                    {language === "urdu" ? "اگر چاہیں تو لکھ کر بات کریں" : "Prefer typing? Open text chat"}
+                    {language === "urdu"
+                      ? "اگر چاہیں تو لکھ کر بات کریں"
+                      : "Prefer typing? Open text chat"}
                   </span>
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowMoreOptions(true)}
+                  className="site-inline-link"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  <span
+                    className={language === "urdu" ? "font-urdu" : ""}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {language === "urdu"
+                      ? "مزید options"
+                      : "More options"}
+                  </span>
+                </button>
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            {showFamilyTraining ? (
-              <div className="mt-4 rounded-[28px] border border-[#ead6dc] bg-white px-4 py-4 shadow-sm sm:px-5">
+            {showUtilityPanels ? (
+              <div className="mt-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowFamilyTraining((current) => !current)}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
+                  >
+                    <HeartHandshake className="h-4 w-4 text-[#651328]" />
+                    <span
+                      className={language === "urdu" ? "font-urdu" : ""}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu"
+                        ? "فیملی کوچنگ کی مشق"
+                        : "Practice with family coaching"}
+                    </span>
+                    {showFamilyTraining ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Link href="/family-training" className="site-inline-link">
+                      <HeartHandshake className="h-4 w-4" />
+                      <span
+                        className={language === "urdu" ? "font-urdu" : ""}
+                        dir={language === "urdu" ? "rtl" : "ltr"}
+                      >
+                        {language === "urdu" ? "تمام modules دیکھیں" : "View all modules"}
+                      </span>
+                    </Link>
+                    {!hasConversationHistory && !callIsLive ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowMoreOptions(false)}
+                        className="site-inline-link"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                        <span
+                          className={language === "urdu" ? "font-urdu" : ""}
+                          dir={language === "urdu" ? "rtl" : "ltr"}
+                        >
+                          {language === "urdu" ? "کم options دکھائیں" : "Show fewer options"}
+                        </span>
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {showUtilityPanels && showFamilyTraining ? (
+              <div className="mt-4 rounded-[28px] border border-black/5 bg-white px-4 py-4 shadow-sm sm:px-5">
                 <div
                   className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                     {language === "urdu" ? "فیملی کوچنگ" : "Family coaching"}
                   </div>
                   <div className="mt-2 text-base leading-7 text-slate-700">
@@ -2501,17 +2593,19 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
+            {showUtilityPanels ? (
+              <>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setShowVoiceOptions((current) => !current)}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[#651328]"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
               >
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-4 w-4 text-[#651328]" />
                 <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
                   {language === "urdu"
-                    ? `کال options (${selectedVoiceLabel})`
-                    : `Call options (${selectedVoiceLabel})`}
+                    ? `آواز اور کال settings (${selectedVoiceLabel})`
+                    : `Voice and call settings (${selectedVoiceLabel})`}
                 </span>
                 {showVoiceOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
@@ -2580,13 +2674,13 @@ export function RealtimeVoicePanel({
                 status={intakeReviewStatus}
               />
             ) : canPrepareHandoff ? (
-              <div className="mt-4 rounded-[24px] border border-[#ead6dc] bg-white px-4 py-4 shadow-sm sm:px-5">
+              <div className="mt-4 rounded-[24px] border border-black/5 bg-white px-4 py-4 shadow-sm sm:px-5">
                 <div
                   className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-                    {language === "urdu" ? "ٹیم handoff" : "Team handoff"}
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {language === "urdu" ? "ولنگ ویز ٹیم کے لئے summary" : "Summary for the Willing Ways team"}
                   </div>
                   <div className="mt-2 text-base leading-7 text-slate-800">
                     {language === "urdu"
@@ -2643,13 +2737,13 @@ export function RealtimeVoicePanel({
 
             {lastAssistantGuidance ? (
               <div
-                className={`mt-4 rounded-[22px] border border-[#ead6dc] bg-white px-4 py-4 ${
+                className={`mt-4 rounded-[22px] border border-black/5 bg-white px-4 py-4 ${
                   language === "urdu" ? "font-urdu text-right" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-                  {language === "urdu" ? "آج کا اگلا قدم" : "Today's next step"}
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {language === "urdu" ? "آج رات کا پرسکون اگلا قدم" : "Tonight's steady step"}
                 </div>
                 <div className="mt-2 text-base leading-7 text-slate-800">{guidancePreview}</div>
               </div>
@@ -2702,34 +2796,20 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
-            {errorMessage ? (
-              <div
-                className={`mt-4 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 ${
-                  language === "urdu" ? "font-urdu text-right" : ""
-                }`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <div className="mt-6 border-t border-[#ead6dc] pt-5">
+            {hasConversationHistory ? (
+            <div className="mt-6 border-t border-slate-200 pt-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div
                   className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-                    {language === "urdu" ? "کال نوٹس" : "Call notes"}
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {language === "urdu" ? "گفتگو کے نوٹس" : "Conversation notes"}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
-                    {localTranscript.length > 0
-                      ? language === "urdu"
-                        ? "آپ کی پچھلی گفتگو اسی براؤزر میں محفوظ رہتی ہے تاکہ آپ اگلی بار وہیں سے بات جاری رکھ سکیں۔"
-                        : "Your previous call notes stay in this browser so you can continue later."
-                      : language === "urdu"
-                        ? "اگر سمجھ نہ آئے کہ کہاں سے شروع کریں تو نیچے دیے گئے جملوں میں سے کسی ایک سے آغاز کریں۔"
-                        : "If you are not sure how to begin, start with one of the prompts below."}
+                    {language === "urdu"
+                      ? "آپ کی پچھلی گفتگو اسی براؤزر میں محفوظ رہتی ہے تاکہ آپ اگلی بار وہیں سے بات جاری رکھ سکیں۔"
+                      : "Your previous call notes stay in this browser so you can continue later."}
                   </div>
                 </div>
 
@@ -2751,52 +2831,36 @@ export function RealtimeVoicePanel({
                 </button>
               </div>
 
-              {localTranscript.length > 0 ? (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={clearLocalVoiceMemory}
-                    disabled={callIsStarting || callIsLive}
-                    className="site-inline-link disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                    <span
-                      className={language === "urdu" ? "font-urdu" : ""}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {language === "urdu"
-                        ? "محفوظ شدہ نام اور نوٹس صاف کریں"
-                        : "Clear saved name and notes"}
-                    </span>
-                  </button>
-                  <div
-                    className={`text-xs leading-6 text-slate-500 ${
-                      language === "urdu" ? "font-urdu text-right" : ""
-                    }`}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={clearLocalVoiceMemory}
+                  disabled={callIsStarting || callIsLive}
+                  className="site-inline-link disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  <span
+                    className={language === "urdu" ? "font-urdu" : ""}
                     dir={language === "urdu" ? "rtl" : "ltr"}
                   >
                     {language === "urdu"
-                      ? "یہ صرف اسی براؤزر سے مقامی نوٹس اور محفوظ شدہ نام ہٹاتا ہے۔"
-                      : "This removes only the locally saved notes and remembered name from this browser."}
-                  </div>
+                      ? "محفوظ شدہ نام اور نوٹس صاف کریں"
+                      : "Clear saved name and notes"}
+                  </span>
+                </button>
+                <div
+                  className={`text-xs leading-6 text-slate-500 ${
+                    language === "urdu" ? "font-urdu text-right" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {language === "urdu"
+                    ? "یہ صرف اسی براؤزر سے مقامی نوٹس اور محفوظ شدہ نام ہٹاتا ہے۔"
+                    : "This removes only the locally saved notes and remembered name from this browser."}
                 </div>
-              ) : null}
+              </div>
 
-              {localTranscript.length === 0 ? (
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {starterPrompts.map((prompt) => (
-                    <div
-                      key={prompt}
-                      className={`rounded-[22px] border border-white/90 bg-white px-4 py-4 text-sm leading-7 text-slate-600 shadow-sm ${
-                        language === "urdu" ? "font-urdu text-right" : ""
-                      }`}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {prompt}
-                    </div>
-                  ))}
-                </div>
-              ) : showNotes ? (
+              {showNotes ? (
                 <div className="mt-4 grid gap-3">
                   {localTranscript.slice(-8).map((entry) => (
                     <div
@@ -2829,6 +2893,20 @@ export function RealtimeVoicePanel({
                 </div>
               ) : null}
             </div>
+            ) : null}
+            </>
+            ) : null}
+
+            {errorMessage ? (
+              <div
+                className={`mt-4 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 ${
+                  language === "urdu" ? "font-urdu text-right" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {errorMessage}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

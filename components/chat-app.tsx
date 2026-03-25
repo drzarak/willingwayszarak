@@ -184,7 +184,31 @@ export function ChatApp({ surface }: ChatAppProps) {
   if (!hydrated || !activeSession) {
     return (
       <div className="min-h-screen bg-[#f5f4ef] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto h-[84vh] max-w-5xl rounded-[32px] border border-white/70 bg-white/85 shadow-[0_18px_60px_rgba(47,24,32,0.08)]" />
+        <div className="mx-auto flex min-h-[84vh] max-w-4xl items-center justify-center rounded-[32px] border border-white/70 bg-white/88 px-6 py-10 shadow-[0_18px_60px_rgba(47,24,32,0.08)]">
+          <div className="text-center">
+            <Image
+              src={SITE_MEDIA.logo}
+              alt="Willing Ways"
+              width={320}
+              height={80}
+              className="mx-auto h-11 w-auto object-contain sm:h-12"
+              unoptimized
+              priority
+            />
+            <div className={`mt-5 text-lg font-semibold text-slate-900 ${isUrdu ? "font-urdu" : ""}`}>
+              {isUrdu ? "ولنگ ویز اے آئی تیار ہو رہی ہے" : "Willing Ways AI is getting ready"}
+            </div>
+            <div
+              className={`mx-auto mt-2 max-w-md text-sm leading-7 text-slate-500 ${
+                isUrdu ? "font-urdu" : ""
+              }`}
+            >
+              {isUrdu
+                ? "چند لمحوں میں آپ پرسکون آواز یا ٹیکسٹ سپورٹ شروع کر سکیں گے۔"
+                : "In a few seconds, you can start calm voice or text support."}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -202,32 +226,46 @@ export function ChatApp({ surface }: ChatAppProps) {
           label: isUrdu ? "واپس اے آئی کال پر جائیں" : "Back to the AI call",
         };
   const AlternateActionIcon = alternateAction.icon;
+  const voiceSurface = surface === "voice";
 
   return (
-    <div className="min-h-screen bg-[#f5f4ef] text-slate-950">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.92),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(101,19,40,0.06),_transparent_28%)]" />
-      <Sidebar
-        activeChatId={activeChatId}
-        open={sidebarOpen}
-        sessions={sessions}
-        onDeleteChat={handleDeleteChat}
-        onNewChat={handleNewChat}
-        onOpenChange={setSidebarOpen}
-        onSelectChat={handleSelectChat}
-      />
+    <div className="min-h-[100dvh] bg-[#f6f5f1] text-slate-950">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.96),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(101,19,40,0.04),_transparent_24%)]" />
+      {surface === "chat" ? (
+        <Sidebar
+          activeChatId={activeChatId}
+          open={sidebarOpen}
+          sessions={sessions}
+          onDeleteChat={handleDeleteChat}
+          onNewChat={handleNewChat}
+          onOpenChange={setSidebarOpen}
+          onSelectChat={handleSelectChat}
+        />
+      ) : null}
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-3 py-3 sm:px-5 sm:py-5">
-        <header className="rounded-[30px] border border-white/80 bg-white/88 px-4 py-4 shadow-[0_18px_60px_rgba(47,24,32,0.08)] backdrop-blur sm:px-6">
+      <div
+        className={`relative mx-auto flex min-h-[100dvh] w-full flex-col px-3 py-3 sm:px-5 sm:py-5 ${
+          voiceSurface ? "max-w-4xl" : "max-w-5xl"
+        }`}
+      >
+        <header
+          className={`border bg-white/88 px-4 py-4 backdrop-blur sm:px-6 ${
+            voiceSurface
+              ? "rounded-[26px] border-black/5 shadow-[0_12px_36px_rgba(15,23,42,0.06)]"
+              : "rounded-[30px] border-white/80 shadow-[0_18px_60px_rgba(47,24,32,0.08)]"
+          }`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                className={surface === "voice" ? "lg:hidden" : ""}
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+              {surface === "chat" ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              ) : null}
 
               <Link href="/" className="flex min-w-0 items-center gap-3">
                 <Image
@@ -235,7 +273,9 @@ export function ChatApp({ surface }: ChatAppProps) {
                   alt="Willing Ways"
                   width={320}
                   height={80}
-                  className="h-10 w-auto max-w-[170px] object-contain sm:h-11 sm:max-w-[220px]"
+                  className={`w-auto object-contain ${
+                    voiceSurface ? "h-9 max-w-[150px] sm:h-10 sm:max-w-[190px]" : "h-10 max-w-[170px] sm:h-11 sm:max-w-[220px]"
+                  }`}
                   unoptimized
                   priority
                 />
@@ -253,7 +293,11 @@ export function ChatApp({ surface }: ChatAppProps) {
               ) : null}
               <a
                 href="tel:+923007413639"
-                className="inline-flex items-center gap-2 rounded-full border border-[#ead6dc] bg-[#fff8fa] px-4 py-2 text-sm font-semibold text-[#651328] transition hover:bg-[#fff1f4]"
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  voiceSurface
+                    ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    : "border-[#ead6dc] bg-[#fff8fa] text-[#651328] hover:bg-[#fff1f4]"
+                }`}
               >
                 <PhoneCall className="h-4 w-4" />
                 0300-7413639
@@ -262,65 +306,38 @@ export function ChatApp({ surface }: ChatAppProps) {
             </div>
           </div>
 
-          <div
-            className={`border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center ${
-              surface === "voice" ? "mt-3 hidden gap-3 sm:grid" : "mt-4 grid gap-3"
-            }`}
-          >
-            <div
-              className={`${isUrdu ? "font-urdu text-right" : ""}`}
-              dir={isUrdu ? "rtl" : "ltr"}
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
-                {surface === "voice"
-                  ? isUrdu
-                    ? "24/7 relapse prevention line"
-                    : "24/7 relapse prevention line"
-                  : isUrdu
-                    ? "ٹیکسٹ چیٹ"
-                    : "Text chat"}
-              </div>
-              <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
-                {surface === "voice"
-                  ? isUrdu
-                    ? "cravings، relapse warning signs اور family coaching کے لئے پرسکون مدد"
-                    : "Calm help for cravings, relapse warning signs, and family coaching"
-                  : isUrdu
-                    ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں"
-                    : "Type here if speaking is not easy right now"}
-              </div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">
-                {surface === "voice"
-                  ? isUrdu
-                    ? "مریض اور خاندان دونوں یہاں سے فوری رہنمائی، relapse prevention exercises، family coaching practice اور follow-up کی مدد لے سکتے ہیں۔"
-                    : "Patients and families can start here for immediate guidance, relapse-prevention exercises, family coaching practice, and follow-up."
-                  : isUrdu
+          {surface === "chat" ? (
+            <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div
+                className={`${isUrdu ? "font-urdu text-right" : ""}`}
+                dir={isUrdu ? "rtl" : "ltr"}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                  {isUrdu ? "ٹیکسٹ چیٹ" : "Text chat"}
+                </div>
+                <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
+                  {isUrdu ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں" : "Type here if speaking is not easy right now"}
+                </div>
+                <div className="mt-1 text-sm leading-6 text-slate-600">
+                  {isUrdu
                     ? "اگر آپ خاموشی سے اپنی بات لکھنا چاہیں تو یہی دوسرا آسان راستہ ہے۔"
                     : "If you would rather type quietly, this is the simpler second route."}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
-              {surface === "chat" ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
                 <Link href={alternateAction.href} className="site-action-link sm:hidden">
                   <AlternateActionIcon className="h-4 w-4" />
                   <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
                     {isUrdu ? "اے آئی کال" : "AI call"}
                   </span>
                 </Link>
-              ) : (
-                <div
-                  className={`text-sm text-slate-500 ${isUrdu ? "font-urdu text-right" : ""}`}
-                  dir={isUrdu ? "rtl" : "ltr"}
-                >
-                  {isUrdu ? "چاہیں تو نیچے سے ٹیکسٹ چیٹ کھول سکتے ہیں" : "If needed, text chat is available below"}
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          ) : null}
         </header>
 
-        <main className="mt-4 flex-1">
+        <main className={`flex-1 ${voiceSurface ? "mt-6" : "mt-4"}`}>
           {surface === "voice" ? (
             <RealtimeVoicePanel
               key={`${activeSession.id}:voice:${activeSession.language}`}
@@ -348,13 +365,13 @@ export function ChatApp({ surface }: ChatAppProps) {
           )}
         </main>
 
-        <footer className="px-1 py-5 text-center text-sm text-slate-500">
+        <footer className={`px-1 py-5 text-center ${voiceSurface ? "text-sm text-slate-500" : "text-sm text-slate-500"}`}>
           <div className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
             {isUrdu
               ? "اگر معاملہ فوری ہو تو 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"
               : "For emergencies, contact 1122 or 0300-7413639 immediately."}
           </div>
-          <div className="mt-2 text-xs font-medium text-slate-400">
+          <div className="mt-2 text-sm font-medium text-slate-400">
             {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
           </div>
         </footer>
