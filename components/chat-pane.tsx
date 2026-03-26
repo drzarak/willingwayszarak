@@ -293,8 +293,8 @@ export function ChatPane({
       >
         {isEmptyConversation ? (
           <div className="mx-auto flex min-h-[calc(100vh-18rem)] w-full max-w-4xl flex-col justify-center py-6">
-            <section className="relative overflow-hidden rounded-[38px] border border-white/80 bg-white/94 px-5 py-6 shadow-[0_18px_60px_rgba(47,24,32,0.07)] sm:px-8 sm:py-9">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.06),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(255,244,247,0.88),_transparent_34%)]" />
+            <section className="relative overflow-hidden rounded-[38px] border border-white/80 bg-white/94 px-5 py-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:px-8 sm:py-9">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(248,250,252,0.9),_transparent_34%)]" />
 
               <div className="relative">
                 <div className="mx-auto max-w-3xl text-center">
@@ -345,7 +345,7 @@ export function ChatPane({
                   ].map((item) => (
                     <span
                       key={item}
-                      className="rounded-full border border-[#ead6dc] bg-[#fff8fa] px-3 py-2 text-sm font-medium text-[#651328]"
+                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
                     >
                       {item}
                     </span>
@@ -354,7 +354,7 @@ export function ChatPane({
 
                 {rememberedName ? (
                   <div
-                    className={`mx-auto mt-6 max-w-3xl rounded-[22px] border border-[#ead6dc] bg-[#fff8fa] px-4 py-3 text-sm text-[#651328] ${
+                    className={`mx-auto mt-6 max-w-3xl rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ${
                       session.language === "urdu" ? "font-urdu text-center" : "text-center"
                     }`}
                     dir={session.language === "urdu" ? "rtl" : "ltr"}
@@ -367,7 +367,7 @@ export function ChatPane({
 
                 {session.voiceTranscript.length > 0 ? (
                   <div
-                    className={`mx-auto mt-4 max-w-3xl rounded-[22px] border border-slate-200 bg-[#fafaf8] px-4 py-3 text-sm text-slate-600 ${
+                    className={`mx-auto mt-4 max-w-3xl rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 ${
                       session.language === "urdu" ? "font-urdu text-center" : "text-center"
                     }`}
                     dir={session.language === "urdu" ? "rtl" : "ltr"}
@@ -384,9 +384,9 @@ export function ChatPane({
 
                 {isGenerating ? (
                   <div className="mx-auto mt-5 flex max-w-3xl justify-center">
-                    <div className="rounded-[22px] border border-slate-200 bg-[#fafaf8] px-5 py-4 text-sm text-slate-600 shadow-sm">
+                    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                        <LoaderCircle className="h-4 w-4 animate-spin text-slate-600" />
                         {session.language === "urdu"
                           ? "ہم آپ کے لئے اگلا مفید قدم تیار کر رہے ہیں..."
                           : "We are working out the next useful step..."}
@@ -400,7 +400,7 @@ export function ChatPane({
                     <button
                       key={chip}
                       type="button"
-                      className={`rounded-[24px] border border-slate-200 bg-[#fcfaf8] px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:border-[#d4b8c0] hover:bg-white hover:text-[#651328] ${
+                      className={`rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 ${
                         session.language === "urdu" ? "font-urdu text-right" : ""
                       }`}
                       dir={session.language === "urdu" ? "rtl" : "ltr"}

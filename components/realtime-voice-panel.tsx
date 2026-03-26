@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -47,7 +46,6 @@ import {
   type FamilyTrainingLesson,
   type FamilyTrainingLessonId,
 } from "@/lib/family-training";
-import { SITE_MEDIA } from "@/lib/site-assets";
 import {
   getContactResult,
   getCrisisRedirectResult,
@@ -2092,6 +2090,8 @@ export function RealtimeVoicePanel({
   const callIsStarting = status === "requesting" || status === "connecting";
   const callIsLive =
     status === "connected" || status === "listening" || status === "responding";
+  const CallOrbIcon =
+    status === "responding" ? Volume2 : status === "listening" || status === "connected" ? Mic : PhoneCall;
   const showContinuityCard = hasConversationHistory && !callIsStarting && !callIsLive;
   const showMinimalIdleIntro =
     !showContinuityCard && !callIsStarting && !callIsLive && !selectedFamilyLesson;
@@ -2149,7 +2149,7 @@ export function RealtimeVoicePanel({
       <audio ref={audioRef} autoPlay />
 
       <section className="relative overflow-hidden rounded-[34px] border border-black/5 bg-white/96 px-4 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(101,19,40,0.045),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.96),_transparent_28%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
         <div className="relative">
           <div className="mx-auto max-w-xl text-center">
@@ -2185,7 +2185,7 @@ export function RealtimeVoicePanel({
           </div>
 
           {showContinuityCard ? (
-            <div className="mx-auto mt-6 max-w-xl rounded-[24px] border border-black/5 bg-[#fcfbf8] px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+            <div className="mx-auto mt-6 max-w-xl rounded-[24px] border border-black/5 bg-[#fbfbfc] px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
               <div
                 className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2224,7 +2224,7 @@ export function RealtimeVoicePanel({
             </div>
           ) : null}
 
-          <div className="mx-auto mt-6 max-w-xl rounded-[30px] border border-black/5 bg-[#fcfbf8] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:px-6 sm:py-6">
+          <div className="mx-auto mt-6 max-w-xl rounded-[30px] border border-black/5 bg-[#fbfbfc] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:px-6 sm:py-6">
             <div className="flex items-center justify-between gap-3">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
@@ -2260,14 +2260,17 @@ export function RealtimeVoicePanel({
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
-                <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={110}
-                  height={110}
-                  className="h-14 w-auto object-contain"
-                  unoptimized
-                />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)]">
+                  <CallOrbIcon
+                    className={`h-7 w-7 ${
+                      status === "responding"
+                        ? "text-slate-900"
+                        : status === "listening" || status === "connected"
+                          ? "text-slate-700"
+                          : "text-slate-600"
+                    }`}
+                  />
+                </div>
               </div>
 
               {callIsStarting || callIsLive ? (
@@ -2381,7 +2384,7 @@ export function RealtimeVoicePanel({
                     lessonId: selectedFamilyLessonId,
                   });
                 }}
-                className="mt-5 h-13 w-full rounded-full text-base shadow-[0_14px_30px_rgba(101,19,40,0.16)]"
+                className="mt-5 h-13 w-full rounded-full text-base shadow-[0_12px_24px_rgba(15,23,42,0.1)]"
               >
                 <PhoneCall className="h-4 w-4" />
                 {primaryCallActionLabel}
@@ -2392,7 +2395,7 @@ export function RealtimeVoicePanel({
                   type="button"
                   variant="outline"
                   onClick={() => setMicMutedState(!isMicMuted)}
-                  className="h-12 border-[#d6c4ca] bg-white text-base shadow-sm"
+                  className="h-12 border-slate-200 bg-white text-base shadow-sm"
                 >
                   {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {language === "urdu"
@@ -2406,7 +2409,7 @@ export function RealtimeVoicePanel({
                 <Button
                   variant="outline"
                   onClick={stopSession}
-                  className="h-12 border-[#d6c4ca] bg-white text-base shadow-sm"
+                  className="h-12 border-slate-200 bg-white text-base shadow-sm"
                 >
                   <PhoneOff className="h-4 w-4" />
                   {language === "urdu" ? "کال ختم کریں" : "End the call"}
@@ -2448,9 +2451,7 @@ export function RealtimeVoicePanel({
                     className={language === "urdu" ? "font-urdu" : ""}
                     dir={language === "urdu" ? "rtl" : "ltr"}
                   >
-                    {language === "urdu"
-                      ? "مزید options"
-                      : "More options"}
+                    {language === "urdu" ? "مزید مدد" : "More support"}
                   </span>
                 </button>
                 </div>
@@ -2465,7 +2466,7 @@ export function RealtimeVoicePanel({
                     onClick={() => setShowFamilyTraining((current) => !current)}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
                   >
-                    <HeartHandshake className="h-4 w-4 text-[#651328]" />
+                    <HeartHandshake className="h-4 w-4 text-slate-700" />
                     <span
                       className={language === "urdu" ? "font-urdu" : ""}
                       dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2498,7 +2499,7 @@ export function RealtimeVoicePanel({
                           className={language === "urdu" ? "font-urdu" : ""}
                           dir={language === "urdu" ? "rtl" : "ltr"}
                         >
-                          {language === "urdu" ? "کم options دکھائیں" : "Show fewer options"}
+                          {language === "urdu" ? "کم دکھائیں" : "Show less"}
                         </span>
                       </button>
                     ) : null}
@@ -2532,18 +2533,18 @@ export function RealtimeVoicePanel({
                         key={lesson.id}
                         className={`rounded-[24px] border px-4 py-4 text-left transition ${
                           isSelected
-                            ? "border-[#c28d9f] bg-[#fff5f7]"
-                            : "border-slate-200 bg-[#fffdfd]"
+                            ? "border-slate-300 bg-slate-50"
+                            : "border-slate-200 bg-white"
                         }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                             {language === "urdu"
                               ? `${lesson.durationMinutes} منٹ practice`
                               : `${lesson.durationMinutes} min practice`}
                           </div>
                           {isSelected ? (
-                            <div className="rounded-full border border-[#ead6dc] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#651328]">
+                            <div className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
                               {language === "urdu" ? "منتخب" : "Selected"}
                             </div>
                           ) : null}
@@ -2601,11 +2602,11 @@ export function RealtimeVoicePanel({
                 onClick={() => setShowVoiceOptions((current) => !current)}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
               >
-                <Volume2 className="h-4 w-4 text-[#651328]" />
+                <Volume2 className="h-4 w-4 text-slate-700" />
                 <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
                   {language === "urdu"
-                    ? `آواز اور کال settings (${selectedVoiceLabel})`
-                    : `Voice and call settings (${selectedVoiceLabel})`}
+                    ? `آواز (${selectedVoiceLabel})`
+                    : `Voice (${selectedVoiceLabel})`}
                 </span>
                 {showVoiceOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
@@ -2619,7 +2620,7 @@ export function RealtimeVoicePanel({
                   }`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
-                  <Volume2 className="h-4 w-4 text-primary" />
+                  <Volume2 className="h-4 w-4 text-slate-700" />
                   {language === "urdu"
                     ? `آواز منتخب کریں (${selectedVoiceLabel})`
                     : `Choose a voice (${selectedVoiceLabel})`}
@@ -2699,7 +2700,7 @@ export function RealtimeVoicePanel({
                     className={`mt-4 rounded-[20px] border px-4 py-3 text-sm ${
                       intakeReviewStatus === "error"
                         ? "border-rose-200 bg-rose-50 text-rose-900"
-                        : "border-[#ead6dc] bg-[#fff8fa] text-[#5a3743]"
+                        : "border-slate-200 bg-slate-50 text-slate-700"
                     } ${language === "urdu" ? "font-urdu text-right" : ""}`}
                     dir={language === "urdu" ? "rtl" : "ltr"}
                   >

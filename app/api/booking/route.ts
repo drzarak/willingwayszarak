@@ -590,7 +590,7 @@ function createRequestLogBlock(
         paragraph: {
           rich_text: [
             makeTextContent(
-              `Submitted from drzarak.org on ${timestampLabel}. Source: ${sourceLabel}.`,
+              `Submitted from willingways.uk on ${timestampLabel}. Source: ${sourceLabel}.`,
             ),
           ],
         },

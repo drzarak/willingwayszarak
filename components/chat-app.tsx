@@ -183,8 +183,8 @@ export function ChatApp({ surface }: ChatAppProps) {
 
   if (!hydrated || !activeSession) {
     return (
-      <div className="min-h-screen bg-[#f5f4ef] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex min-h-[84vh] max-w-4xl items-center justify-center rounded-[32px] border border-white/70 bg-white/88 px-6 py-10 shadow-[0_18px_60px_rgba(47,24,32,0.08)]">
+      <div className="min-h-screen bg-[#f7f7f8] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[84vh] max-w-4xl items-center justify-center rounded-[32px] border border-black/5 bg-white/92 px-6 py-10 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
           <div className="text-center">
             <Image
               src={SITE_MEDIA.logo}
@@ -229,8 +229,8 @@ export function ChatApp({ surface }: ChatAppProps) {
   const voiceSurface = surface === "voice";
 
   return (
-    <div className="min-h-[100dvh] bg-[#f6f5f1] text-slate-950">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.96),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(101,19,40,0.04),_transparent_24%)]" />
+    <div className="min-h-[100dvh] bg-[#f7f7f8] text-slate-950">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.03),_transparent_24%)]" />
       {surface === "chat" ? (
         <Sidebar
           activeChatId={activeChatId}
@@ -251,7 +251,7 @@ export function ChatApp({ surface }: ChatAppProps) {
         <header
           className={`border bg-white/88 px-4 py-4 backdrop-blur sm:px-6 ${
             voiceSurface
-              ? "rounded-[26px] border-black/5 shadow-[0_12px_36px_rgba(15,23,42,0.06)]"
+              ? "rounded-[24px] border-black/5 bg-white/92 shadow-[0_10px_28px_rgba(15,23,42,0.05)]"
               : "rounded-[30px] border-white/80 shadow-[0_18px_60px_rgba(47,24,32,0.08)]"
           }`}
         >
@@ -274,7 +274,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                   width={320}
                   height={80}
                   className={`w-auto object-contain ${
-                    voiceSurface ? "h-9 max-w-[150px] sm:h-10 sm:max-w-[190px]" : "h-10 max-w-[170px] sm:h-11 sm:max-w-[220px]"
+                    voiceSurface ? "h-8 max-w-[140px] sm:h-9 sm:max-w-[180px]" : "h-10 max-w-[170px] sm:h-11 sm:max-w-[220px]"
                   }`}
                   unoptimized
                   priority
@@ -296,7 +296,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                 className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   voiceSurface
                     ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    : "border-[#ead6dc] bg-[#fff8fa] text-[#651328] hover:bg-[#fff1f4]"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 <PhoneCall className="h-4 w-4" />
@@ -312,7 +312,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                 className={`${isUrdu ? "font-urdu text-right" : ""}`}
                 dir={isUrdu ? "rtl" : "ltr"}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a4b5d]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {isUrdu ? "ٹیکسٹ چیٹ" : "Text chat"}
                 </div>
                 <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
@@ -352,7 +352,7 @@ export function ChatApp({ surface }: ChatAppProps) {
               onTranscriptChange={handleVoiceTranscriptChange}
             />
           ) : (
-            <div className="surface-panel chat-shell overflow-hidden border-white/80 bg-white/90 shadow-[0_18px_60px_rgba(47,24,32,0.08)]">
+            <div className="surface-panel chat-shell overflow-hidden border-white/80 bg-white/90 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
               <ChatPane
                 key={`${activeSession.id}:chat:${activeSession.language}`}
                 modelId={DEFAULT_CHAT_MODEL_ID}

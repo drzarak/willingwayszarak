@@ -25,8 +25,8 @@ const config: Config = {
       },
       boxShadow: {
         soft: "0 24px 60px rgba(15, 23, 42, 0.08)",
-        card: "0 20px 45px rgba(13, 110, 253, 0.08)",
-        glow: "0 0 0 1px rgba(255,255,255,0.55), 0 20px 50px rgba(20, 184, 166, 0.12)",
+        card: "0 18px 40px rgba(15, 23, 42, 0.1)",
+        glow: "0 0 0 1px rgba(255,255,255,0.6), 0 20px 50px rgba(15, 23, 42, 0.12)",
       },
       keyframes: {
         "fade-up": {

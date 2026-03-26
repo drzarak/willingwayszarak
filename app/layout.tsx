@@ -24,7 +24,7 @@ const notoNaskhArabic = Noto_Naskh_Arabic({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://drzarak.org"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://willingways.uk"),
   title: {
     default: "Willing Ways Pakistan",
     template: "%s | Willing Ways Pakistan",
