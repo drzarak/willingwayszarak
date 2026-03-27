@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, MessageSquare, PhoneCall } from "lucide-react";
+import { ExternalLink, Menu, MessageSquare, PhoneCall } from "lucide-react";
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -17,6 +17,14 @@ import {
   type RuntimeStatus,
   type VoiceTranscriptEntry,
 } from "@/lib/chat";
+import {
+  DR_ZARAK_LINKEDIN_URL,
+  DR_ZARAK_NAME,
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+  WILLING_WAYS_HELPLINE_DISPLAY,
+  WILLING_WAYS_HELPLINE_HREF,
+} from "@/lib/site-contact";
 import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { ChatPane } from "@/components/chat-pane";
@@ -229,7 +237,7 @@ export function ChatApp({ surface }: ChatAppProps) {
   const voiceSurface = surface === "voice";
 
   return (
-    <div className="min-h-[100dvh] bg-[#f7f7f8] text-slate-950">
+    <div className={`bg-[#f7f7f8] text-slate-950 ${voiceSurface ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"}`}>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.03),_transparent_24%)]" />
       {surface === "chat" ? (
         <Sidebar
@@ -244,20 +252,62 @@ export function ChatApp({ surface }: ChatAppProps) {
       ) : null}
 
       <div
-        className={`relative mx-auto flex min-h-[100dvh] w-full flex-col px-3 py-3 sm:px-5 sm:py-5 ${
-          voiceSurface ? "max-w-4xl" : "max-w-5xl"
+        className={`relative mx-auto flex w-full flex-col ${
+          voiceSurface
+            ? "h-[100dvh] max-w-[1080px] overflow-hidden px-2.5 py-2.5 sm:px-4 sm:py-4"
+            : "min-h-[100dvh] max-w-5xl px-3 py-3 sm:px-5 sm:py-5"
         }`}
       >
         <header
           className={`border bg-white/88 px-4 py-4 backdrop-blur sm:px-6 ${
             voiceSurface
-              ? "rounded-[24px] border-black/5 bg-white/92 shadow-[0_10px_28px_rgba(15,23,42,0.05)]"
+              ? "rounded-[24px] border-black/5 bg-white/92 px-3 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:px-4 sm:py-3"
               : "rounded-[30px] border-white/80 shadow-[0_18px_60px_rgba(47,24,32,0.08)]"
           }`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              {surface === "chat" ? (
+          {voiceSurface ? (
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <Link href="/" className="flex min-w-0 items-center gap-3">
+                  <Image
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={320}
+                    height={80}
+                    className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
+                    unoptimized
+                    priority
+                  />
+                </Link>
+
+                <a
+                  href={WILLING_WAYS_HELPLINE_HREF}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {WILLING_WAYS_HELPLINE_DISPLAY}
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2 sm:justify-end">
+                <a
+                  href={WILLING_WAYS_HELPLINE_HREF}
+                  className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {WILLING_WAYS_HELPLINE_DISPLAY}
+                </a>
+                <LanguageToggle
+                  language={activeSession.language}
+                  onChange={handleLanguageChange}
+                  compact
+                  className="w-full sm:w-[168px]"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <Button
                   variant="outline"
                   size="icon"
@@ -265,46 +315,38 @@ export function ChatApp({ surface }: ChatAppProps) {
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-              ) : null}
 
-              <Link href="/" className="flex min-w-0 items-center gap-3">
-                <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={320}
-                  height={80}
-                  className={`w-auto object-contain ${
-                    voiceSurface ? "h-8 max-w-[140px] sm:h-9 sm:max-w-[180px]" : "h-10 max-w-[170px] sm:h-11 sm:max-w-[220px]"
-                  }`}
-                  unoptimized
-                  priority
-                />
-              </Link>
-            </div>
+                <Link href="/" className="flex min-w-0 items-center gap-3">
+                  <Image
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={320}
+                    height={80}
+                    className="h-10 w-auto max-w-[170px] object-contain sm:h-11 sm:max-w-[220px]"
+                    unoptimized
+                    priority
+                  />
+                </Link>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {surface === "chat" ? (
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Link href={alternateAction.href} className="site-action-link hidden sm:inline-flex">
                   <AlternateActionIcon className="h-4 w-4" />
                   <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
                     {alternateAction.label}
                   </span>
                 </Link>
-              ) : null}
-              <a
-                href="tel:+923007413639"
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                  voiceSurface
-                    ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <PhoneCall className="h-4 w-4" />
-                0300-7413639
-              </a>
-              <LanguageToggle language={activeSession.language} onChange={handleLanguageChange} />
+                <a
+                  href={WILLING_WAYS_HELPLINE_HREF}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {WILLING_WAYS_HELPLINE_DISPLAY}
+                </a>
+                <LanguageToggle language={activeSession.language} onChange={handleLanguageChange} />
+              </div>
             </div>
-          </div>
+          )}
 
           {surface === "chat" ? (
             <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -337,7 +379,7 @@ export function ChatApp({ surface }: ChatAppProps) {
           ) : null}
         </header>
 
-        <main className={`flex-1 ${voiceSurface ? "mt-6" : "mt-4"}`}>
+        <main className={`min-h-0 flex-1 ${voiceSurface ? "mt-3 overflow-hidden" : "mt-4"}`}>
           {surface === "voice" ? (
             <RealtimeVoicePanel
               key={`${activeSession.id}:voice:${activeSession.language}`}
@@ -365,16 +407,30 @@ export function ChatApp({ surface }: ChatAppProps) {
           )}
         </main>
 
-        <footer className={`px-1 py-5 text-center ${voiceSurface ? "text-sm text-slate-500" : "text-sm text-slate-500"}`}>
-          <div className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-            {isUrdu
-              ? "اگر معاملہ فوری ہو تو 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"
-              : "For emergencies, contact 1122 or 0300-7413639 immediately."}
-          </div>
-          <div className="mt-2 text-sm font-medium text-slate-400">
-            {isUrdu ? "محبت سے تعمیر: ڈاکٹر زارک خان" : "Built with love by Dr Zarak Khan"}
-          </div>
-        </footer>
+        {voiceSurface ? null : (
+          <footer className="px-1 py-5 text-center text-sm text-slate-500">
+            <div className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+              {isUrdu
+                ? "اگر معاملہ فوری ہو تو 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"
+                : "For emergencies, contact 1122 or 0300-7413639 immediately."}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+              <a href={DR_ZARAK_PHONE_HREF} className="site-inline-link">
+                <PhoneCall className="h-4 w-4" />
+                {DR_ZARAK_NAME} · {DR_ZARAK_PHONE_DISPLAY}
+              </a>
+              <a
+                href={DR_ZARAK_LINKEDIN_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="site-inline-link"
+              >
+                <ExternalLink className="h-4 w-4" />
+                LinkedIn
+              </a>
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   );

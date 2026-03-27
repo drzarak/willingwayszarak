@@ -5,6 +5,11 @@ import Link from "next/link";
 import { History, MessageSquarePlus, Phone, Trash2, X } from "lucide-react";
 
 import { formatSessionTimestamp, type ChatSession } from "@/lib/chat";
+import {
+  DR_ZARAK_LINKEDIN_URL,
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+} from "@/lib/site-contact";
 import { SITE_MEDIA } from "@/lib/site-assets";
 import { cn } from "@/lib/utils";
 
@@ -154,27 +159,40 @@ export function Sidebar({
             </div>
           </ScrollArea>
 
-            <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-              <div
-                className={`${isUrdu ? "font-urdu text-right" : ""}`}
-                dir={isUrdu ? "rtl" : "ltr"}
-              >
+          <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+            <div
+              className={`${isUrdu ? "font-urdu text-right" : ""}`}
+              dir={isUrdu ? "rtl" : "ltr"}
+            >
               {isUrdu
                 ? "محبت سے تعمیر: ڈاکٹر زارک خان"
                 : "Built with love by Dr Zarak Khan"}
             </div>
-              <div className="mt-3 flex items-center gap-3 text-sm">
-                <Link href="/about" className="site-inline-link">
-                  {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
-                </Link>
-                <Link href="/family-training" className="site-inline-link">
-                  {isUrdu ? "فیملی کوچنگ" : "Family coaching"}
-                </Link>
-                <Link href="/book-session" className="site-inline-link">
-                  {isUrdu ? "بکنگ فارم" : "Booking form"}
-                </Link>
-              </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+              <Link href="/about" className="site-inline-link">
+                {isUrdu ? "ولنگ ویز کے بارے میں" : "About Willing Ways"}
+              </Link>
+              <Link href="/family-training" className="site-inline-link">
+                {isUrdu ? "فیملی کوچنگ" : "Family coaching"}
+              </Link>
+              <Link href="/book-session" className="site-inline-link">
+                {isUrdu ? "بکنگ فارم" : "Booking form"}
+              </Link>
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+              <a href={DR_ZARAK_PHONE_HREF} className="site-inline-link">
+                {DR_ZARAK_PHONE_DISPLAY}
+              </a>
+              <a
+                href={DR_ZARAK_LINKEDIN_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="site-inline-link"
+              >
+                LinkedIn
+              </a>
+            </div>
+          </div>
         </div>
       </aside>
     </>

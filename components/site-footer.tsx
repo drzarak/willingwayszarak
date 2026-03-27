@@ -5,6 +5,11 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 import { BRANCH_CONTACTS } from "@/lib/chat";
+import {
+  DR_ZARAK_LINKEDIN_URL,
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+} from "@/lib/site-contact";
 import { SITE_MEDIA } from "@/lib/site-assets";
 
 import { useSiteLanguage } from "@/components/site-language-provider";
@@ -83,6 +88,18 @@ export function SiteFooter() {
             <a href="mailto:info@willingways.org" className="footer-pill">
               <Mail className="h-4 w-4" />
               info@willingways.org
+            </a>
+            <a href={DR_ZARAK_PHONE_HREF} className="footer-pill">
+              <Phone className="h-4 w-4" />
+              {DR_ZARAK_PHONE_DISPLAY}
+            </a>
+            <a
+              href={DR_ZARAK_LINKEDIN_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="footer-pill"
+            >
+              LinkedIn
             </a>
           </div>
         </div>
