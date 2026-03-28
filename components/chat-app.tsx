@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Menu, MessageSquare, PhoneCall } from "lucide-react";
@@ -26,13 +27,22 @@ import {
   WILLING_WAYS_HELPLINE_HREF,
 } from "@/lib/site-contact";
 import { SITE_MEDIA } from "@/lib/site-assets";
+import { safeStorageGet, safeStorageRemove, safeStorageSet } from "@/lib/utils";
 
-import { ChatPane } from "@/components/chat-pane";
 import { LanguageToggle } from "@/components/language-toggle";
-import { RealtimeVoicePanel } from "@/components/realtime-voice-panel";
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
+
+const ChatPane = dynamic(
+  () => import("@/components/chat-pane").then((mod) => mod.ChatPane),
+  { ssr: false },
+);
+
+const RealtimeVoicePanel = dynamic(
+  () => import("@/components/realtime-voice-panel").then((mod) => mod.RealtimeVoicePanel),
+  { ssr: false },
+);
 
 interface ChatAppProps {
   surface: "voice" | "chat";
@@ -54,22 +64,31 @@ export function ChatApp({ surface }: ChatAppProps) {
       return;
     }
 
-    const storedSessions = window.localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
-    const storedActiveChatId = window.localStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
-    const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
-    const nextSessions =
-      parsedSessions.length > 0
-        ? normalizeChatSessions(parsedSessions)
-        : [createChatSession("adaptive", siteLanguage)];
-    const nextActiveChatId =
-      storedActiveChatId && nextSessions.some((session) => session.id === storedActiveChatId)
-        ? storedActiveChatId
-        : nextSessions[0].id;
+    try {
+      const storedSessions = safeStorageGet(CHAT_SESSIONS_STORAGE_KEY);
+      const storedActiveChatId = safeStorageGet(ACTIVE_CHAT_STORAGE_KEY);
+      const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
+      const nextSessions =
+        parsedSessions.length > 0
+          ? normalizeChatSessions(parsedSessions)
+          : [createChatSession("adaptive", siteLanguage)];
+      const nextActiveChatId =
+        storedActiveChatId && nextSessions.some((session) => session.id === storedActiveChatId)
+          ? storedActiveChatId
+          : nextSessions[0].id;
 
-    window.localStorage.removeItem(APP_SETTINGS_STORAGE_KEY);
-    setSessions(nextSessions);
-    setActiveChatId(nextActiveChatId);
-    setHydrated(true);
+      setSessions(nextSessions);
+      setActiveChatId(nextActiveChatId);
+    } catch {
+      const fallbackSession = createChatSession("adaptive", siteLanguage);
+      safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+      safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
+      setSessions([fallbackSession]);
+      setActiveChatId(fallbackSession.id);
+    } finally {
+      safeStorageRemove(APP_SETTINGS_STORAGE_KEY);
+      setHydrated(true);
+    }
   }, [hydrated, siteLanguage, siteLanguageHydrated]);
 
   useEffect(() => {
@@ -92,8 +111,8 @@ export function ChatApp({ surface }: ChatAppProps) {
       return;
     }
 
-    window.localStorage.setItem(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
-    window.localStorage.setItem(ACTIVE_CHAT_STORAGE_KEY, activeChatId);
+    safeStorageSet(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    safeStorageSet(ACTIVE_CHAT_STORAGE_KEY, activeChatId);
   }, [activeChatId, hydrated, sessions]);
 
   const activeSession = useMemo(
@@ -282,7 +301,7 @@ export function ChatApp({ surface }: ChatAppProps) {
 
                 <a
                   href={WILLING_WAYS_HELPLINE_HREF}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden"
                 >
                   <PhoneCall className="h-4 w-4" />
                   {WILLING_WAYS_HELPLINE_DISPLAY}
@@ -292,7 +311,7 @@ export function ChatApp({ surface }: ChatAppProps) {
               <div className="flex items-center gap-2 sm:justify-end">
                 <a
                   href={WILLING_WAYS_HELPLINE_HREF}
-                  className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+                  className="hidden h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
                 >
                   <PhoneCall className="h-4 w-4" />
                   {WILLING_WAYS_HELPLINE_DISPLAY}
@@ -312,6 +331,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                   variant="outline"
                   size="icon"
                   onClick={() => setSidebarOpen(true)}
+                  aria-label={isUrdu ? "پچھلی گفتگو کھولیں" : "Open conversation history"}
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -338,7 +358,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                 </Link>
                 <a
                   href={WILLING_WAYS_HELPLINE_HREF}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   <PhoneCall className="h-4 w-4" />
                   {WILLING_WAYS_HELPLINE_DISPLAY}
@@ -354,7 +374,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                 className={`${isUrdu ? "font-urdu text-right" : ""}`}
                 dir={isUrdu ? "rtl" : "ltr"}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
                   {isUrdu ? "ٹیکسٹ چیٹ" : "Text chat"}
                 </div>
                 <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
@@ -408,7 +428,7 @@ export function ChatApp({ surface }: ChatAppProps) {
         </main>
 
         {voiceSurface ? null : (
-          <footer className="px-1 py-5 text-center text-sm text-slate-500">
+          <footer className="px-1 py-5 text-center text-sm text-slate-600">
             <div className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
               {isUrdu
                 ? "اگر معاملہ فوری ہو تو 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"

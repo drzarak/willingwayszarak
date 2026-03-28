@@ -1,5 +1,7 @@
 import type { UIMessage } from "ai";
 
+import { createSafeId } from "@/lib/utils";
+
 export type ChatMode = "adaptive" | "patient" | "doctor";
 export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
@@ -263,7 +265,7 @@ export function createChatSession(
   const now = new Date().toISOString();
 
   return {
-    id: crypto.randomUUID(),
+    id: createSafeId("session"),
     title: "New conversation",
     createdAt: now,
     updatedAt: now,
@@ -290,7 +292,7 @@ export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[]
             id:
               typeof entry?.id === "string" && entry.id
                 ? entry.id
-                : crypto.randomUUID(),
+                : createSafeId("voice"),
             role: (entry?.role === "assistant" ? "assistant" : "user") as
               | "assistant"
               | "user",

@@ -38,15 +38,18 @@ export function Sidebar({
 }: SidebarProps) {
   const { isUrdu } = useSiteLanguage();
 
+  if (!open) {
+    return null;
+  }
+
   return (
     <>
-      {open ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px]"
-          onClick={() => onOpenChange(false)}
-        />
-      ) : null}
+      <button
+        type="button"
+        aria-label={isUrdu ? "سائیڈ بار بند کریں" : "Close sidebar"}
+        className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[2px]"
+        onClick={() => onOpenChange(false)}
+      />
 
       <aside
         className={cn(
@@ -79,7 +82,12 @@ export function Sidebar({
               </p>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={isUrdu ? "سائیڈ بار بند کریں" : "Close sidebar"}
+              onClick={() => onOpenChange(false)}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -149,6 +157,7 @@ export function Sidebar({
                       size="icon"
                       className="h-8 w-8 shrink-0 text-slate-500 hover:bg-[#fff1f4] hover:text-[#651328]"
                       onClick={() => onDeleteChat(session.id)}
+                      aria-label={isUrdu ? "گفتگو حذف کریں" : "Delete conversation"}
                     >
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Delete chat</span>

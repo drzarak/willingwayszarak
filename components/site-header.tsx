@@ -28,7 +28,7 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#e6d8db] bg-white/96 shadow-sm backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[#e6d8db] bg-white/96 shadow-sm backdrop-blur-xl lg:static">
       <div className="hidden border-b border-[#531120] bg-[#651328] text-white md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/90">
@@ -92,12 +92,6 @@ export function SiteHeader() {
             <PhoneCall className="h-4 w-4" />
             0300 7413639
           </a>
-          <Link href="/book-session" className="site-action-link">
-            <CalendarDays className="h-4 w-4" />
-            <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-              {isUrdu ? "سیشن بک کریں" : "Book a session"}
-            </span>
-          </Link>
           <Link href="/" className="site-cta-button">
             <MessageSquareHeart className="h-4 w-4" />
             <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
@@ -110,7 +104,7 @@ export function SiteHeader() {
           type="button"
           className="inline-flex rounded-2xl border border-[#ead6dc] bg-white p-3 text-[#58323f] shadow-soft xl:hidden"
           onClick={() => setOpen((current) => !current)}
-          aria-label="Toggle navigation"
+          aria-label={isUrdu ? "نیویگیشن کھولیں یا بند کریں" : "Open or close navigation"}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>

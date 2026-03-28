@@ -383,7 +383,7 @@ export function BookingRequestForm() {
               type="checkbox"
               checked={form.consent}
               onChange={(event) => updateField("consent", event.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/30"
+              className="mt-1 h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary/30"
             />
             <span>
               {isUrdu

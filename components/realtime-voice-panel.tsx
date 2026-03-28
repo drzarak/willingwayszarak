@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
   Clock3,
-  ExternalLink,
   HeartHandshake,
   MessageSquare,
   Mic,
@@ -61,11 +60,7 @@ import {
   type RememberPreferredNameToolInput,
   type SendResourceToolInput,
 } from "@/lib/support-tools";
-import {
-  DR_ZARAK_LINKEDIN_URL,
-  DR_ZARAK_PHONE_DISPLAY,
-  DR_ZARAK_PHONE_HREF,
-} from "@/lib/site-contact";
+import { createSafeId, safeStorageGet, safeStorageSet } from "@/lib/utils";
 
 import { VoiceIntakeReview } from "@/components/voice-intake-review";
 import { Button } from "@/components/ui/button";
@@ -494,8 +489,8 @@ export function RealtimeVoicePanel({
   const micNoiseFloorRef = useRef(0.004);
 
   useEffect(() => {
-    const storedVoice = window.localStorage.getItem(REALTIME_VOICE_STORAGE_KEY);
-    const storedVersion = window.localStorage.getItem(REALTIME_VOICE_VERSION_STORAGE_KEY);
+    const storedVoice = safeStorageGet(REALTIME_VOICE_STORAGE_KEY);
+    const storedVersion = safeStorageGet(REALTIME_VOICE_VERSION_STORAGE_KEY);
     const shouldRefreshVoicePreference =
       !storedVoice || storedVoice === "marin" || storedVoice === "marine";
     const nextVoice =
@@ -504,16 +499,16 @@ export function RealtimeVoicePanel({
         : normalizeRealtimeVoiceId(storedVoice);
 
     setVoiceId(nextVoice);
-    window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, nextVoice);
-    window.localStorage.setItem(
+    safeStorageSet(REALTIME_VOICE_STORAGE_KEY, nextVoice);
+    safeStorageSet(
       REALTIME_VOICE_VERSION_STORAGE_KEY,
       CURRENT_REALTIME_VOICE_VERSION,
     );
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(REALTIME_VOICE_STORAGE_KEY, voiceId);
-    window.localStorage.setItem(
+    safeStorageSet(REALTIME_VOICE_STORAGE_KEY, voiceId);
+    safeStorageSet(
       REALTIME_VOICE_VERSION_STORAGE_KEY,
       CURRENT_REALTIME_VOICE_VERSION,
     );
@@ -1467,7 +1462,7 @@ export function RealtimeVoicePanel({
       return;
     }
 
-    const nextId = itemId ?? assistantEntryIdRef.current ?? crypto.randomUUID();
+    const nextId = itemId ?? assistantEntryIdRef.current ?? createSafeId("voice-assistant");
     const signature = `${nextId}:${delta}`;
     const lastSignature = recentAssistantDeltaSignatureRef.current;
 
@@ -1710,7 +1705,7 @@ export function RealtimeVoicePanel({
 
     if (type === "conversation.item.input_audio_transcription.completed") {
       const itemId =
-        typeof payload.item_id === "string" ? payload.item_id : crypto.randomUUID();
+        typeof payload.item_id === "string" ? payload.item_id : createSafeId("voice-user");
       const transcriptText =
         typeof payload.transcript === "string" ? payload.transcript.trim() : "";
       const confidence = probabilityFromAverageLogprob(extractAverageLogprob(payload));
@@ -2458,24 +2453,15 @@ export function RealtimeVoicePanel({
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                  <a href={DR_ZARAK_PHONE_HREF} className="site-inline-link text-xs font-medium">
-                    {language === "urdu" ? "ڈاکٹر زارک" : "Dr Zarak"}
-                  </a>
-                  <span>·</span>
-                  <a href={DR_ZARAK_PHONE_HREF} className="site-inline-link text-xs font-medium">
-                    {DR_ZARAK_PHONE_DISPLAY}
-                  </a>
-                  <span>·</span>
-                  <a
-                    href={DR_ZARAK_LINKEDIN_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="site-inline-link text-xs font-medium"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    LinkedIn
-                  </a>
+                <div
+                  className={`text-center text-xs leading-6 text-slate-600 ${
+                    language === "urdu" ? "font-urdu" : ""
+                  }`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  {language === "urdu"
+                    ? "محبت سے تعمیر: ڈاکٹر زارک خان"
+                    : "Built with love by Dr Zarak Khan"}
                 </div>
               </div>
             ) : null}

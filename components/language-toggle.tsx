@@ -20,7 +20,7 @@ export function LanguageToggle({
     <div
       className={cn(
         "relative grid w-full min-w-0 grid-cols-2 rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm backdrop-blur",
-        compact ? "h-10 text-[11px] sm:min-w-[128px]" : "h-12 sm:min-w-[140px]",
+        compact ? "h-12 text-xs sm:min-w-[144px]" : "h-[52px] sm:min-w-[148px]",
         className,
       )}
     >
@@ -33,10 +33,12 @@ export function LanguageToggle({
 
       <button
         type="button"
+        aria-label="Switch language to English"
+        aria-pressed={language === "english"}
         className={cn(
-          "relative z-10 rounded-full px-3 font-semibold uppercase tracking-[0.18em] transition-colors",
-          compact ? "text-[11px]" : "text-xs",
-          language === "english" ? "text-slate-900" : "text-slate-500",
+          "relative z-10 h-full rounded-full px-3 font-semibold uppercase tracking-[0.18em] transition-colors",
+          compact ? "text-xs" : "text-sm",
+          language === "english" ? "text-slate-900" : "text-slate-600",
         )}
         onClick={() => onChange("english")}
       >
@@ -44,10 +46,12 @@ export function LanguageToggle({
       </button>
       <button
         type="button"
+        aria-label="Switch language to Urdu"
+        aria-pressed={language === "urdu"}
         className={cn(
-          "relative z-10 rounded-full px-3 font-semibold transition-colors",
-          compact ? "text-[12px]" : "text-xs",
-          language === "urdu" ? "text-slate-900" : "text-slate-500",
+          "relative z-10 h-full rounded-full px-3 font-semibold transition-colors",
+          compact ? "text-[13px]" : "text-sm",
+          language === "urdu" ? "text-slate-900" : "text-slate-600",
         )}
         onClick={() => onChange("urdu")}
       >

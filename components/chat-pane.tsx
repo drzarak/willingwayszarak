@@ -172,7 +172,19 @@ export function ChatPane({
       return;
     }
 
-    await navigator.clipboard.writeText(text);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopiedText(text);
     window.setTimeout(() => setCopiedText(null), 1600);
   }
@@ -242,7 +254,7 @@ export function ChatPane({
           }`}
         >
           <div
-            className={`flex items-center gap-2 text-xs text-slate-500 ${
+            className={`flex items-center gap-2 text-sm text-slate-600 ${
               session.language === "urdu" ? "font-urdu text-right" : ""
             }`}
             dir={session.language === "urdu" ? "rtl" : "ltr"}
@@ -453,7 +465,7 @@ export function ChatPane({
             {isGenerating ? (
               <div className="flex justify-start">
                 <div className="max-w-[88%] rounded-[28px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
                     Willing Ways AI
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-600">

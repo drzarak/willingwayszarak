@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { safeStorageGet, safeStorageSet } from "@/lib/utils";
+
 export type SiteLanguage = "english" | "urdu";
 
 export const SITE_LANGUAGE_STORAGE_KEY = "willing-ways:site-language";
@@ -27,7 +29,7 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const storedLanguage = window.localStorage.getItem(SITE_LANGUAGE_STORAGE_KEY);
+    const storedLanguage = safeStorageGet(SITE_LANGUAGE_STORAGE_KEY);
 
     if (storedLanguage === "urdu" || storedLanguage === "english") {
       setLanguageState(storedLanguage);
@@ -42,7 +44,7 @@ export function SiteLanguageProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    window.localStorage.setItem(SITE_LANGUAGE_STORAGE_KEY, language);
+    safeStorageSet(SITE_LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language === "urdu" ? "ur" : "en";
   }, [hydrated, language]);
 

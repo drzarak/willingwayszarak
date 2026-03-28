@@ -172,18 +172,21 @@ export function HomePage() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <a href="tel:+923007413639" className="site-cta-button">
-                  <PhoneCall className="h-4 w-4" />
-                  <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
-                </a>
-                <Link href="/book-session" className="site-action-link">
-                  <CalendarDays className="h-4 w-4" />
-                  <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
-                </Link>
                 <Link href="/" className="site-action-link">
                   <MessageSquareHeart className="h-4 w-4" />
                   <LocalizedText english="Open AI assistant" urdu="اے آئی معاون کھولیں" />
                 </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[#5a3743]">
+                <Link href="/book-session" className="site-inline-link">
+                  <CalendarDays className="h-4 w-4" />
+                  <LocalizedText english="Book a session" urdu="سیشن بک کریں" />
+                </Link>
+                <a href="tel:+923007413639" className="site-inline-link">
+                  <PhoneCall className="h-4 w-4" />
+                  <LocalizedText english="Call admissions" urdu="داخلے کے لئے کال کریں" />
+                </a>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
