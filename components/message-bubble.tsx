@@ -1,8 +1,6 @@
 "use client";
 
 import { Copy, RotateCcw } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { UIMessage } from "ai";
 
 import { getMessageText, isUrduText } from "@/lib/chat";
@@ -28,6 +26,10 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const text = getMessageText(message);
   const isUrdu = isUrduText(text);
+  const assistantParagraphs = text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
 
   if (!text && !isUser) {
     return null;
@@ -55,8 +57,16 @@ export function MessageBubble({
         {isUser ? (
           <div className="whitespace-pre-wrap text-[16px] leading-7">{text}</div>
         ) : (
-          <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          <div className="space-y-4 text-[16px] leading-7 text-slate-800">
+            {assistantParagraphs.length > 0 ? (
+              assistantParagraphs.map((paragraph, index) => (
+                <p key={`${message.id}:paragraph:${index}`} className="whitespace-pre-wrap">
+                  {paragraph}
+                </p>
+              ))
+            ) : (
+              <p className="whitespace-pre-wrap">{text}</p>
+            )}
           </div>
         )}
 
