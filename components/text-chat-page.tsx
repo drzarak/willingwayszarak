@@ -393,7 +393,7 @@ export function TextChatPage() {
         <header className="rounded-[28px] border border-black/5 bg-white/88 px-4 py-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] backdrop-blur sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <Link href="/" className="inline-flex min-w-0 items-center gap-3">
+              <Link href="/" className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-full px-1">
                 <Image
                   src={SITE_MEDIA.logo}
                   alt="Willing Ways"
@@ -607,7 +607,10 @@ export function TextChatPage() {
               : "This conversation stays private in this browser."}
           </div>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <a href={DR_ZARAK_PHONE_HREF} className="inline-flex items-center gap-2 text-slate-600 transition hover:text-slate-950">
+            <a
+              href={DR_ZARAK_PHONE_HREF}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-slate-600 transition hover:text-slate-950"
+            >
               <PhoneCall className="h-3.5 w-3.5" />
               {DR_ZARAK_NAME} · {DR_ZARAK_PHONE_DISPLAY}
             </a>
@@ -615,7 +618,7 @@ export function TextChatPage() {
               href={DR_ZARAK_LINKEDIN_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 text-slate-600 transition hover:text-slate-950"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-slate-600 transition hover:text-slate-950"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               LinkedIn
