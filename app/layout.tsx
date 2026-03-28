@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Merriweather, Noto_Naskh_Arabic } from "next/font/google";
+import Script from "next/script";
 
 import { SITE_MEDIA } from "@/lib/site-assets";
 
@@ -50,6 +51,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body
         className={`${manrope.variable} ${merriweather.variable} ${notoNaskhArabic.variable} font-sans antialiased`}
       >
+        <Script id="ww-structured-clone-polyfill" strategy="beforeInteractive">
+          {`if (typeof globalThis.structuredClone !== 'function') { globalThis.structuredClone = function (value) { return JSON.parse(JSON.stringify(value)); }; }`}
+        </Script>
         <SiteLanguageProvider>
           {children}
         </SiteLanguageProvider>
