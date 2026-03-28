@@ -3,6 +3,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateText,
   jsonSchema,
   stepCountIs,
   streamText,
@@ -59,8 +60,111 @@ interface ChatRequestBody {
   mode?: ChatMode;
   modelId?: ModelId;
   preferredName?: string;
+  responseMode?: "json" | "stream";
   resumeContext?: string;
   trigger?: string;
+}
+
+function createAssistantTextMessage(text: string): UIMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    parts: [
+      {
+        type: "text",
+        text,
+        state: "done",
+      },
+    ],
+  };
+}
+
+function createAssistantJsonMessage(
+  text: string,
+  toolResults: ReadonlyArray<{
+    type?: string;
+    toolCallId?: string;
+    toolName?: string;
+    input?: unknown;
+    output?: unknown;
+  } | undefined>,
+  language: ChatLanguage,
+): UIMessage {
+  const normalizedText = text.trim();
+  const parts: UIMessage["parts"] = normalizedText
+    ? [
+        {
+          type: "text",
+          text: normalizedText,
+          state: "done",
+        } as UIMessage["parts"][number],
+      ]
+    : [];
+
+  for (const result of toolResults) {
+    if (
+      result?.type !== "tool-result" ||
+      typeof result.toolName !== "string" ||
+      typeof result.toolCallId !== "string"
+    ) {
+      continue;
+    }
+
+    parts.push({
+      type: `tool-${result.toolName}`,
+      toolCallId: result.toolCallId,
+      state: "output-available",
+      input: result.input,
+      output: result.output,
+    } as UIMessage["parts"][number]);
+  }
+
+  if (parts.length === 0) {
+    parts.push({
+      type: "text",
+      text:
+        language === "urdu"
+          ? "میں نے آپ کے لئے اگلا مفید قدم تیار کر دیا ہے۔"
+          : "I have prepared the next useful step for you.",
+      state: "done",
+    } as UIMessage["parts"][number]);
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    parts,
+  };
+}
+
+function extractPreferredNameFromToolResults(
+  toolResults: ReadonlyArray<{
+    toolName?: string;
+    output?: unknown;
+  } | undefined>,
+) {
+  for (const result of toolResults) {
+    if (
+      result?.toolName === "remember_preferred_name" &&
+      typeof (result.output as { preferredName?: unknown } | undefined)?.preferredName === "string"
+    ) {
+      const preferredName = (
+        result.output as { preferredName: string }
+      ).preferredName.trim();
+
+      if (preferredName) {
+        return preferredName;
+      }
+    }
+  }
+
+  return "";
+}
+
+function getDeterministicCrisisText(language: ChatLanguage) {
+  return language === "urdu"
+    ? "مجھے ابھی آپ کی فوری حفاظت کی فکر ہے۔ اگر اوورڈوز، خودکشی، خود کو نقصان، یا تشدد کا خطرہ ہے تو ابھی 1122 یا نزدیک ترین ایمرجنسی سے رابطہ کریں۔ ولنگ ویز کے لئے 0300-7413639 پر بھی فوراً کال کریں۔ جب فوری حفاظتی قدم اٹھا لیا جائے تو ہم اگلے مرحلے میں مدد کریں گے۔"
+    : "I am concerned about immediate safety right now. If there is overdose, suicide risk, self-harm risk, or violence risk, contact 1122 or the nearest emergency room now. Please also call Willing Ways immediately on 0300-7413639. Once the immediate safety step has been taken, we can help with the next step.";
 }
 
 function createChatTools(request: Request, bookingConfigured: boolean) {
@@ -160,10 +264,7 @@ function createDeterministicCrisisResponse(
     reason: matchedCues.length > 0 ? matchedCues.join(", ") : "Immediate safety concern",
   });
 
-  const text =
-    language === "urdu"
-      ? `مجھے ابھی آپ کی فوری حفاظت کی فکر ہے۔ اگر اوورڈوز، خودکشی، خود کو نقصان، یا تشدد کا خطرہ ہے تو ابھی 1122 یا نزدیک ترین ایمرجنسی سے رابطہ کریں۔ ولنگ ویز کے لئے 0300-7413639 پر بھی فوراً کال کریں۔ جب فوری حفاظتی قدم اٹھا لیا جائے تو ہم اگلے مرحلے میں مدد کریں گے۔`
-      : `I am concerned about immediate safety right now. If there is overdose, suicide risk, self-harm risk, or violence risk, contact 1122 or the nearest emergency room now. Please also call Willing Ways immediately on 0300-7413639. Once the immediate safety step has been taken, we can help with the next step.`;
+  const text = getDeterministicCrisisText(language);
 
   const stream = createUIMessageStream({
     originalMessages: messages,
@@ -252,6 +353,23 @@ export async function POST(request: Request) {
   const careSignal = analyzeVoiceCareSignals(recentUserTexts);
 
   if (careSignal?.severity === "urgent") {
+    if (body.responseMode === "json") {
+      return Response.json(
+        {
+          crisisPlan: getCrisisRedirectResult({
+            reason: careSignal.matchedCues.length > 0
+              ? careSignal.matchedCues.join(", ")
+              : "Immediate safety concern",
+          }),
+          message: createAssistantTextMessage(getDeterministicCrisisText(body.language)),
+          preferredName: "",
+        },
+        {
+          headers: responseHeaders,
+        },
+      );
+    }
+
     return createDeterministicCrisisResponse(
       body.language,
       body.messages,
@@ -262,25 +380,46 @@ export async function POST(request: Request) {
 
   try {
     const openai = createOpenAI({ apiKey });
-    const result = streamText({
+    const preparedMessages = await convertToModelMessages(
+      body.messages.map(
+        (message) =>
+          Object.fromEntries(
+            Object.entries(message).filter(([key]) => key !== "id"),
+          ) as Omit<UIMessage, "id">,
+      ),
+    );
+    const modelConfig = {
       model: openai.chat(body.modelId),
       system: composeSystemPrompt(body.mode, body.language, {
         preferredName: normalizePreferredName(body.preferredName),
         resumeContext: typeof body.resumeContext === "string" ? body.resumeContext : "",
         surface: "chat",
       }),
-      messages: await convertToModelMessages(
-        body.messages.map(
-          (message) =>
-            Object.fromEntries(
-              Object.entries(message).filter(([key]) => key !== "id"),
-            ) as Omit<UIMessage, "id">,
-        ),
-      ),
-      toolChoice: "auto",
+      messages: preparedMessages,
+      toolChoice: "auto" as const,
       tools: createChatTools(request, bookingConfigured),
       stopWhen: stepCountIs(6),
-    });
+    };
+
+    if (body.responseMode === "json") {
+      const result = await generateText(modelConfig);
+
+      return Response.json(
+        {
+          message: createAssistantJsonMessage(
+            result.text,
+            result.toolResults,
+            body.language,
+          ),
+          preferredName: extractPreferredNameFromToolResults(result.toolResults),
+        },
+        {
+          headers: responseHeaders,
+        },
+      );
+    }
+
+    const result = streamText(modelConfig);
 
     return result.toUIMessageStreamResponse({
       headers: responseHeaders,

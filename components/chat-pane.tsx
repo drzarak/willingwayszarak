@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import {
   AlertTriangle,
   ArrowUp,
@@ -26,6 +25,7 @@ import {
 import { MessageBubble } from "@/components/message-bubble";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { createSafeId } from "@/lib/utils";
 
 interface ChatPaneProps {
   modelId: ModelId;
@@ -33,6 +33,25 @@ interface ChatPaneProps {
   onPreferredNameChange: (chatId: string, preferredName: string) => void;
   serverKeyConfigured: boolean;
   session: ChatSession;
+}
+
+interface ChatResponseBody {
+  message?: UIMessage;
+  preferredName?: string;
+}
+
+function createTextUiMessage(role: "assistant" | "user", text: string): UIMessage {
+  return {
+    id: createSafeId(role),
+    role,
+    parts: [
+      {
+        type: "text",
+        text,
+        state: "done",
+      },
+    ],
+  };
 }
 
 export function ChatPane({
@@ -43,41 +62,17 @@ export function ChatPane({
   session,
 }: ChatPaneProps) {
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<UIMessage[]>(session.messages);
+  const [status, setStatus] = useState<"ready" | "submitted">("ready");
   const [localError, setLocalError] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const transport = new DefaultChatTransport({
-    api: "/api/chat",
-    prepareSendMessagesRequest: async ({ body, id, messageId, messages, trigger }) => ({
-      body: {
-        ...body,
-        id,
-        messages,
-        trigger,
-        messageId,
-        language: session.language,
-        modelId,
-        mode: session.mode,
-        preferredName: session.preferredName ?? "",
-        resumeContext: buildVoiceResumeContext(session.voiceTranscript),
-      },
-    }),
-  });
-
-  const { clearError, error, messages, regenerate, sendMessage, status, stop } = useChat({
-    id: session.id,
-    messages: session.messages,
-    experimental_throttle: 50,
-    transport,
-    onError: (chatError) => {
-      setLocalError(chatError.message);
-    },
-  });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const previousSessionIdRef = useRef(session.id);
 
   const deferredMessages = useDeferredValue(messages);
-  const isGenerating = status === "submitted" || status === "streaming";
-  const currentError = error?.message ?? localError;
+  const isGenerating = status === "submitted";
+  const currentError = localError;
   const latestAssistantMessage = [...deferredMessages].reverse().find(
     (message) => message.role === "assistant",
   );
@@ -92,6 +87,21 @@ export function ChatPane({
   useEffect(() => {
     onMessagesChange(session.id, messages);
   }, [messages, onMessagesChange, session.id]);
+
+  useEffect(() => {
+    if (previousSessionIdRef.current === session.id) {
+      return;
+    }
+
+    previousSessionIdRef.current = session.id;
+    setMessages(session.messages);
+    setInput("");
+    setLocalError(null);
+    setCopiedText(null);
+    setStatus("ready");
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+  }, [session.id, session.messages]);
 
   useEffect(() => {
     if (!rememberedName || rememberedName === session.preferredName) {
@@ -114,10 +124,69 @@ export function ChatPane({
     });
   }, [deferredMessages, status]);
 
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  async function requestAssistant(nextMessages: UIMessage[]) {
+    abortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setStatus("submitted");
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          id: session.id,
+          language: session.language,
+          messages: nextMessages,
+          mode: session.mode,
+          modelId,
+          preferredName: rememberedName || session.preferredName || "",
+          responseMode: "json",
+          resumeContext: buildVoiceResumeContext(session.voiceTranscript),
+        }),
+      });
+
+      if (!response.ok) {
+        const message = (await response.text()).trim();
+        throw new Error(message || "The message could not be sent right now.");
+      }
+
+      const data = (await response.json()) as ChatResponseBody;
+
+      if (!data.message) {
+        throw new Error("The assistant did not return a valid reply.");
+      }
+
+      return data.message;
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return null;
+      }
+
+      throw error;
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+
+      setStatus("ready");
+    }
+  }
+
   async function submitPrompt(text: string) {
     const nextText = text.trim();
 
-    if (!nextText) {
+    if (!nextText || isGenerating) {
       return;
     }
 
@@ -131,10 +200,18 @@ export function ChatPane({
     }
 
     try {
-      clearError();
       setLocalError(null);
       setInput("");
-      await sendMessage({ text: nextText });
+
+      const userMessage = createTextUiMessage("user", nextText);
+      const nextMessages = [...messages, userMessage];
+      setMessages(nextMessages);
+
+      const assistantMessage = await requestAssistant(nextMessages);
+
+      if (assistantMessage) {
+        setMessages([...nextMessages, assistantMessage]);
+      }
     } catch (submitError) {
       setLocalError(
         submitError instanceof Error
@@ -145,7 +222,7 @@ export function ChatPane({
   }
 
   async function handleRegenerate() {
-    if (!serverKeyConfigured) {
+    if (!serverKeyConfigured || isGenerating) {
       setLocalError(
         session.language === "urdu"
           ? "اے آئی چیٹ اس وقت دستیاب نہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا 0300-7413639 پر رابطہ کریں۔"
@@ -154,10 +231,26 @@ export function ChatPane({
       return;
     }
 
+    const lastAssistantIndex = [...messages]
+      .map((message, index) => ({ message, index }))
+      .reverse()
+      .find((entry) => entry.message.role === "assistant")?.index;
+
+    if (lastAssistantIndex == null) {
+      return;
+    }
+
     try {
-      clearError();
       setLocalError(null);
-      await regenerate();
+
+      const nextMessages = messages.filter((_, index) => index !== lastAssistantIndex);
+      setMessages(nextMessages);
+
+      const assistantMessage = await requestAssistant(nextMessages);
+
+      if (assistantMessage) {
+        setMessages([...nextMessages, assistantMessage]);
+      }
     } catch (regenerateError) {
       setLocalError(
         regenerateError instanceof Error
@@ -187,6 +280,12 @@ export function ChatPane({
     }
     setCopiedText(text);
     window.setTimeout(() => setCopiedText(null), 1600);
+  }
+
+  function handleStop() {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setStatus("ready");
   }
 
   function renderAlerts() {
@@ -279,7 +378,7 @@ export function ChatPane({
             </Link>
 
             {isGenerating ? (
-              <Button type="button" variant="outline" onClick={() => void stop()}>
+              <Button type="button" variant="outline" onClick={handleStop}>
                 <Square className="h-4 w-4 fill-current" />
                 {session.language === "urdu" ? "روکیں" : "Stop"}
               </Button>
