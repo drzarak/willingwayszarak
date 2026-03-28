@@ -39,25 +39,25 @@ export function MessageBubble({
     <div className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")} dir={isUrdu ? "rtl" : "ltr"}>
       <div
         className={cn(
-          "max-w-[94%] rounded-[26px] px-5 py-4 shadow-sm sm:max-w-[85%]",
+          "max-w-[94%] rounded-[24px] px-4 py-3.5 shadow-[0_10px_26px_rgba(15,23,42,0.04)] sm:max-w-[85%] sm:px-5 sm:py-4",
           isUser
-            ? "border border-[#ead6dc] bg-[#fff3f6] text-slate-900"
-            : "border border-slate-200 bg-white text-slate-800",
+            ? "border border-slate-200 bg-[#f3f4f6] text-slate-900"
+            : "border border-slate-100 bg-white text-slate-800",
         )}
       >
         <div
           className={cn(
             "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
-            isUser ? "text-[#8a4b5d]" : "text-slate-400",
+            isUser ? "text-slate-500" : "text-slate-400",
           )}
         >
           {isUser ? (isUrdu ? "آپ" : "You") : isUrdu ? "ولنگ ویز اے آئی" : "Willing Ways AI"}
         </div>
 
         {isUser ? (
-          <div className="whitespace-pre-wrap text-[16px] leading-7">{text}</div>
+          <div className="whitespace-pre-wrap text-[15px] leading-7 text-slate-900 sm:text-[16px]">{text}</div>
         ) : (
-          <div className="space-y-4 text-[16px] leading-7 text-slate-800">
+          <div className="space-y-4 text-[15px] leading-7 text-slate-800 sm:text-[16px]">
             {assistantParagraphs.length > 0 ? (
               assistantParagraphs.map((paragraph, index) => (
                 <p key={`${message.id}:paragraph:${index}`} className="whitespace-pre-wrap">

@@ -261,7 +261,7 @@ export function ChatApp({ surface }: ChatAppProps) {
 
   return (
     <div
-      className={`bg-[#f7f7f8] text-slate-950 ${
+      className={`bg-[#f4f4f1] text-slate-950 ${
         voiceSurface ? "min-h-[100svh] h-[100svh] overflow-hidden" : "min-h-[100dvh]"
       }`}
     >
@@ -281,7 +281,7 @@ export function ChatApp({ surface }: ChatAppProps) {
       <div
         className={`relative mx-auto flex w-full flex-col ${
           voiceSurface
-            ? "min-h-[100svh] h-[100svh] max-w-[1080px] overflow-hidden px-2.5 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-4"
+            ? "min-h-[100svh] h-[100svh] max-w-[980px] overflow-hidden px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-5"
             : "min-h-[100dvh] max-w-5xl px-3 py-3 sm:px-5 sm:py-5"
         }`}
       >

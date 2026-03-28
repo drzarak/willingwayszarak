@@ -278,12 +278,128 @@ export function createChatSession(
   };
 }
 
+function normalizeStoredMessageParts(
+  rawParts: unknown,
+  rawContent: unknown,
+  rawText: unknown,
+): UIMessage["parts"] {
+  const normalizedParts: UIMessage["parts"] = [];
+
+  if (Array.isArray(rawParts)) {
+    for (const part of rawParts) {
+      if (!part || typeof part !== "object") {
+        continue;
+      }
+
+      const candidate = part as {
+        output?: { preferredName?: unknown };
+        state?: unknown;
+        text?: unknown;
+        toolCallId?: unknown;
+        type?: unknown;
+      };
+
+      if (candidate.type === "text" && typeof candidate.text === "string" && candidate.text.trim()) {
+        normalizedParts.push({
+          type: "text",
+          text: candidate.text,
+          state: "done",
+        });
+        continue;
+      }
+
+      if (
+        candidate.type === "tool-remember_preferred_name" &&
+        candidate.state === "output-available" &&
+        typeof candidate.output?.preferredName === "string" &&
+        candidate.output.preferredName.trim()
+      ) {
+        normalizedParts.push({
+          type: "tool-remember_preferred_name",
+          toolCallId:
+            typeof candidate.toolCallId === "string" && candidate.toolCallId
+              ? candidate.toolCallId
+              : createSafeId("tool"),
+          state: "output-available",
+          input: {},
+          output: {
+            preferredName: candidate.output.preferredName.trim(),
+          },
+        });
+      }
+    }
+  }
+
+  if (normalizedParts.length > 0) {
+    return normalizedParts;
+  }
+
+  const fallbackText =
+    typeof rawText === "string" && rawText.trim()
+      ? rawText.trim()
+      : typeof rawContent === "string" && rawContent.trim()
+        ? rawContent.trim()
+        : "";
+
+  if (!fallbackText) {
+    return [];
+  }
+
+  return [
+    {
+      type: "text",
+      text: fallbackText,
+      state: "done",
+    },
+  ];
+}
+
+function normalizeStoredMessages(rawMessages: unknown): UIMessage[] {
+  if (!Array.isArray(rawMessages)) {
+    return [];
+  }
+
+  return rawMessages.flatMap((message) => {
+    if (!message || typeof message !== "object") {
+      return [];
+    }
+
+    const candidate = message as {
+      content?: unknown;
+      id?: unknown;
+      parts?: unknown;
+      role?: unknown;
+      text?: unknown;
+    };
+    const role = candidate.role === "assistant" ? "assistant" : candidate.role === "user" ? "user" : null;
+
+    if (!role) {
+      return [];
+    }
+
+    const parts = normalizeStoredMessageParts(candidate.parts, candidate.content, candidate.text);
+
+    if (parts.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        id: typeof candidate.id === "string" && candidate.id ? candidate.id : createSafeId("message"),
+        role,
+        parts,
+      } as UIMessage,
+    ];
+  });
+}
+
 export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[] {
   return rawSessions.slice(0, 50).map((session) => ({
     ...session,
     welcomed: session.welcomed ?? false,
     language: session.language ?? "english",
     mode: "adaptive",
+    messages: normalizeStoredMessages((session as { messages?: unknown }).messages),
     preferredName: session.preferredName ?? "",
     title: session.title || "New conversation",
     voiceTranscript: Array.isArray(session.voiceTranscript)

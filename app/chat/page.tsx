@@ -1,5 +1,5 @@
-import { ChatApp } from "@/components/chat-app";
+import { TextChatPage } from "@/components/text-chat-page";
 
 export default function ChatPage() {
-  return <ChatApp surface="chat" />;
+  return <TextChatPage />;
 }
