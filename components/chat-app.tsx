@@ -34,6 +34,10 @@ import { useSiteLanguage } from "@/components/site-language-provider";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 
+if (typeof globalThis.structuredClone !== "function") {
+  globalThis.structuredClone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+}
+
 const ChatPane = dynamic(
   () => import("@/components/chat-pane").then((mod) => mod.ChatPane),
   { ssr: false },
