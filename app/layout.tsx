@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Manrope, Merriweather, Noto_Naskh_Arabic } from "next/font/google";
-import Script from "next/script";
 
 import { SITE_MEDIA } from "@/lib/site-assets";
 
@@ -45,15 +44,102 @@ export const metadata: Metadata = {
   },
 };
 
+const LEGACY_BROWSER_POLYFILLS = `
+(function () {
+  if (typeof globalThis.structuredClone !== "function") {
+    globalThis.structuredClone = function (value) {
+      return JSON.parse(JSON.stringify(value));
+    };
+  }
+
+  if (
+    typeof globalThis.TextDecoderStream !== "function" &&
+    typeof globalThis.ReadableStream === "function" &&
+    typeof globalThis.WritableStream === "function" &&
+    typeof globalThis.TextDecoder === "function"
+  ) {
+    globalThis.TextDecoderStream = function TextDecoderStream(label, options) {
+      const decoder = new TextDecoder(label, options);
+      let controller;
+
+      this.readable = new ReadableStream({
+        start(streamController) {
+          controller = streamController;
+        },
+      });
+
+      this.writable = new WritableStream({
+        write(chunk) {
+          const text = decoder.decode(chunk, { stream: true });
+          if (text) {
+            controller.enqueue(text);
+          }
+        },
+        close() {
+          const text = decoder.decode();
+          if (text) {
+            controller.enqueue(text);
+          }
+          controller.close();
+        },
+        abort(reason) {
+          if (controller) {
+            controller.error(reason);
+          }
+        },
+      });
+    };
+  }
+
+  if (
+    typeof globalThis.TextEncoderStream !== "function" &&
+    typeof globalThis.ReadableStream === "function" &&
+    typeof globalThis.WritableStream === "function" &&
+    typeof globalThis.TextEncoder === "function"
+  ) {
+    globalThis.TextEncoderStream = function TextEncoderStream() {
+      const encoder = new TextEncoder();
+      let controller;
+
+      this.readable = new ReadableStream({
+        start(streamController) {
+          controller = streamController;
+        },
+      });
+
+      this.writable = new WritableStream({
+        write(chunk) {
+          const encoded = encoder.encode(String(chunk));
+          if (encoded.byteLength > 0) {
+            controller.enqueue(encoded);
+          }
+        },
+        close() {
+          controller.close();
+        },
+        abort(reason) {
+          if (controller) {
+            controller.error(reason);
+          }
+        },
+      });
+    };
+  }
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          id="ww-legacy-browser-polyfills"
+          dangerouslySetInnerHTML={{ __html: LEGACY_BROWSER_POLYFILLS }}
+        />
+      </head>
       <body
         className={`${manrope.variable} ${merriweather.variable} ${notoNaskhArabic.variable} font-sans antialiased`}
       >
-        <Script id="ww-structured-clone-polyfill" strategy="beforeInteractive">
-          {`if (typeof globalThis.structuredClone !== 'function') { globalThis.structuredClone = function (value) { return JSON.parse(JSON.stringify(value)); }; }`}
-        </Script>
         <SiteLanguageProvider>
           {children}
         </SiteLanguageProvider>
