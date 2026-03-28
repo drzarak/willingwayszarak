@@ -239,25 +239,25 @@ function getStatusDescription(
 ) {
   if (status === "requesting") {
     return language === "urdu"
-      ? "ہم مائیکروفون اور کال لائن تیار کر رہے ہیں۔"
-      : "We are getting the microphone and call line ready.";
+      ? "ہم کال لائن تیار کر رہے ہیں۔"
+      : "We are getting the call line ready.";
   }
 
   if (status === "connecting") {
     return language === "urdu"
       ? focus === "family-coach"
-        ? "ایک لمحہ رکیں، family coaching line سے رابطہ کیا جا رہا ہے۔"
-        : "ایک لمحہ رکیں، relapse prevention line سے رابطہ کیا جا رہا ہے۔"
+        ? "ایک لمحہ رکیں، family coaching line ملائی جا رہی ہے۔"
+        : "ایک لمحہ رکیں، support line ملائی جا رہی ہے۔"
       : focus === "family-coach"
-        ? "Please hold for a moment while we connect the family coaching line."
-        : "Please hold for a moment while we connect the relapse prevention line.";
+        ? "Please hold while we connect the family coaching line."
+        : "Please hold while we connect the support line.";
   }
 
   if (status === "connected") {
     return language === "urdu"
       ? focus === "family-coach" && moduleTitle
         ? `اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مشق شروع کرے گی۔`
-        : "اے آئی پہلے سلام کرے گی اور پھر آپ کی بات سنے گی۔"
+        : "اے آئی پہلے سلام کرے گی اور پھر سنے گی۔"
       : focus === "family-coach" && moduleTitle
         ? `The AI will greet you first and then begin "${moduleTitle}" coaching.`
         : "The AI will greet you first and then listen.";
@@ -265,18 +265,18 @@ function getStatusDescription(
 
   if (status === "listening") {
     return language === "urdu"
-      ? "آرام سے بولیں۔ آپ اردو، انگریزی یا پاکستانی پنجابی میں بات کر سکتے ہیں۔"
-      : "Speak naturally. You can use English, Urdu, or Pakistani Punjabi.";
+      ? "آرام سے بولیں۔ اردو، انگریزی یا پاکستانی پنجابی میں بات کریں۔"
+      : "Speak naturally in English, Urdu, or Pakistani Punjabi.";
   }
 
   if (status === "responding") {
     return language === "urdu"
       ? focus === "family-coach"
-        ? "اے آئی اس family coaching practice کا اگلا قدم، script یا roleplay دے رہی ہے۔"
-        : "اے آئی relapse prevention کے لئے اگلا مفید قدم، exercise یا رہنمائی دے رہی ہے۔"
+        ? "اے آئی اگلا family coaching step دے رہی ہے۔"
+        : "اے آئی اگلا مفید relapse-prevention step دے رہی ہے۔"
       : focus === "family-coach"
-        ? "The AI is giving the next coaching step, script, or roleplay for this family practice."
-        : "The AI is giving the next useful step, exercise, or guidance for relapse prevention.";
+        ? "The AI is giving the next coaching step for this family practice."
+        : "The AI is giving the next useful relapse-prevention step.";
   }
 
   if (status === "error") {
@@ -288,10 +288,10 @@ function getStatusDescription(
   return language === "urdu"
     ? focus === "family-coach" && moduleTitle
       ? `کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مختصر practice شروع کرے گی۔`
-      : "کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر اگلے محفوظ قدم میں مدد دے گی۔"
+      : "کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر اگلے قدم میں مدد دے گی۔"
     : focus === "family-coach" && moduleTitle
       ? `Start the call. The AI will greet you and then coach you through "${moduleTitle}".`
-      : "Start the call. The AI greets you first and helps with the next safe step.";
+      : "Start the call. The AI greets you first and helps with the next step.";
 }
 
 function normalizeTranscriptComparisonText(value: string) {
@@ -2149,13 +2149,13 @@ export function RealtimeVoicePanel({
     <section id="call" className="mx-auto h-full max-w-3xl">
       <audio ref={audioRef} autoPlay />
 
-      <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-black/5 bg-white/96 px-4 py-4 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6 sm:py-5">
+      <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-black/5 bg-white/96 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6 sm:py-5">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div className="mx-auto max-w-[720px] text-center">
             <h1
-              className={`mx-auto max-w-[640px] text-[1.85rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] ${
+              className={`mx-auto max-w-[640px] text-[1.72rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] ${
                 language === "urdu" ? "font-urdu" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2170,7 +2170,7 @@ export function RealtimeVoicePanel({
             </h1>
 
             <p
-              className={`mx-auto mt-2 max-w-[560px] text-[15px] leading-7 text-slate-600 sm:text-base ${
+              className={`mx-auto mt-1.5 max-w-[560px] text-[14px] leading-6 text-slate-600 sm:mt-2 sm:text-base sm:leading-7 ${
                 language === "urdu" ? "font-urdu" : ""
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2212,7 +2212,7 @@ export function RealtimeVoicePanel({
             </div>
           ) : null}
 
-          <div className="mx-auto mt-4 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:px-5 sm:py-5">
+          <div className="mx-auto mt-3 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:mt-4 sm:px-5 sm:py-5">
             <div className="flex items-center justify-between gap-3">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
@@ -2242,15 +2242,15 @@ export function RealtimeVoicePanel({
               ) : null}
             </div>
 
-            <div className="mt-5 flex flex-col items-center text-center">
+            <div className="mt-4 flex flex-col items-center text-center sm:mt-5">
               <div
-                className={`voice-orb h-24 w-24 ${
+                className={`voice-orb h-20 w-20 sm:h-24 sm:w-24 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-14 sm:w-14">
                   <CallOrbIcon
-                    className={`h-6 w-6 ${
+                    className={`h-[22px] w-[22px] sm:h-6 sm:w-6 ${
                       status === "responding"
                         ? "text-slate-900"
                         : status === "listening" || status === "connected"
@@ -2277,11 +2277,11 @@ export function RealtimeVoicePanel({
                 </div>
               ) : null}
 
-              <div className="mt-3 text-[13px] font-medium text-slate-500">
+              <div className="mt-2.5 text-[13px] font-medium text-slate-500 sm:mt-3">
                 {getStatusLabel(status, language)}
               </div>
               <div
-                className={`mt-2 max-w-lg text-[15px] leading-6 text-slate-600 sm:text-base ${
+                className={`mt-1.5 max-w-lg text-[14px] leading-6 text-slate-600 sm:mt-2 sm:text-base ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2353,14 +2353,14 @@ export function RealtimeVoicePanel({
 
             {showMinimalIdleIntro ? (
               <div
-                className={`mt-4 text-center text-sm leading-6 text-slate-500 ${
+                className={`mt-3 text-center text-sm leading-6 text-slate-500 sm:mt-4 ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
                 {language === "urdu"
-                  ? "مائیک درکار ہے۔ اے آئی پہلے سلام کرے گی، پھر آرام سے سنے گی۔"
-                  : "Mic required. The AI greets first, then listens calmly."}
+                  ? "مائیک درکار ہے۔ اے آئی پہلے سلام کرے گی، پھر سنے گی۔"
+                  : "Mic required. The AI greets first, then listens."}
               </div>
             ) : null}
 
@@ -2372,7 +2372,7 @@ export function RealtimeVoicePanel({
                     lessonId: selectedFamilyLessonId,
                   });
                 }}
-                className="mt-4 h-12 w-full rounded-full text-base shadow-[0_12px_24px_rgba(15,23,42,0.1)]"
+                className="mt-3.5 h-12 w-full rounded-full text-base shadow-[0_12px_24px_rgba(15,23,42,0.1)] sm:mt-4"
               >
                 <PhoneCall className="h-4 w-4" />
                 {primaryCallActionLabel}
