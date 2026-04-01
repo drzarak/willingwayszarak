@@ -10,9 +10,12 @@ import {
   NOTION_API_VERSION,
   getBookingOptionLabel,
   type AiIntakePayload,
+  type BookingRelationId,
   type BookingRequestPayload,
+  type BookingServiceId,
   type BookingSourceId,
 } from "@/lib/booking";
+import { buildCaseWorkflowProfile, type QueueSectionId } from "@/lib/case-workflows";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 
 export const maxDuration = 30;
@@ -362,6 +365,29 @@ function getSubmissionSourceLabel(source: BookingSourceId) {
   return source === "ai-guided-intake" ? "AI-guided intake" : "Website form";
 }
 
+function inferFocusForPayload(payload: ReturnType<typeof validatePayload>) {
+  if (payload.aiIntake?.urgency === "urgent") {
+    return "crisis-triage" as const;
+  }
+
+  if (payload.serviceInterest === "family-intervention") {
+    return "family-coach" as const;
+  }
+
+  return "general-support" as const;
+}
+
+function getWorkflowProfileForPayload(payload: ReturnType<typeof validatePayload>) {
+  return buildCaseWorkflowProfile({
+    focus: inferFocusForPayload(payload),
+    relation: payload.relation as BookingRelationId,
+    serviceInterest: payload.serviceInterest as BookingServiceId,
+    aiIntake: payload.aiIntake ?? {
+      urgency: getSubmissionUrgency(payload),
+    },
+  });
+}
+
 function getFollowUpQueueColor(
   urgency: AiIntakePayload["urgency"],
 ): "green_background" | "yellow_background" | "red_background" {
@@ -393,6 +419,7 @@ function createFollowUpQueueEntry(
   timeParts: ReturnType<typeof getBookingTimeParts>,
 ) {
   const urgency = getSubmissionUrgency(payload);
+  const workflow = getWorkflowProfileForPayload(payload);
   const branchLabel = getBookingOptionLabel(
     BOOKING_BRANCH_OPTIONS,
     payload.branchPreference,
@@ -410,10 +437,7 @@ function createFollowUpQueueEntry(
 
   const children: Array<Record<string, unknown>> = [
     makeCalloutBlock(
-      `New ${sourceLabel} submission. Call ${payload.phone} via ${contactMethodLabel}. Best contact time: ${getBookingOptionLabel(
-        BOOKING_AVAILABILITY_OPTIONS,
-        payload.availability,
-      )}.`,
+      `New ${sourceLabel} submission. ${workflow.laneEnglishLabel}. Follow-up target: ${workflow.slaEnglishLabel}. Call ${payload.phone} via ${contactMethodLabel}.`,
       getFollowUpQueueColor(urgency),
       getFollowUpQueueEmoji(urgency),
     ),
@@ -422,7 +446,20 @@ function createFollowUpQueueEntry(
     makeBulletedItem(`Service: ${serviceLabel}`),
     makeBulletedItem(`Branch: ${branchLabel}`),
     makeBulletedItem(`Urgency: ${getUrgencyLabel(urgency)}`),
+    makeBulletedItem(`Lane: ${workflow.laneEnglishLabel}`),
+    makeBulletedItem(`Recommended program: ${workflow.recommendedProgramEnglishLabel}`),
+    makeBulletedItem(`Next action for team: ${workflow.counselorNextAction}`),
   ];
+
+  if (payload.aiIntake?.todayAction) {
+    children.push(makeBulletedItem(`Today's action for caller: ${payload.aiIntake.todayAction}`));
+  }
+
+  if (payload.aiIntake?.riskFlags.length) {
+    children.push(
+      makeBulletedItem(`Risk flags: ${payload.aiIntake.riskFlags.join("; ")}`),
+    );
+  }
 
   if (payload.aiIntake?.nextStepRecommendation) {
     children.push(makeBulletedItem(`Recommended next step: ${payload.aiIntake.nextStepRecommendation}`));
@@ -431,13 +468,45 @@ function createFollowUpQueueEntry(
   children.push(...makeParagraphBlocks(payload.notes));
 
   return makeToggleBlock(
-    `[${urgencyLabel}] ${timeParts.timestampLabel} - ${payload.requesterName} - ${serviceLabel}`.slice(
+    `[${urgencyLabel}] ${timeParts.timestampLabel} - ${payload.requesterName} - ${workflow.recommendedProgramEnglishLabel}`.slice(
       0,
       180,
     ),
     children,
     getFollowUpQueueColor(urgency),
   );
+}
+
+function getQueueSectionEnglishLabel(sectionId: QueueSectionId) {
+  if (sectionId === "needs-same-day-action") {
+    return "Needs same-day action";
+  }
+
+  if (sectionId === "aftercare-follow-through") {
+    return "Aftercare follow-through";
+  }
+
+  if (sectionId === "family-system-work") {
+    return "Family system work";
+  }
+
+  return "New intakes";
+}
+
+function getQueueSectionIntro(sectionId: QueueSectionId) {
+  if (sectionId === "needs-same-day-action") {
+    return "Items here need immediate or same-day contact. Clear these before moving into routine follow-up.";
+  }
+
+  if (sectionId === "aftercare-follow-through") {
+    return "Use this lane for post-rehab, relapse-prevention, and ongoing follow-up work.";
+  }
+
+  if (sectionId === "family-system-work") {
+    return "Use this lane for intervention preparation, family coaching, and boundary-setting work.";
+  }
+
+  return "Use this lane for new intakes that still need first structured contact.";
 }
 
 async function ensureFollowUpQueueBlock(
@@ -481,6 +550,43 @@ async function ensureFollowUpQueueBlock(
   return createdId;
 }
 
+async function ensureQueueSectionBlock(
+  notionToken: string,
+  followUpQueueId: string,
+  sectionId: QueueSectionId,
+) {
+  const queueChildren = await listAllBlockChildren(notionToken, followUpQueueId);
+  const existingSection = queueChildren.find(
+    (block) =>
+      block.type === "toggle" &&
+      getNotionBlockText(block) === getQueueSectionEnglishLabel(sectionId),
+  );
+
+  if (existingSection) {
+    return existingSection.id;
+  }
+
+  const response = await appendBlockChildren(
+    notionToken,
+    followUpQueueId,
+    [
+      makeToggleBlock(
+        getQueueSectionEnglishLabel(sectionId),
+        [makeParagraphBlocks(getQueueSectionIntro(sectionId))[0]],
+      ),
+    ],
+    { type: "start" },
+  );
+
+  const createdId = response.results?.[0]?.id;
+
+  if (!createdId) {
+    throw new Error("The queue section could not be created in Notion.");
+  }
+
+  return createdId;
+}
+
 function createRequestLogBlock(
   payload: ReturnType<typeof validatePayload>,
   timeParts: ReturnType<typeof getBookingTimeParts>,
@@ -509,9 +615,36 @@ function createRequestLogBlock(
   const { timeLabel, timestampLabel } = timeParts;
   const sourceLabel = getSubmissionSourceLabel(payload.source);
   const urgency = getSubmissionUrgency(payload);
+  const workflow = getWorkflowProfileForPayload(payload);
   const aiSections: Array<Record<string, unknown>> = [];
 
   if (payload.aiIntake) {
+    aiSections.push(
+      makeHeadingBlock("heading_3", "Operational routing"),
+      makeBulletedItem(`Lane: ${payload.aiIntake.serviceLane || workflow.laneEnglishLabel}`),
+      makeBulletedItem(
+        `Recommended program: ${
+          payload.aiIntake.recommendedProgram || workflow.recommendedProgramEnglishLabel
+        }`,
+      ),
+      makeBulletedItem(
+        `Next contact window: ${payload.aiIntake.nextContactWindow || workflow.slaEnglishLabel}`,
+      ),
+      makeBulletedItem(`Today's action: ${payload.aiIntake.todayAction || workflow.todayActionFallback}`),
+    );
+
+    if (payload.aiIntake.riskFlags.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Risk flags"),
+        ...payload.aiIntake.riskFlags.map((item) => makeBulletedItem(item)),
+      );
+    }
+
+    aiSections.push(
+      makeHeadingBlock("heading_3", "Counselor brief"),
+      ...makeParagraphBlocks(payload.aiIntake.counselorBrief),
+    );
+
     aiSections.push(
       makeHeadingBlock("heading_3", "AI handoff summary"),
       ...makeParagraphBlocks(payload.aiIntake.teamSummary),
@@ -573,6 +706,20 @@ function createRequestLogBlock(
       );
     }
 
+    if (payload.aiIntake.patientFollowUp.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Patient follow-up track"),
+        ...payload.aiIntake.patientFollowUp.map((item) => makeBulletedItem(item)),
+      );
+    }
+
+    if (payload.aiIntake.familyFollowUp.length > 0) {
+      aiSections.push(
+        makeHeadingBlock("heading_3", "Family follow-up track"),
+        ...payload.aiIntake.familyFollowUp.map((item) => makeBulletedItem(item)),
+      );
+    }
+
     if (payload.aiIntake.missingInformation.length > 0) {
       aiSections.push(
         makeHeadingBlock("heading_3", "Still missing or to reconfirm"),
@@ -627,10 +774,16 @@ async function appendBookingRequestToNotionPage(
     notionPageId,
     pageChildren,
   );
+  const workflow = getWorkflowProfileForPayload(payload);
+  const queueSectionId = await ensureQueueSectionBlock(
+    notionToken,
+    followUpQueueId,
+    workflow.queueSectionId,
+  );
 
   await appendBlockChildren(
     notionToken,
-    followUpQueueId,
+    queueSectionId,
     [createFollowUpQueueEntry(payload, timeParts)],
     { type: "start" },
   );
@@ -725,6 +878,14 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
             familyContext: trimMultiline(aiIntakeRaw.familyContext, 600),
             expectations: trimMultiline(aiIntakeRaw.expectations, 500),
             teamSummary: trimMultiline(aiIntakeRaw.teamSummary, 1100),
+            counselorBrief: trimMultiline(aiIntakeRaw.counselorBrief, 1200),
+            serviceLane: trimSingleLine(aiIntakeRaw.serviceLane, 120),
+            recommendedProgram: trimSingleLine(aiIntakeRaw.recommendedProgram, 80) as AiIntakePayload["recommendedProgram"],
+            nextContactWindow: trimSingleLine(aiIntakeRaw.nextContactWindow, 120),
+            todayAction: trimMultiline(aiIntakeRaw.todayAction, 320),
+            riskFlags: trimItems(aiIntakeRaw.riskFlags, 5, 160),
+            patientFollowUp: trimItems(aiIntakeRaw.patientFollowUp, 4, 180),
+            familyFollowUp: trimItems(aiIntakeRaw.familyFollowUp, 4, 180),
             nextStepRecommendation: trimMultiline(aiIntakeRaw.nextStepRecommendation, 500),
             interventionPreparation: trimItems(aiIntakeRaw.interventionPreparation, 5, 220),
             treatmentExpectations: trimItems(aiIntakeRaw.treatmentExpectations, 5, 220),

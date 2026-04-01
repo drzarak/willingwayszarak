@@ -163,8 +163,8 @@ function extractPreferredNameFromToolResults(
 
 function getDeterministicCrisisText(language: ChatLanguage) {
   return language === "urdu"
-    ? "مجھے ابھی آپ کی فوری حفاظت کی فکر ہے۔ اگر اوورڈوز، خودکشی، خود کو نقصان، یا تشدد کا خطرہ ہے تو ابھی 1122 یا نزدیک ترین ایمرجنسی سے رابطہ کریں۔ ولنگ ویز کے لئے 0300-7413639 پر بھی فوراً کال کریں۔ جب فوری حفاظتی قدم اٹھا لیا جائے تو ہم اگلے مرحلے میں مدد کریں گے۔"
-    : "I am concerned about immediate safety right now. If there is overdose, suicide risk, self-harm risk, or violence risk, contact 1122 or the nearest emergency room now. Please also call Willing Ways immediately on 0300-7413639. Once the immediate safety step has been taken, we can help with the next step.";
+    ? "مجھے ابھی آپ کی فوری حفاظت کی فکر ہے۔ اگر اوورڈوز، خودکشی، خود کو نقصان، یا تشدد کا خطرہ ہے تو ابھی 1122 یا نزدیک ترین ایمرجنسی سے رابطہ کریں۔ ولنگ ویز کے لئے 0300-7413639 پر بھی فوراً کال کریں۔ جیسے ہی فوری حفاظتی قدم اٹھا لیا جائے، ہم اگلے مرحلے میں مدد کریں گے۔"
+    : "I am really concerned about immediate safety right now. If there is overdose, suicide risk, self-harm risk, or violence risk, contact 1122 or the nearest emergency room now. Please also call Willing Ways immediately on 0300-7413639. As soon as that immediate safety step has been taken, we can help with the next step.";
 }
 
 function createChatTools(request: Request, bookingConfigured: boolean) {

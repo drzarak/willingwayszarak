@@ -19,6 +19,7 @@ import {
   type BookingRequestPayload,
   type BookingServiceId,
 } from "@/lib/booking";
+import { buildCaseWorkflowProfile } from "@/lib/case-workflows";
 import {
   normalizeVoiceCallFocusId,
   type ChatLanguage,
@@ -69,6 +70,10 @@ interface GeneratedIntakeDraft {
   familyContext: string;
   expectations: string;
   teamSummary: string;
+  todayAction: string;
+  riskFlags: string[];
+  patientFollowUp: string[];
+  familyFollowUp: string[];
   nextStepRecommendation: string;
   interventionPreparation: string[];
   treatmentExpectations: string[];
@@ -168,6 +173,11 @@ function buildTeamSummary(
   focus: VoiceCallFocusId,
 ) {
   const segments = [
+    aiIntake.counselorBrief,
+    `Lane: ${aiIntake.serviceLane}.`,
+    `Recommended program: ${aiIntake.recommendedProgram}.`,
+    `Next contact window: ${aiIntake.nextContactWindow}.`,
+    `Today's action: ${aiIntake.todayAction}.`,
     aiIntake.teamSummary,
     `Detected language: ${aiIntake.detectedLanguage}.`,
     `Current urgency: ${aiIntake.urgency}.`,
@@ -188,6 +198,50 @@ function buildTeamSummary(
   ];
 
   return segments.filter(Boolean).join("\n\n").slice(0, BOOKING_MAX_LENGTHS.notes);
+}
+
+function buildCounselorBrief(
+  aiIntake: Omit<
+    AiIntakePayload,
+    "counselorBrief" | "serviceLane" | "recommendedProgram" | "nextContactWindow"
+  > &
+    Pick<
+      AiIntakePayload,
+      "todayAction" | "riskFlags" | "patientFollowUp" | "familyFollowAlong" | "familyFollowUp"
+    >,
+  workflow: ReturnType<typeof buildCaseWorkflowProfile>,
+  relation: BookingRelationId,
+) {
+  const riskLine =
+    aiIntake.riskFlags.length > 0 ? aiIntake.riskFlags.join("; ") : aiIntake.urgency;
+  const followUpLine =
+    aiIntake.patientFollowUp.length > 0 || aiIntake.familyFollowUp.length > 0
+      ? [
+          aiIntake.patientFollowUp.length > 0
+            ? `Patient follow-up: ${aiIntake.patientFollowUp.join("; ")}`
+            : "",
+          aiIntake.familyFollowUp.length > 0
+            ? `Family follow-up: ${aiIntake.familyFollowUp.join("; ")}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" | ")
+      : "No structured follow-up points captured yet.";
+
+  return [
+    `Why now: ${aiIntake.presentingProblem || "Context still needs confirmation."}`,
+    `Risk: ${riskLine}`,
+    `Caller relationship: ${relation}`,
+    `Treatment history: ${aiIntake.historyContext || "Treatment history still needs confirmation."}`,
+    `Family system issue: ${aiIntake.familyContext || "Family-system context still needs confirmation."}`,
+    `Recommended next step: ${workflow.counselorNextAction}`,
+    `Missing info: ${
+      aiIntake.missingInformation.length > 0
+        ? aiIntake.missingInformation.join("; ")
+        : "No major missing items flagged."
+    }`,
+    `Follow-up track: ${followUpLine}`,
+  ].join("\n");
 }
 
 export async function POST(request: Request) {
@@ -302,6 +356,19 @@ export async function POST(request: Request) {
           familyContext: { type: "string" },
           expectations: { type: "string" },
           teamSummary: { type: "string" },
+          todayAction: { type: "string" },
+          riskFlags: {
+            type: "array",
+            items: { type: "string" },
+          },
+          patientFollowUp: {
+            type: "array",
+            items: { type: "string" },
+          },
+          familyFollowUp: {
+            type: "array",
+            items: { type: "string" },
+          },
           nextStepRecommendation: { type: "string" },
           interventionPreparation: {
             type: "array",
@@ -338,6 +405,10 @@ export async function POST(request: Request) {
           "familyContext",
           "expectations",
           "teamSummary",
+          "todayAction",
+          "riskFlags",
+          "patientFollowUp",
+          "familyFollowUp",
           "nextStepRecommendation",
           "interventionPreparation",
           "treatmentExpectations",
@@ -346,7 +417,7 @@ export async function POST(request: Request) {
         ],
       }),
       system:
-        "You prepare secure Willing Ways Pakistan intake handoff drafts from support-call transcripts. Do not diagnose or prescribe. Use only details actually supported by the transcript. If a detail is missing or uncertain, leave the string empty, use a safe default enum, and list the missing item in missingInformation. Be conservative with urgency: use 'urgent' only for overdose, self-harm, suicide, violent relapse, or immediate psychiatric danger; use 'priority' for situations that need fast intervention or follow-up; otherwise use 'routine'. Map relation, serviceInterest, branchPreference, contactMethod, contactLanguage, and availability to the provided enums. teamSummary should be concise, operational, and useful to the Willing Ways team. interventionPreparation, treatmentExpectations, and familyFollowAlong should be short, practical bullet points for the family or patient.",
+        "You prepare secure Willing Ways Pakistan intake handoff drafts from support-call transcripts. Do not diagnose or prescribe. Use only details actually supported by the transcript. If a detail is missing or uncertain, leave the string empty, use a safe default enum, and list the missing item in missingInformation. Be conservative with urgency: use 'urgent' only for overdose, self-harm, suicide, violent relapse, or immediate psychiatric danger; use 'priority' for situations that need fast intervention or follow-up; otherwise use 'routine'. Map relation, serviceInterest, branchPreference, contactMethod, contactLanguage, and availability to the provided enums. teamSummary should be concise, operational, and useful to the Willing Ways team. interventionPreparation, treatmentExpectations, familyFollowAlong, patientFollowUp, and familyFollowUp should be short, practical bullet points. todayAction should be one immediate behavior or support step the caller can realistically do today. riskFlags should capture the clearest relapse, safety, or family-system risks without exaggeration.",
       prompt: `Call focus: ${getFocusLabel(focus)}\nCurrent mode: ${mode}\nInterface language before call: ${language}\n\nPrepare an intake handoff draft from this transcript:\n\n${transcriptText}`,
       temperature: 0.2,
     });
@@ -355,38 +426,66 @@ export async function POST(request: Request) {
     const preferredLanguageFallback: BookingLanguageId =
       language === "urdu" ? "urdu" : "english";
 
-    const aiIntake: AiIntakePayload = {
+    const relation = normalizeEnumValue(
+      object.relation,
+      relationIds as readonly BookingRelationId[],
+      "family",
+    );
+    const serviceInterest = normalizeEnumValue(
+      object.serviceInterest,
+      serviceIds as readonly BookingServiceId[],
+      focus === "family-coach" ? "family-intervention" : "consultation",
+    );
+    const detectedLanguage: AiIntakePayload["detectedLanguage"] =
+      object.detectedLanguage === "urdu" ||
+      object.detectedLanguage === "punjabi" ||
+      object.detectedLanguage === "mixed"
+        ? object.detectedLanguage
+        : "english";
+    const aiIntakeBase: Omit<
+      AiIntakePayload,
+      "counselorBrief" | "serviceLane" | "recommendedProgram" | "nextContactWindow"
+    > = {
       urgency: normalizeEnumValue(
         object.urgency,
         urgencyIds as readonly AiIntakePayload["urgency"][],
         "routine",
       ),
-      detectedLanguage:
-        object.detectedLanguage === "urdu" ||
-        object.detectedLanguage === "punjabi" ||
-        object.detectedLanguage === "mixed"
-          ? object.detectedLanguage
-          : "english",
+      detectedLanguage,
       presentingProblem: trimParagraph(object.presentingProblem, 500),
       historyContext: trimParagraph(object.historyContext, 700),
       familyContext: trimParagraph(object.familyContext, 600),
       expectations: trimParagraph(object.expectations, 500),
       teamSummary: trimParagraph(object.teamSummary, 1100),
+      todayAction: trimParagraph(object.todayAction, 320),
+      riskFlags: trimItems(object.riskFlags, 5, 160),
+      patientFollowUp: trimItems(object.patientFollowUp, 4, 180),
+      familyFollowUp: trimItems(object.familyFollowUp, 4, 180),
       nextStepRecommendation: trimParagraph(object.nextStepRecommendation, 500),
       interventionPreparation: trimItems(object.interventionPreparation, 5, 220),
       treatmentExpectations: trimItems(object.treatmentExpectations, 5, 220),
       familyFollowAlong: trimItems(object.familyFollowAlong, 5, 220),
       missingInformation: trimItems(object.missingInformation, 6, 220),
     };
+    const workflow = buildCaseWorkflowProfile({
+      focus,
+      relation,
+      serviceInterest,
+      aiIntake: aiIntakeBase,
+    });
+    const aiIntake: AiIntakePayload = {
+      ...aiIntakeBase,
+      counselorBrief: buildCounselorBrief(aiIntakeBase, workflow, relation),
+      serviceLane: workflow.laneEnglishLabel,
+      recommendedProgram: workflow.recommendedProgramId,
+      nextContactWindow: workflow.slaEnglishLabel,
+      todayAction: aiIntakeBase.todayAction || workflow.todayActionFallback,
+    };
 
     const formDraft: BookingRequestPayload = {
       requesterName: trimSingleLine(object.requesterName, BOOKING_MAX_LENGTHS.requesterName),
       patientName: trimSingleLine(object.patientName, BOOKING_MAX_LENGTHS.patientName),
-      relation: normalizeEnumValue(
-        object.relation,
-        relationIds as readonly BookingRelationId[],
-        "family",
-      ),
+      relation,
       phone: trimSingleLine(object.phone, BOOKING_MAX_LENGTHS.phone),
       email: trimSingleLine(object.email, BOOKING_MAX_LENGTHS.email),
       branchPreference: normalizeEnumValue(
@@ -394,11 +493,7 @@ export async function POST(request: Request) {
         branchIds as readonly BookingBranchId[],
         "first-available",
       ),
-      serviceInterest: normalizeEnumValue(
-        object.serviceInterest,
-        serviceIds as readonly BookingServiceId[],
-        focus === "family-coach" ? "family-intervention" : "consultation",
-      ),
+      serviceInterest,
       contactMethod: normalizeEnumValue(
         object.contactMethod,
         contactMethodIds as readonly BookingContactMethodId[],

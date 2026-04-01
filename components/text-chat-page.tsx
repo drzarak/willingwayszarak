@@ -426,17 +426,17 @@ export function TextChatPage() {
           <div className="mt-4 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-end sm:justify-between">
             <div className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                {session.language === "urdu" ? "خاموش ٹیکسٹ سپورٹ" : "Quiet text support"}
+                {session.language === "urdu" ? "خاموش کنجین" : "Quiet care moment"}
               </div>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
                 {session.language === "urdu"
-                  ? "جو کچھ ہو رہا ہے وہ یہاں لکھ دیں"
-                  : "Write what is happening"}
+                  ? "آج آپ کو سب سے زیادہ کیا یاد آ رہا ہے؟"
+                  : "What keeps replaying in your mind tonight?"}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600 sm:text-[15px]">
                 {session.language === "urdu"
-                  ? "اگر بولنا مشکل ہو تو یہ آسان راستہ ہے۔ ہم cravings، family stress، relapse risk اور follow-up کے اگلے قدم میں مدد کریں گے۔"
-                  : "If speaking feels hard right now, this is the calmer route. We help with cravings, family stress, relapse risk, and the next follow-up step."}
+                  ? "یہ جگہ وہی ہے جو آپ کو بولنے سے پہلے حسبِ حال سوچنے کی اجازت دیتی ہے۔ ہم سنیں گے، پھر ایک قدم پیش کریں گے۔"
+                  : "Write it out when you need to pause the noise first. We'll read it gently and guide you toward one next step."}
               </p>
             </div>
 
@@ -476,8 +476,8 @@ export function TextChatPage() {
                   dir={session.language === "urdu" ? "rtl" : "ltr"}
                 >
                   {session.language === "urdu"
-                    ? "جو بات سب سے زیادہ مشکل لگ رہی ہے، وہیں سے شروع کریں"
-                    : "Start with what feels hardest right now"}
+                    ? "سب سے پہلے، آج آپ کو کیا سب سے زیادہ ڈرا رہا ہے؟"
+                    : "What felt heaviest today?"}
                 </h2>
                 <p
                   className={`mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base ${
@@ -486,8 +486,8 @@ export function TextChatPage() {
                   dir={session.language === "urdu" ? "rtl" : "ltr"}
                 >
                   {session.language === "urdu"
-                    ? "ہم ایک وقت میں ایک قدم لیں گے، صورتحال سمجھیں گے، اور پھر محفوظ اگلا راستہ نکالیں گے۔"
-                    : "We will take one step at a time, understand the situation, and then work out the safest next step."}
+                    ? "بولنے سے پہلے تحریر کریں، ہم اس امن کے ساتھ دیکھیں گے، پھر ایک قدم تجویز کریں گے جو اگلے لمحات میں ملائم ہو۔"
+                    : "Put it in writing before you speak. We'll sit with it, reflect back the feeling, and offer one grounded next step."}
                 </p>
                 <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
                   {suggestionChips.map((chip) => (

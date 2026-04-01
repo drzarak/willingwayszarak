@@ -30,6 +30,9 @@ export interface VoiceTranscriptEntry {
   text: string;
 }
 
+export type ProgramId = "find-treatment" | "family-recovery" | "stay-on-track" | "urgent-safety";
+export type ProgramAudience = "self" | "family" | "doctor";
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -41,6 +44,9 @@ export interface ChatSession {
   messages: UIMessage[];
   preferredName?: string;
   voiceTranscript: VoiceTranscriptEntry[];
+  programId?: ProgramId;
+  programStage?: "intro" | "conversation" | "review" | "handoff";
+  programAudience?: ProgramAudience;
 }
 
 export interface RuntimeStatus {
@@ -96,69 +102,69 @@ export const REALTIME_VOICE_OPTIONS: Array<{ id: RealtimeVoiceId; label: string 
 export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
   {
     id: "general-support",
-    englishLabel: "General support",
-    urduLabel: "عمومی رہنمائی",
-    englishTag: "Best first step",
-    urduTag: "پہلا بہترین قدم",
-    englishDescription: "Admissions, treatment questions, branch guidance, and calm first-step support.",
-    urduDescription: "داخلے، علاج، برانچ رہنمائی اور پرسکون ابتدائی مدد۔",
-    englishStarter: "I need help understanding the next step for my family.",
-    urduStarter: "مجھے اپنے خاندان کے لئے اگلا قدم سمجھنے میں مدد چاہیے۔",
+    englishLabel: "Find treatment support",
+    urduLabel: "علاج کے لئے رہنمائی",
+    englishTag: "Find what to do next",
+    urduTag: "اگلا قدم معلوم کریں",
+    englishDescription: "Explore how to reach Willing Ways, compare rehab or outpatient options, and know the safest next step.",
+    urduDescription: "ولنگ ویز سے رابطہ، ریحاب یا آؤٹ پیشنٹ کے اختیارات اور محفوظ اگلے قدم جانیں۔",
+    englishStarter: "Help me decide what Willing Ways path makes sense for my story.",
+    urduStarter: "مجھے بتائیں کہ میری صورتحال میں کون سا ولنگ ویز راستہ مناسب ہے۔",
   },
   {
     id: "guided-intake",
-    englishLabel: "AI intake handoff",
-    urduLabel: "اے آئی intake handoff",
-    englishTag: "For booking",
-    urduTag: "رابطے کے لئے",
-    englishDescription: "Tell your story, answer guided intake questions, and prepare a clean handoff for the Willing Ways team.",
-    urduDescription: "اپنی کہانی سنائیں، guided intake سوالات کے جواب دیں، اور ولنگ ویز ٹیم کے لئے صاف handoff تیار کریں۔",
-    englishStarter: "I want to explain our full situation so the Willing Ways team can follow up properly.",
-    urduStarter: "میں اپنی پوری صورتحال سمجھانا چاہتا ہوں تاکہ ولنگ ویز ٹیم درست follow-up کر سکے۔",
+    englishLabel: "Book a call or callback",
+    urduLabel: "کال یا callback طے کریں",
+    englishTag: "Clarify the situation",
+    urduTag: "صورتحال واضح کریں",
+    englishDescription: "Share the full story so the team can respond with the right branch, therapy lane, or counselor.",
+    urduDescription: "پورا قصہ بتائیں تاکہ ٹیم درست برانچ، تھیراپی یا counselor کے ساتھ رابطہ کرے۔",
+    englishStarter: "Let me explain everything so the team can follow up with a clear plan.",
+    urduStarter: "میں پوری بات سمجھاؤں تاکہ ٹیم واضح پلان کے ساتھ follow up کرے۔",
   },
   {
     id: "family-coach",
-    englishLabel: "Family coach",
-    urduLabel: "فیملی کوچ",
-    englishTag: "For families",
-    urduTag: "خاندان کے لئے",
-    englishDescription: "Practice difficult conversations and intervention language before speaking to your loved one.",
-    urduDescription: "اپنے عزیز سے بات کرنے سے پہلے مشکل گفتگو اور intervention language کی مشق کریں۔",
-    englishStarter: "Help me rehearse what to say to my addicted brother without triggering a fight.",
-    urduStarter: "میرے addicted بھائی سے بغیر لڑائی کے کیا کہنا ہے، اس کی rehearsal کروائیں۔",
+    englishLabel: "Rehearse family recovery",
+    urduLabel: "فیملی recovery کی مشق",
+    englishTag: "Family systems work",
+    urduTag: "خاندانی نظام کی مشق",
+    englishDescription: "Calm coaching for boundaries, denial, enabling, and intervention readiness before the confrontation.",
+    urduDescription: "حدود، انکار، enabling اور intervention کی تیاری کے لئے پرسکون coaching۔",
+    englishStarter: "Coach us through one calm conversation and the boundary we need to keep.",
+    urduStarter: "ایک پرسکون گفتگو اور boundary کی مشق کروائیں جو ہم برقرار رکھ سکیں۔",
   },
   {
     id: "crisis-triage",
-    englishLabel: "Crisis triage",
-    urduLabel: "بحرانی رہنمائی",
-    englishTag: "Urgent support",
-    urduTag: "فوری مدد",
-    englishDescription: "Fast safety-first guidance for overdose, violent relapse, self-harm, or urgent psychiatric distress.",
-    urduDescription: "اوورڈوز، violent relapse، self-harm یا فوری psychiatric distress کے لئے فوری حفاظتی رہنمائی۔",
-    englishStarter: "This feels urgent. Help me decide what we should do right now.",
-    urduStarter: "یہ معاملہ فوری لگ رہا ہے، ابھی ہمیں کیا کرنا چاہیے؟",
+    englishLabel: "Stabilize urgent events",
+    urduLabel: "فوری بحران سنبھالیں",
+    englishTag: "Safety starts here",
+    urduTag: "حفاظت یہاں شروع",
+    englishDescription: "Move quickly through safety questions, advise immediate steps, and escalate if needed.",
+    urduDescription: "فوری حفاظتی سوالات، ضروری قدم اور ضروری ہو تو escalation.",
+    englishStarter: "Something urgent just happened. Tell me what feels unsafe right now.",
+    urduStarter: "ابھی کوئی فوری واقعہ ہوا۔ بتائیں اب کیا غیر محفوظ لگ رہا ہے۔",
   },
   {
     id: "founder-method",
-    englishLabel: "Dr. Sadaqat method",
-    urduLabel: "ڈاکٹر صداقت کا طریقہ",
-    englishTag: "Founder guidance",
-    urduTag: "بانی کی رہنمائی",
-    englishDescription: "Ask for founder-led guidance grounded in Willing Ways teachings, books, videos, and family-system philosophy.",
-    urduDescription: "ولنگ ویز کی تعلیمات، کتابوں، ویڈیوز اور family-system philosophy پر مبنی founder-led guidance حاصل کریں۔",
-    englishStarter: "What is Dr. Sadaqat Ali's approach to shame, denial, and family recovery?",
-    urduStarter: "ڈاکٹر صداقت علی shame، denial اور family recovery کو کیسے دیکھتے ہیں؟",
+    englishLabel: "Ask the founder’s method",
+    urduLabel: "بانی کا طریقہ پوچھیں",
+    englishTag: "Program-level insight",
+    urduTag: "پروگرام لیول معلومات",
+    englishDescription: "Ground advice in Dr. Sadaqat Ali’s books, family-system philosophy, and legacy programs.",
+    urduDescription: "ڈاکٹر صداقت علی کی کتابوں، family-system فلسفے اور پروگرام سے رہنمائی۔",
+    englishStarter: "Explain Dr. Sadaqat Ali's thinking on shame, relapse, or family recovery.",
+    urduStarter: "ڈاکٹر صداقت علی کے shame، relapse یا family recovery خیالات بتائیں۔",
   },
   {
     id: "private-intake",
-    englishLabel: "Private intake",
-    urduLabel: "پرائیویٹ intake",
-    englishTag: "Private start",
-    urduTag: "خفیہ آغاز",
-    englishDescription: "Share a confidential situation without names first, then decide on the safest next step.",
-    urduDescription: "پہلے نام بتائے بغیر خفیہ صورتحال شیئر کریں، پھر محفوظ اگلا قدم طے کریں۔",
-    englishStarter: "I want to explain the situation without sharing names yet.",
-    urduStarter: "میں ابھی نام بتائے بغیر صورتحال سمجھانا چاہتا ہوں۔",
+    englishLabel: "Share anonymously",
+    urduLabel: "خفیہ طریقے سے بتائیں",
+    englishTag: "Privacy first",
+    urduTag: "پرائیویسی پہلے",
+    englishDescription: "Tell the story without names or identifying details until you are ready.",
+    urduDescription: "نام یا شناخت بتائے بغیر بات کریں جب تک آپ تیار نہ ہوں۔",
+    englishStarter: "I want to talk without saying names right now.",
+    urduStarter: "میں ابھی نام بتائے بغیر بات کرنا چاہتا ہوں۔",
   },
 ];
 
@@ -189,15 +195,19 @@ export function normalizeVoiceCallFocusId(
 export const SUGGESTION_CHIPS: Record<ChatLanguage, string[]> = {
   english: [
     "I am having cravings right now and need a safe next step",
-    "Our family keeps fighting after rehab and I need a calm plan",
-    "What warning signs should we watch for after discharge?",
-    "I want Willing Ways to follow up with our family",
+    "I used again and I feel ashamed—please help me course correct",
+    "Help me set a boundary without another fight tonight",
+    "What are the warning signs I might relapse soon?",
+    "I want Willing Ways or the family to follow up with my patient",
+    "I want to stay unnamed for now but still get guidance",
   ],
   urdu: [
-    "مجھے ابھی craving ہو رہی ہے اور محفوظ اگلا قدم چاہیے",
-    "rehab کے بعد گھر میں بار بار لڑائی ہو رہی ہے، مجھے پرسکون منصوبہ چاہیے",
-    "discharge کے بعد relapse کی کون سی warning signs دیکھنی چاہئیں؟",
-    "میں چاہتا ہوں ولنگ ویز ہماری فیملی سے follow-up کرے",
+    "مجھے ابھی craving ہو رہی ہے اور ایک محفوظ اگلا قدم چاہیے",
+    "میں نے دوبارہ use کیا، اب شرمندگی محسوس ہو رہی ہے، مدد کریں",
+    "ایک حد مقرر کرنے میں مدد کریں تاکہ ایک اور لڑائی نہ ہو",
+    "میں relapse کی warning signs کے بارے میں کیا دیکھوں؟",
+    "ہماری فیملی سے follow-up کیجیے گا",
+    "میں ابھی نام نہیں بتانا چاہتا، پھر بھی رہنمائی چاہیے",
   ],
 };
 
@@ -275,6 +285,7 @@ export function createChatSession(
     messages: [],
     preferredName: "",
     voiceTranscript: [],
+    programStage: "intro",
   };
 }
 
@@ -398,9 +409,32 @@ export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[]
     ...session,
     welcomed: session.welcomed ?? false,
     language: session.language ?? "english",
-    mode: "adaptive",
+    mode:
+      session.mode === "patient" || session.mode === "doctor" || session.mode === "adaptive"
+        ? session.mode
+        : "adaptive",
     messages: normalizeStoredMessages((session as { messages?: unknown }).messages),
     preferredName: session.preferredName ?? "",
+    programId:
+      session.programId === "find-treatment" ||
+      session.programId === "family-recovery" ||
+      session.programId === "stay-on-track" ||
+      session.programId === "urgent-safety"
+        ? session.programId
+        : undefined,
+    programStage:
+      session.programStage === "conversation" ||
+      session.programStage === "review" ||
+      session.programStage === "handoff" ||
+      session.programStage === "intro"
+        ? session.programStage
+        : "intro",
+    programAudience:
+      session.programAudience === "self" ||
+      session.programAudience === "family" ||
+      session.programAudience === "doctor"
+        ? session.programAudience
+        : undefined,
     title: session.title || "New conversation",
     voiceTranscript: Array.isArray(session.voiceTranscript)
       ? session.voiceTranscript
@@ -504,11 +538,36 @@ export function extractPreferredNameFromMessages(messages: UIMessage[]) {
 }
 
 export function buildVoiceResumeContext(transcript: VoiceTranscriptEntry[]) {
-  return transcript
-    .slice(-6)
-    .map((entry) => `${entry.role === "user" ? "Caller" : "AI"}: ${entry.text.trim()}`)
-    .filter(Boolean)
-    .join(" | ")
+  const callerTurns = transcript
+    .filter((entry) => entry.role === "user" && entry.text.trim())
+    .slice(-3)
+    .map((entry) => entry.text.trim());
+  const lastAssistantTurn = [...transcript]
+    .reverse()
+    .find((entry) => entry.role === "assistant" && entry.text.trim())
+    ?.text.trim();
+
+  if (callerTurns.length === 0 && !lastAssistantTurn) {
+    return "";
+  }
+
+  const callerJoined = callerTurns.join(" ").toLowerCase();
+  const callerRole = /mother|father|wife|husband|brother|sister|family|امی|ابو|بھائی|بہن|فیملی/.test(
+    callerJoined,
+  )
+    ? "Family member"
+    : /doctor|referrer|psychiatrist|consultant|ڈاکٹر/.test(callerJoined)
+      ? "Doctor or referrer"
+      : "Patient or caller";
+  const latestRisk = callerTurns.at(-1) ?? callerTurns.join(" ");
+  const latestStep = lastAssistantTurn ?? "A next step was being worked out.";
+
+  return [
+    `Who is speaking: ${callerRole}.`,
+    `What feels most risky: ${latestRisk}`.slice(0, 320),
+    `Last agreed step: ${latestStep}`.slice(0, 360),
+  ]
+    .join(" ")
     .slice(0, 900);
 }
 
@@ -550,39 +609,39 @@ export function voiceCallFocusLabel(focusId: VoiceCallFocusId, language: ChatLan
 export function voiceCallActionLabel(focusId: VoiceCallFocusId, language: ChatLanguage) {
   if (language === "urdu") {
     if (focusId === "guided-intake") {
-      return "اے آئی intake کال شروع کریں";
+      return "ٹیم callback کے لئے کال شروع کریں";
     }
     if (focusId === "family-coach") {
-      return "فیملی کوچنگ کال شروع کریں";
+      return "فیملی سپورٹ practice شروع کریں";
     }
     if (focusId === "crisis-triage") {
-      return "فوری رہنمائی کال شروع کریں";
+      return "فوری حفاظتی کال شروع کریں";
     }
     if (focusId === "founder-method") {
-      return "بانی کی رہنمائی والی کال شروع کریں";
+      return "بانی کی رہنمائی سنیں";
     }
     if (focusId === "private-intake") {
-      return "پرائیویٹ intake کال شروع کریں";
+      return "خفیہ کال شروع کریں";
     }
     return "ولنگ ویز اے آئی کو کال کریں";
   }
 
   if (focusId === "guided-intake") {
-    return "Start AI intake call";
+    return "Start a callback request";
   }
   if (focusId === "family-coach") {
-    return "Start family coaching call";
+    return "Start family support practice";
   }
   if (focusId === "crisis-triage") {
-    return "Start urgent guidance call";
+    return "Start an urgent support call";
   }
   if (focusId === "founder-method") {
-    return "Start founder guidance call";
+    return "Hear the founder’s guidance";
   }
   if (focusId === "private-intake") {
-    return "Start private intake call";
+    return "Start a private call";
   }
-  return "Call Willing Ways AI now";
+  return "Talk to Willing Ways AI";
 }
 
 export function getSuggestionChips(language: ChatLanguage) {

@@ -259,12 +259,10 @@ export function ChatApp({ surface }: ChatAppProps) {
   const AlternateActionIcon = alternateAction.icon;
   const voiceSurface = surface === "voice";
 
+  const rootClass = voiceSurface ? "h-[100dvh] overflow-hidden" : "min-h-screen";
+
   return (
-    <div
-      className={`bg-[#f4f4f1] text-slate-950 ${
-        voiceSurface ? "min-h-[100svh] h-[100svh] overflow-hidden" : "min-h-[100dvh]"
-      }`}
-    >
+    <div className={`bg-[#f4f4f1] text-slate-950 ${rootClass}`}>
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.03),_transparent_24%)]" />
       {surface === "chat" ? (
         <Sidebar
@@ -281,7 +279,7 @@ export function ChatApp({ surface }: ChatAppProps) {
       <div
         className={`relative mx-auto flex w-full flex-col ${
           voiceSurface
-            ? "min-h-[100svh] h-[100svh] max-w-[980px] overflow-hidden px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-5"
+            ? "h-full max-w-[980px] overflow-hidden px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
             : "min-h-[100dvh] max-w-5xl px-3 py-3 sm:px-5 sm:py-5"
         }`}
       >
@@ -293,44 +291,24 @@ export function ChatApp({ surface }: ChatAppProps) {
           }`}
         >
           {voiceSurface ? (
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center justify-between gap-3">
-                <Link href="/" className="flex min-h-11 min-w-0 items-center gap-3 rounded-2xl px-1">
-                  <Image
-                    src={SITE_MEDIA.logo}
-                    alt="Willing Ways"
-                    width={320}
-                    height={80}
-                    className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
-                    unoptimized
-                    priority
-                  />
-                </Link>
-
-                <a
-                  href={WILLING_WAYS_HELPLINE_HREF}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden"
-                >
-                  <PhoneCall className="h-4 w-4" />
-                  {WILLING_WAYS_HELPLINE_DISPLAY}
-                </a>
-              </div>
-
-              <div className="flex items-center gap-2 sm:justify-end">
-                <a
-                  href={WILLING_WAYS_HELPLINE_HREF}
-                  className="hidden h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
-                >
-                  <PhoneCall className="h-4 w-4" />
-                  {WILLING_WAYS_HELPLINE_DISPLAY}
-                </a>
-                <LanguageToggle
-                  language={activeSession.language}
-                  onChange={handleLanguageChange}
-                  compact
-                  className="w-full sm:w-[168px]"
+            <div className="flex items-center justify-between gap-2">
+              <Link href="/" className="flex items-center gap-3">
+                <Image
+                  src={SITE_MEDIA.logo}
+                  alt="Willing Ways"
+                  width={320}
+                  height={80}
+                  className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
+                  unoptimized
+                  priority
                 />
-              </div>
+              </Link>
+              <LanguageToggle
+                language={activeSession.language}
+                onChange={handleLanguageChange}
+                compact
+                className="w-[120px]"
+              />
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -407,7 +385,7 @@ export function ChatApp({ surface }: ChatAppProps) {
           ) : null}
         </header>
 
-        <main className={`min-h-0 flex-1 ${voiceSurface ? "mt-3 overflow-hidden" : "mt-4"}`}>
+        <main className={`min-h-0 flex-1 ${voiceSurface ? "mt-2" : "mt-4"}`}>
           {surface === "voice" ? (
             <RealtimeVoicePanel
               key={`${activeSession.id}:voice:${activeSession.language}`}

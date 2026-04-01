@@ -124,7 +124,7 @@ export function VoiceIntakeReview({
           <div className="grid gap-4">
             <div className="rounded-[24px] border border-[#ead6dc] bg-[#fff8fa] p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d]">
-                {isUrdu ? "ترتیب دی گئی کہانی" : "Streamlined story"}
+                {isUrdu ? "میں نے آپ سے یہ سنا" : "What I heard"}
               </div>
               <div
                 className={`mt-3 whitespace-pre-line text-sm leading-7 text-[#4b2934] ${
@@ -132,14 +132,20 @@ export function VoiceIntakeReview({
                 }`}
                 dir={isUrdu ? "rtl" : "ltr"}
               >
-                {draft.notes}
+                {[
+                  aiIntake.presentingProblem,
+                  aiIntake.familyContext,
+                  aiIntake.expectations,
+                ]
+                  .filter(Boolean)
+                  .join("\n\n")}
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-[24px] border border-[#ead6dc] bg-white p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d]">
-                  {isUrdu ? "اگلا مناسب قدم" : "Suggested next step"}
+                  {isUrdu ? "ابھی بہترین اگلا قدم" : "Best next step now"}
                 </div>
                 <div
                   className={`mt-3 text-sm leading-7 text-[#4b2934] ${
@@ -153,7 +159,7 @@ export function VoiceIntakeReview({
 
               <div className="rounded-[24px] border border-[#ead6dc] bg-white p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d]">
-                  {isUrdu ? "ابھی کیا اہم ہے" : "What matters now"}
+                  {isUrdu ? "آج کا ایک عملی قدم" : "One practical step for today"}
                 </div>
                 <div
                   className={`mt-3 text-sm leading-7 text-[#4b2934] ${
@@ -161,9 +167,51 @@ export function VoiceIntakeReview({
                   }`}
                   dir={isUrdu ? "rtl" : "ltr"}
                 >
-                  {aiIntake.presentingProblem}
+                  {aiIntake.todayAction}
                 </div>
               </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  englishTitle: "Support lane",
+                  urduTitle: "سپورٹ lane",
+                  body: aiIntake.serviceLane,
+                },
+                {
+                  englishTitle: "Recommended program",
+                  urduTitle: "تجویز کردہ program",
+                  body: aiIntake.recommendedProgram,
+                },
+                {
+                  englishTitle: "Follow-up window",
+                  urduTitle: "follow-up window",
+                  body: aiIntake.nextContactWindow,
+                },
+              ].map((item) => (
+                <div
+                  key={item.englishTitle}
+                  className="rounded-[24px] border border-[#ead6dc] bg-white p-4"
+                >
+                  <div
+                    className={`text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d] ${
+                      isUrdu ? "font-urdu normal-case text-right" : ""
+                    }`}
+                    dir={isUrdu ? "rtl" : "ltr"}
+                  >
+                    {isUrdu ? item.urduTitle : item.englishTitle}
+                  </div>
+                  <div
+                    className={`mt-3 text-sm leading-7 text-[#4b2934] ${
+                      isUrdu ? "font-urdu text-right" : ""
+                    }`}
+                    dir={isUrdu ? "rtl" : "ltr"}
+                  >
+                    {item.body}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -219,6 +267,66 @@ export function VoiceIntakeReview({
                         {isUrdu
                           ? "AI نے ابھی اس حصے کے لئے کوئی واضح نکتہ نہیں نکالا۔"
                           : "The AI did not identify a clear point for this section yet."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  englishTitle: "Risk flags",
+                  urduTitle: "risk flags",
+                  items: aiIntake.riskFlags,
+                },
+                {
+                  englishTitle: "Patient follow-up",
+                  urduTitle: "patient follow-up",
+                  items: aiIntake.patientFollowUp,
+                },
+                {
+                  englishTitle: "Family follow-up",
+                  urduTitle: "family follow-up",
+                  items: aiIntake.familyFollowUp,
+                },
+              ].map((section) => (
+                <div
+                  key={section.englishTitle}
+                  className="rounded-[24px] border border-[#ead6dc] bg-white p-4"
+                >
+                  <div
+                    className={`text-xs font-semibold uppercase tracking-[0.16em] text-[#8a4b5d] ${
+                      isUrdu ? "font-urdu normal-case text-right" : ""
+                    }`}
+                    dir={isUrdu ? "rtl" : "ltr"}
+                  >
+                    {isUrdu ? section.urduTitle : section.englishTitle}
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {section.items.length > 0 ? (
+                      section.items.map((item) => (
+                        <div
+                          key={item}
+                          className={`rounded-2xl border border-[#ead6dc] bg-[#fff8fa] px-3 py-3 text-sm leading-6 text-[#4b2934] ${
+                            isUrdu ? "font-urdu text-right" : ""
+                          }`}
+                          dir={isUrdu ? "rtl" : "ltr"}
+                        >
+                          {item}
+                        </div>
+                      ))
+                    ) : (
+                      <div
+                        className={`rounded-2xl border border-[#ead6dc] bg-[#fffdfd] px-3 py-3 text-sm leading-6 text-[#7a5a64] ${
+                          isUrdu ? "font-urdu text-right" : ""
+                        }`}
+                        dir={isUrdu ? "rtl" : "ltr"}
+                      >
+                        {isUrdu
+                          ? "AI نے ابھی اس حصے کے لئے کوئی واضح نکتہ نہیں نکالا۔"
+                          : "No clear item was captured for this section yet."}
                       </div>
                     )}
                   </div>
@@ -435,7 +543,7 @@ export function VoiceIntakeReview({
 
             <div className="grid gap-3 rounded-[24px] border border-[#ead6dc] bg-white p-4">
               <Label className={isUrdu ? "font-urdu text-right" : ""}>
-                {isUrdu ? "ولنگ ویز ٹیم کے لئے summary" : "Summary for the Willing Ways team"}
+                {isUrdu ? "ولنگ ویز ٹیم کے لئے operational note" : "Operational note for the Willing Ways team"}
               </Label>
               <Textarea
                 value={draft.notes}

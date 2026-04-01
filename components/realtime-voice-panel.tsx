@@ -21,6 +21,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AiIntakePayload, BookingRequestPayload } from "@/lib/booking";
+import { buildCaseWorkflowProfile } from "@/lib/case-workflows";
 import {
   buildVoiceResumeContext,
   CURRENT_REALTIME_VOICE_VERSION,
@@ -47,6 +48,11 @@ import {
   type FamilyTrainingLessonId,
 } from "@/lib/family-training";
 import {
+  HOME_RECOVERY_PROGRAM_IDS,
+  getRecoveryProgram,
+  type RecoveryProgramId,
+} from "@/lib/recovery-programs";
+import {
   getContactResult,
   getCrisisRedirectResult,
   getHumanEscalationResult,
@@ -63,6 +69,7 @@ import {
 import { createSafeId, safeStorageGet, safeStorageSet } from "@/lib/utils";
 
 import { VoiceIntakeReview } from "@/components/voice-intake-review";
+import { ProgramCardList } from "@/components/program-card-list";
 import { Button } from "@/components/ui/button";
 
 type VoiceStatus =
@@ -201,97 +208,6 @@ function normalizeRealtimeClientError(message: string, language: ChatLanguage) {
   }
 
   return message;
-}
-
-function getStatusLabel(status: VoiceStatus, language: ChatLanguage) {
-  if (status === "requesting") {
-    return language === "urdu" ? "کال تیار ہو رہی ہے" : "Preparing the call";
-  }
-
-  if (status === "connecting") {
-    return language === "urdu" ? "لائن مل رہی ہے" : "Ringing the line";
-  }
-
-  if (status === "connected") {
-    return language === "urdu" ? "کال اٹھا لی گئی" : "Call picked up";
-  }
-
-  if (status === "listening") {
-    return language === "urdu" ? "ہم سن رہے ہیں" : "Listening";
-  }
-
-  if (status === "responding") {
-    return language === "urdu" ? "اے آئی رہنمائی دے رہی ہے" : "Speaking";
-  }
-
-  if (status === "error") {
-    return language === "urdu" ? "کال میں مسئلہ آ گیا" : "The call ran into a problem";
-  }
-
-  return language === "urdu" ? "شروع کرنے کے لئے تیار" : "Ready to begin";
-}
-
-function getStatusDescription(
-  status: VoiceStatus,
-  language: ChatLanguage,
-  focus: VoiceCallFocusId,
-  moduleTitle?: string | null,
-) {
-  if (status === "requesting") {
-    return language === "urdu"
-      ? "ہم کال لائن تیار کر رہے ہیں۔"
-      : "We are getting the call line ready.";
-  }
-
-  if (status === "connecting") {
-    return language === "urdu"
-      ? focus === "family-coach"
-        ? "ایک لمحہ رکیں، family coaching line ملائی جا رہی ہے۔"
-        : "ایک لمحہ رکیں، support line ملائی جا رہی ہے۔"
-      : focus === "family-coach"
-        ? "Please hold while we connect the family coaching line."
-        : "Please hold while we connect the support line.";
-  }
-
-  if (status === "connected") {
-    return language === "urdu"
-      ? focus === "family-coach" && moduleTitle
-        ? `اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مشق شروع کرے گی۔`
-        : "اے آئی پہلے سلام کرے گی اور پھر سنے گی۔"
-      : focus === "family-coach" && moduleTitle
-        ? `The AI will greet you first and then begin "${moduleTitle}" coaching.`
-        : "The AI will greet you first and then listen.";
-  }
-
-  if (status === "listening") {
-    return language === "urdu"
-      ? "آرام سے بولیں۔ اردو، انگریزی یا پاکستانی پنجابی میں بات کریں۔"
-      : "Speak naturally in English, Urdu, or Pakistani Punjabi.";
-  }
-
-  if (status === "responding") {
-    return language === "urdu"
-      ? focus === "family-coach"
-        ? "اے آئی اگلا family coaching step دے رہی ہے۔"
-        : "اے آئی اگلا مفید relapse-prevention step دے رہی ہے۔"
-      : focus === "family-coach"
-        ? "The AI is giving the next coaching step for this family practice."
-        : "The AI is giving the next useful relapse-prevention step.";
-  }
-
-  if (status === "error") {
-    return language === "urdu"
-      ? "اکثر ایک نئی کال شروع کرنے سے مسئلہ حل ہو جاتا ہے۔"
-      : "Starting a fresh call usually fixes this.";
-  }
-
-  return language === "urdu"
-    ? focus === "family-coach" && moduleTitle
-      ? `کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر "${moduleTitle}" کی مختصر practice شروع کرے گی۔`
-      : "کال شروع کریں۔ اے آئی پہلے سلام کرے گی، پھر اگلے قدم میں مدد دے گی۔"
-    : focus === "family-coach" && moduleTitle
-      ? `Start the call. The AI will greet you and then coach you through "${moduleTitle}".`
-      : "Start the call. The AI greets you first and helps with the next step.";
 }
 
 function normalizeTranscriptComparisonText(value: string) {
@@ -731,6 +647,61 @@ export function RealtimeVoicePanel({
       !requesterName ? "Confirm the caller's preferred name." : "",
       !summarySource ? "Add a short summary of what help is needed right now." : "",
     ].filter(Boolean);
+    const aiIntakeBase: Omit<
+      AiIntakePayload,
+      "counselorBrief" | "serviceLane" | "recommendedProgram" | "nextContactWindow"
+    > = {
+      urgency: getFallbackUrgency(selectedFocus, careSignalSeverity),
+      detectedLanguage,
+      presentingProblem:
+        trimDraftParagraph(prefill?.notes || transcriptSummary, 500) ||
+        (language === "urdu"
+          ? "مزید context درکار ہے۔"
+          : "More context needs to be confirmed."),
+      historyContext: trimDraftParagraph(transcriptSummary, 700),
+      familyContext:
+        relation === "family"
+          ? "A family member is requesting support and follow-up."
+          : relation === "self"
+            ? "The patient is requesting direct support."
+            : relation === "doctor"
+              ? "A doctor or referrer is requesting follow-up."
+              : "The caller's role should be reconfirmed.",
+      expectations: "",
+      teamSummary:
+        trimDraftParagraph(summarySource || transcriptSummary, 1100) ||
+        nextStepRecommendation,
+      todayAction:
+        selectedFocus === "family-coach"
+          ? "Write one calm family script for tonight using two facts, one feeling, and one clear ask."
+          : "Use one calming or relapse-prevention exercise today and remove one risky trigger before tonight.",
+      riskFlags: careSignal?.matchedCues.slice(0, 4) ?? [],
+      patientFollowUp:
+        relation === "self"
+          ? [
+              "Reconfirm the next follow-up touchpoint within 24 hours.",
+              "Watch cravings, mood, and risky hours until the next contact.",
+            ]
+          : [],
+      familyFollowUp:
+        relation === "family"
+          ? [
+              "Keep one lead family contact and one shared message.",
+              "Watch secrecy, anger spikes, and missed follow-up.",
+            ]
+          : [],
+      nextStepRecommendation,
+      interventionPreparation: [],
+      treatmentExpectations: [],
+      familyFollowAlong: [],
+      missingInformation,
+    };
+    const workflow = buildCaseWorkflowProfile({
+      focus: selectedFocus,
+      relation,
+      serviceInterest,
+      aiIntake: aiIntakeBase,
+    });
 
     return {
       requesterName,
@@ -756,32 +727,12 @@ export function RealtimeVoicePanel({
           : "The caller requested follow-up from the Willing Ways team."),
       consent: false,
       source: "ai-guided-intake",
-        aiIntake: {
-        urgency: getFallbackUrgency(selectedFocus, careSignalSeverity),
-        detectedLanguage,
-        presentingProblem:
-          trimDraftParagraph(prefill?.notes || transcriptSummary, 500) ||
-          (language === "urdu"
-            ? "مزید context درکار ہے۔"
-            : "More context needs to be confirmed."),
-        historyContext: trimDraftParagraph(transcriptSummary, 700),
-        familyContext:
-          relation === "family"
-            ? "A family member is requesting support and follow-up."
-            : relation === "self"
-              ? "The patient is requesting direct support."
-              : relation === "doctor"
-                ? "A doctor or referrer is requesting follow-up."
-                : "The caller's role should be reconfirmed.",
-        expectations: "",
-        teamSummary:
-          trimDraftParagraph(summarySource || transcriptSummary, 1100) ||
-          nextStepRecommendation,
-        nextStepRecommendation,
-        interventionPreparation: [],
-        treatmentExpectations: [],
-        familyFollowAlong: [],
-        missingInformation,
+      aiIntake: {
+        ...aiIntakeBase,
+        counselorBrief: workflow.summary,
+        serviceLane: workflow.laneEnglishLabel,
+        recommendedProgram: workflow.recommendedProgramId,
+        nextContactWindow: workflow.slaEnglishLabel,
       },
       website: "",
     };
@@ -2094,13 +2045,11 @@ export function RealtimeVoicePanel({
   const CallOrbIcon =
     status === "responding" ? Volume2 : status === "listening" || status === "connected" ? Mic : PhoneCall;
   const showContinuityCard = hasConversationHistory && !callIsStarting && !callIsLive;
-  const showMinimalIdleIntro =
-    !showContinuityCard && !callIsStarting && !callIsLive && !selectedFamilyLesson;
+  const showMinimalIdleIntro = false;
   const showUtilityPanels =
     showMoreOptions ||
     showFamilyTraining ||
     showVoiceOptions ||
-    Boolean(selectedFamilyLesson) ||
     Boolean(intakeDraft) ||
     Boolean(submissionNotice) ||
     Boolean(toolActivity) ||
@@ -2133,6 +2082,39 @@ export function RealtimeVoicePanel({
       ? `${lastAssistantGuidance.text.slice(0, 300).trimEnd()}...`
       : lastAssistantGuidance.text
     : "";
+  const selectedProgramId = useMemo<RecoveryProgramId>(() => {
+    if (selectedFamilyLessonId === "intervention-preparation") {
+      return "intervention-readiness";
+    }
+
+    if (selectedFocus === "family-coach") {
+      return "family-first-response";
+    }
+
+    if (selectedFocus === "crisis-triage") {
+      return "relapse-warning-radar";
+    }
+
+    if (selectedFocus === "guided-intake" || selectedFocus === "private-intake") {
+      return "post-rehab-30-day";
+    }
+
+    const joinedText = userTranscriptTexts.join(" ").toLowerCase();
+
+    if (/craving|urge|trigger/.test(joinedText)) {
+      return "cravings-rescue";
+    }
+
+    if (/relapse|warning|secrecy|anger|isolation|follow-up|follow up/.test(joinedText)) {
+      return "relapse-warning-radar";
+    }
+
+    return "post-rehab-30-day";
+  }, [selectedFamilyLessonId, selectedFocus, userTranscriptTexts]);
+  const selectedProgram = useMemo(
+    () => getRecoveryProgram(selectedProgramId),
+    [selectedProgramId],
+  );
 
   async function handleStartFamilyTraining(lessonId: FamilyTrainingLessonId) {
     if (callIsStarting || callIsLive) {
@@ -2145,6 +2127,22 @@ export function RealtimeVoicePanel({
     await startSession({ focus: "family-coach", lessonId });
   }
 
+  function handleSelectRecoveryProgram(programId: RecoveryProgramId) {
+    if (callIsStarting || callIsLive) {
+      return;
+    }
+
+    const program = getRecoveryProgram(programId);
+
+    if (!program) {
+      return;
+    }
+
+    updateCallSelection(program.voiceFocus, program.familyLessonId ?? null);
+    setShowFamilyTraining(false);
+    setShowMoreOptions(false);
+  }
+
   return (
     <section id="call" className="mx-auto h-full max-w-3xl">
       <audio ref={audioRef} autoPlay />
@@ -2153,64 +2151,33 @@ export function RealtimeVoicePanel({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
-          <div className="mx-auto max-w-[720px] text-center">
+          <div className="mx-auto max-w-[720px]">
             <h1
-              className={`mx-auto max-w-[640px] text-[1.72rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] ${
-                language === "urdu" ? "font-urdu" : ""
+              className={`max-w-[640px] text-[1.72rem] font-semibold leading-[1.05] tracking-[-0.02em] text-slate-900 sm:text-[3rem] ${
+                language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {selectedFamilyLesson
                 ? language === "urdu"
-                  ? "پرسکون فیملی کوچنگ کال"
-                  : "A calm family coaching call"
+                  ? "فیملی کوچنگ، قدم بہ قدم"
+                  : "Family coaching, step by step"
                 : language === "urdu"
-                  ? "پرسکون کونسلر سے بات کریں"
-                  : "Talk to a calm counselor"}
+                  ? "بات کریں، سانس ہموار کریں، اگلا قدم لیں"
+                  : "Talk it through. Leave with one steady next step."}
             </h1>
 
             <p
-              className={`mx-auto mt-1.5 max-w-[560px] text-[14px] leading-6 text-slate-600 sm:mt-2 sm:text-base sm:leading-7 ${
-                language === "urdu" ? "font-urdu" : ""
+              className={`mt-2 max-w-[600px] text-[14px] leading-6 text-slate-600 ${
+                language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              {selectedFamilyLesson
-                ? language === "urdu"
-                  ? "اے آئی پہلے سلام کرے گی، پھر گھر میں بات کرنے کی مشق، boundaries اور اگلا قدم واضح کرے گی۔"
-                  : "The AI greets you first and then helps you practise what to say, where to hold boundaries, and what to do next at home."
-                : language === "urdu"
-                  ? "cravings، family stress، relapse risk یا post-rehab مشکل میں فوری رہنمائی حاصل کریں۔"
-                  : "Get immediate guidance for cravings, family stress, relapse risk, or post-rehab instability."}
+              {language === "urdu"
+                ? "یہ کال پہلے آپ کو سنتی ہے، پھر ایک عملی قدم، family script یا human follow-up طے کرتی ہے۔ گفتگو اردو، پنجابی یا انگریزی میں نجی رہتی ہے۔"
+                : "This call listens first, then helps with one practical step, one family script, or a clean human handoff. The line stays private in Urdu, Punjabi, or English."}
             </p>
           </div>
-
-          {showContinuityCard ? (
-            <div className="mx-auto mt-3 flex w-full max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-[22px] border border-black/5 bg-[#fbfbfc] px-4 py-3 text-sm text-slate-600 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-              <div
-                className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
-                dir={language === "urdu" ? "rtl" : "ltr"}
-              >
-                {language === "urdu"
-                  ? rememberedName
-                    ? `${rememberedName}، جہاں بات ختم ہوئی تھی وہیں سے دوبارہ شروع کریں`
-                    : "جہاں بات ختم ہوئی تھی وہیں سے دوبارہ شروع کریں"
-                  : rememberedName
-                    ? `Continue gently, ${rememberedName}`
-                    : "Continue gently from where you left off"}
-              </div>
-              <button
-                type="button"
-                onClick={clearLocalVoiceMemory}
-                className="site-inline-link text-xs font-medium"
-              >
-                <RefreshCcw className="h-4 w-4" />
-                <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
-                  {language === "urdu" ? "نئی شروعات" : "Start fresh"}
-                </span>
-              </button>
-            </div>
-          ) : null}
 
           <div className="mx-auto mt-3 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:mt-4 sm:px-5 sm:py-5">
             <div className="flex items-center justify-between gap-3">
@@ -2277,42 +2244,63 @@ export function RealtimeVoicePanel({
                 </div>
               ) : null}
 
-              <div className="mt-2.5 text-[13px] font-medium text-slate-500 sm:mt-3">
-                {getStatusLabel(status, language)}
-              </div>
               <div
-                className={`mt-1.5 max-w-lg text-[14px] leading-6 text-slate-600 sm:mt-2 sm:text-base ${
-                  language === "urdu" ? "font-urdu" : ""
+                className={`mt-2 text-sm leading-6 text-slate-600 ${
+                  language === "urdu" ? "font-urdu text-right" : "text-left"
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                {getStatusDescription(
-                  status,
-                  language,
-                  selectedFocus,
-                  language === "urdu"
-                    ? selectedFamilyLesson?.urduTitle
-                    : selectedFamilyLesson?.englishTitle,
-                )}
+                {language === "urdu"
+                  ? "پہلے بات سنیں گے، پھر ایک واضح اور پرسکون plan بنائیں گے۔"
+                  : "First we listen, then we shape one clear and calm plan."}
               </div>
             </div>
 
-            {showContinuityCard ? null : rememberedName ? (
+            {rememberedName ? (
               <div
-                className={`mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ${
+                className={`mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <UserRound className="h-4 w-4" />
+                <UserRound className="h-3.5 w-3.5" />
                 {language === "urdu"
-                  ? `ہم آپ کو ${rememberedName} کہہ کر مخاطب کریں گے`
-                  : `We will address you as ${rememberedName}`}
+                  ? `${rememberedName}، وہیں سے دوبارہ شروع کریں`
+                  : `Continue gently with ${rememberedName}`}
+              </div>
+            ) : null}
+
+            {!selectedFamilyLesson && selectedProgram ? (
+              <div className="mt-4 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div
+                    className={language === "urdu" ? "font-urdu text-right" : ""}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      {language === "urdu" ? "آج کے لئے بہتر track" : "Best track for this moment"}
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-slate-950">
+                      {language === "urdu" ? selectedProgram.urduLabel : selectedProgram.englishLabel}
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-slate-600">
+                      {language === "urdu" ? selectedProgram.urduTagline : selectedProgram.englishTagline}
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600 ${
+                      language === "urdu" ? "font-urdu" : ""
+                    }`}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {language === "urdu" ? selectedProgram.urduCadence : selectedProgram.englishCadence}
+                  </div>
+                </div>
               </div>
             ) : null}
 
             {selectedFamilyLesson ? (
-              <div className="mt-5 rounded-[24px] border border-black/5 bg-white px-4 py-4 text-left shadow-sm">
+              <div className="mt-4 rounded-[24px] border border-black/5 bg-white px-4 py-4 text-left shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div
                     className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
@@ -2414,6 +2402,9 @@ export function RealtimeVoicePanel({
                   <span className="info-chip px-3 py-1.5 text-xs">
                     {language === "urdu" ? "فیملی + ریلیپس سپورٹ" : "Family + relapse support"}
                   </span>
+                  <span className="info-chip px-3 py-1.5 text-xs">
+                    {language === "urdu" ? "صاف handoff جب ضرورت ہو" : "Clean handoff when needed"}
+                  </span>
                 </div>
 
                 <div
@@ -2423,10 +2414,32 @@ export function RealtimeVoicePanel({
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
                   {language === "urdu"
-                    ? "یہ گفتگو اسی براؤزر میں نجی رہتی ہے۔"
-                    : "This conversation stays private in this browser."}
+                    ? "یہ کال repetitive family guidance، calming steps اور team handoff کو ایک ہی جگہ سنبھالتی ہے۔"
+                    : "This one call handles repetitive family guidance, calming steps, and the team handoff in one place."}
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-3">
+
+                {!callIsLive ? (
+                  <div className="pt-2">
+                    <div
+                      className={`mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
+                        language === "urdu" ? "font-urdu text-right normal-case" : "text-left"
+                      }`}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu"
+                        ? "وہ مدد منتخب کریں جو آپ کی صورتحال کے قریب ہو"
+                        : "Choose the kind of help that feels closest to your situation"}
+                    </div>
+                    <ProgramCardList
+                      language={language}
+                      programIds={HOME_RECOVERY_PROGRAM_IDS}
+                      selectedProgramId={selectedProgramId}
+                      onSelect={handleSelectRecoveryProgram}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 text-sm">
                   <Link href="/chat" className="site-inline-link">
                     <MessageSquare className="h-4 w-4" />
                     <span
@@ -2434,10 +2447,19 @@ export function RealtimeVoicePanel({
                       dir={language === "urdu" ? "rtl" : "ltr"}
                     >
                       {language === "urdu"
-                        ? "اگر چاہیں تو لکھ کر بات کریں"
-                        : "Prefer typing? Open text chat"}
+                        ? "اگر بولنا مشکل ہو تو لکھیں"
+                        : "If speaking feels hard, write instead"}
                     </span>
                   </Link>
+                  <a href="tel:+923007413639" className="site-inline-link">
+                    <PhoneCall className="h-4 w-4" />
+                    <span
+                      className={language === "urdu" ? "font-urdu" : ""}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu" ? "ٹیم کو براہ راست کال کریں" : "Call the team directly"}
+                    </span>
+                  </a>
                   <button
                     type="button"
                     onClick={() => setShowMoreOptions(true)}
@@ -2448,20 +2470,9 @@ export function RealtimeVoicePanel({
                       className={language === "urdu" ? "font-urdu" : ""}
                       dir={language === "urdu" ? "rtl" : "ltr"}
                     >
-                      {language === "urdu" ? "مزید مدد" : "More support"}
+                      {language === "urdu" ? "مزید اختیارات" : "More support options"}
                     </span>
                   </button>
-                </div>
-
-                <div
-                  className={`text-center text-xs leading-6 text-slate-600 ${
-                    language === "urdu" ? "font-urdu" : ""
-                  }`}
-                  dir={language === "urdu" ? "rtl" : "ltr"}
-                >
-                  {language === "urdu"
-                    ? "محبت سے تعمیر: ڈاکٹر زارک خان"
-                    : "Built with love by Dr Zarak Khan"}
                 </div>
               </div>
             ) : null}
@@ -2921,6 +2932,19 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
           </div>
+
+          {!callIsLive && !callIsStarting ? (
+            <div
+              className={`mt-3 text-center text-[11px] leading-5 text-slate-500 ${
+                language === "urdu" ? "font-urdu" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {language === "urdu"
+                ? "محبت سے تعمیر: ڈاکٹر زارک خان"
+                : "Built with love by Dr Zarak Khan"}
+            </div>
+          ) : null}
         </div>
       </section>
     </section>

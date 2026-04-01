@@ -1,3 +1,5 @@
+import type { RecoveryProgramId } from "@/lib/recovery-programs";
+
 export const NOTION_API_VERSION = "2026-03-11";
 
 export const BOOKING_RELATION_OPTIONS = [
@@ -69,6 +71,14 @@ export interface AiIntakePayload {
   familyContext: string;
   expectations: string;
   teamSummary: string;
+  counselorBrief: string;
+  serviceLane: string;
+  recommendedProgram: RecoveryProgramId;
+  nextContactWindow: string;
+  todayAction: string;
+  riskFlags: string[];
+  patientFollowUp: string[];
+  familyFollowUp: string[];
   nextStepRecommendation: string;
   interventionPreparation: string[];
   treatmentExpectations: string[];

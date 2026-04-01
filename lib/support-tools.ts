@@ -453,6 +453,14 @@ export const REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS = {
 export function buildBookingPayloadFromToolInput(
   input: BookSessionToolInput,
 ): BookingRequestPayload {
+  const cleanNotes = input.notes.trim();
+  const fallbackProgram =
+    input.serviceInterest === "family-intervention"
+      ? "family-first-response"
+      : input.serviceInterest === "follow-up"
+        ? "post-rehab-30-day"
+        : "post-rehab-30-day";
+
   return {
     requesterName: input.requesterName.trim(),
     patientName: input.patientName?.trim() || "",
@@ -464,9 +472,58 @@ export function buildBookingPayloadFromToolInput(
     contactMethod: input.contactMethod,
     contactLanguage: input.contactLanguage,
     availability: input.availability,
-    notes: input.notes.trim(),
+    notes: cleanNotes,
     consent: true,
     source: "ai-guided-intake",
+    aiIntake: {
+      urgency:
+        input.serviceInterest === "family-intervention" || input.serviceInterest === "follow-up"
+          ? "priority"
+          : "routine",
+      detectedLanguage:
+        input.contactLanguage === "punjabi"
+          ? "punjabi"
+          : input.contactLanguage === "urdu"
+            ? "urdu"
+            : "english",
+      presentingProblem: cleanNotes,
+      historyContext: "",
+      familyContext:
+        input.relation === "family"
+          ? "A family member requested support through text chat."
+          : input.relation === "doctor"
+            ? "A doctor or referrer requested support through text chat."
+            : "The patient requested support through text chat.",
+      expectations: "",
+      teamSummary: cleanNotes,
+      counselorBrief: `Why now: ${cleanNotes}\nRisk: routine\nCaller relationship: ${input.relation}\nTreatment history: Still needs confirmation.\nFamily system issue: Still needs confirmation.\nRecommended next step: Return contact and confirm the first suitable Willing Ways step.\nMissing info: Build a fuller AI handoff on callback if needed.`,
+      serviceLane:
+        input.serviceInterest === "family-intervention"
+          ? "Family coaching"
+          : input.serviceInterest === "follow-up"
+            ? "Aftercare follow-up"
+            : "Treatment readiness",
+      recommendedProgram: fallbackProgram,
+      nextContactWindow:
+        input.serviceInterest === "family-intervention" || input.serviceInterest === "follow-up"
+          ? "Within 12 hours"
+          : "Within 24 hours",
+      todayAction:
+        input.serviceInterest === "family-intervention"
+          ? "Write one calm family script and one boundary before the callback."
+          : "Keep the phone available for follow-up and note the main concern in one sentence.",
+      riskFlags: [],
+      patientFollowUp: input.relation === "self" ? ["Confirm the first follow-up touchpoint on callback."] : [],
+      familyFollowUp:
+        input.relation === "family"
+          ? ["Keep one lead family contact and one shared message until callback."]
+          : [],
+      nextStepRecommendation: "Return contact, confirm the story, and route toward the best Willing Ways next step.",
+      interventionPreparation: [],
+      treatmentExpectations: [],
+      familyFollowAlong: [],
+      missingInformation: ["A fuller handoff summary should be confirmed on callback."],
+    },
     website: "",
   };
 }
