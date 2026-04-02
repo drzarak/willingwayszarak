@@ -1,4 +1,9 @@
-import type { ChatLanguage, ChatMode, VoiceCallFocusId } from "@/lib/chat";
+import type {
+  ChatLanguage,
+  ChatMode,
+  TextChatAudience,
+  VoiceCallFocusId,
+} from "@/lib/chat";
 import {
   buildFamilyTrainingLessonPrompt,
   type FamilyTrainingLessonId,
@@ -67,6 +72,7 @@ interface ComposePromptOptions {
   preferredName?: string;
   resumeContext?: string;
   voiceFocus?: VoiceCallFocusId;
+  textAudience?: TextChatAudience | null;
 }
 
 function getVoiceFocusPrefix(
@@ -108,6 +114,7 @@ export function composeSystemPrompt(
   const voiceFocus = options?.voiceFocus ?? "general-support";
   const preferredName = options?.preferredName?.trim() ?? "";
   const resumeContext = options?.resumeContext?.trim() ?? "";
+  const textAudience = options?.textAudience ?? null;
   const rolePrefix =
     mode === "doctor"
       ? "User role: Doctor or Clinical Staff. Provide more detailed clinical context and resources from the knowledge base while strictly following every boundary and rule in the system prompt above (never diagnose, never prescribe, always recommend consulting the team)."
@@ -159,10 +166,26 @@ export function composeSystemPrompt(
   const stylePrefix =
     "Answer style: Keep replies easy to scan, practical, and calm. Use short sections or bullets when helpful in text. In voice, use plain spoken language, brief reflective empathy, and real emotional warmth. Do not pile up advice. In most turns: acknowledge, clarify, guide, then ask one focused question.";
 
+  const readAloudPrefix =
+    surface === "chat"
+      ? "Read-aloud compatibility: Write answers so they can be spoken aloud naturally by an AI voice in a room. Favor short paragraphs, sentence-case headings, and spoken wording over dense bullet dumps or technical shorthand."
+      : "";
+
   const voiceSurfacePrefix =
     surface === "voice"
       ? "Surface: Realtime voice call. Voice rules override text rules. Sound like a calm, highly trained psychologist or relapse-prevention counselor on the phone. Ask one focused question at a time, pause naturally, and avoid long monologues. Do not speak in bullets, sections, or brochure facts unless the caller explicitly asks for detail. Default voice flow is: listen, reflect the emotional reality briefly, offer one useful next step, then ask one focused question. Keep most replies within 15 to 25 seconds of speaking time unless the user explicitly asks for more detail."
       : "Surface: Text chat. Keep the conversation simple, human, and easy to read.";
+
+  const textAudiencePrefix =
+    surface !== "chat"
+      ? ""
+      : textAudience === "family"
+        ? "Text audience: Family member. Prioritize family-system guidance, boundaries, treatment readiness, and post-rehab follow-through while still being emotionally attuned."
+        : textAudience === "staff"
+          ? "Text audience: Staff or clinician. Keep the tone warm but more structured, with clearer psychoeducation, definitions, and operational usefulness."
+          : textAudience === "classroom"
+            ? "Text audience: Classroom or group teaching mode. Write for projector visibility and shared learning: slightly larger conceptual chunks, clear labels, plain definitions, and one short 'why this matters' teaching line when useful."
+            : "Text audience: Patient. Focus on emotional safety, relapse prevention, and one steady next step.";
 
   const voiceFocusPrefix =
     surface === "voice"
@@ -195,5 +218,5 @@ export function composeSystemPrompt(
     ? `Recent conversation context from this browser session: ${resumeContext}`
     : "";
 
-  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${punjabiPrefix}\n${languagePrefix}\n${presentationPrefix}\n${relapsePreventionPrefix}\n${founderReliefPrefix}\n${familySystemPrefix}\n${familyTrainingPrefix}\n${modulePrefix}\n${exercisePrefix}\n${lapsePrefix}\n${psychologistTonePrefix}\n${stylePrefix}\n${voiceSurfacePrefix}\n${voiceFocusPrefix}\n${openingPrefix}\n${namePrefix}\n${routingPrefix}\n${relapseWorkflowPrefix}\n${unclearAudioPrefix}\n${toolPrefix}\n${workflowPrefix}\n${memoryPrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
+  return `${rolePrefix}\n${localePrefix}\n${matchingPrefix}\n${punjabiPrefix}\n${languagePrefix}\n${presentationPrefix}\n${relapsePreventionPrefix}\n${founderReliefPrefix}\n${familySystemPrefix}\n${familyTrainingPrefix}\n${modulePrefix}\n${exercisePrefix}\n${lapsePrefix}\n${psychologistTonePrefix}\n${stylePrefix}\n${readAloudPrefix}\n${voiceSurfacePrefix}\n${textAudiencePrefix}\n${voiceFocusPrefix}\n${openingPrefix}\n${namePrefix}\n${routingPrefix}\n${relapseWorkflowPrefix}\n${unclearAudioPrefix}\n${toolPrefix}\n${workflowPrefix}\n${memoryPrefix}\n\n${WILLING_WAYS_SYSTEM_PROMPT}`;
 }

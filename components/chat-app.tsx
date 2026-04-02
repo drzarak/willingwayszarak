@@ -249,7 +249,7 @@ export function ChatApp({ surface }: ChatAppProps) {
       ? {
           href: "/chat",
           icon: MessageSquare,
-          label: isUrdu ? "اگر چاہیں تو ٹیکسٹ چیٹ" : "Prefer typing? Open text chat",
+          label: isUrdu ? "ڈاکٹر صداقت GPT کھولیں" : "Open Dr Sadaqat GPT",
         }
       : {
           href: "/",
@@ -361,15 +361,17 @@ export function ChatApp({ surface }: ChatAppProps) {
                 dir={isUrdu ? "rtl" : "ltr"}
               >
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                  {isUrdu ? "ٹیکسٹ چیٹ" : "Text chat"}
+                  {isUrdu ? "ڈاکٹر صداقت GPT" : "Dr Sadaqat GPT"}
                 </div>
                 <div className="mt-2 text-lg font-semibold text-slate-950 sm:text-[1.35rem]">
-                  {isUrdu ? "اگر بات کرنا آسان نہ ہو تو یہاں لکھیں" : "Type here if speaking is not easy right now"}
+                  {isUrdu
+                    ? "اگر بولنا آسان نہ ہو تو یہاں ڈاکٹر صداقت GPT سے بات کریں"
+                    : "Talk to Dr Sadaqat GPT here if speaking is not easy right now"}
                 </div>
                 <div className="mt-1 text-sm leading-6 text-slate-600">
                   {isUrdu
-                    ? "اگر آپ خاموشی سے اپنی بات لکھنا چاہیں تو یہی دوسرا آسان راستہ ہے۔"
-                    : "If you would rather type quietly, this is the simpler second route."}
+                    ? "یہ خاموش reflection، classroom teaching اور family guidance کے لئے زیادہ موزوں text space ہے۔"
+                    : "This is the calmer text space for reflection, classroom teaching, and family guidance."}
                 </div>
               </div>
 

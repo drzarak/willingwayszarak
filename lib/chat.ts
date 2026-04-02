@@ -5,6 +5,7 @@ import { createSafeId } from "@/lib/utils";
 export type ChatMode = "adaptive" | "patient" | "doctor";
 export type ChatLanguage = "english" | "urdu";
 export type ModelId = "gpt-4o-mini" | "gpt-4o" | "gpt-4-turbo";
+export type TextChatAudience = "patient" | "family" | "staff" | "classroom";
 export type VoiceCallFocusId =
   | "general-support"
   | "guided-intake"
@@ -43,6 +44,7 @@ export interface ChatSession {
   language: ChatLanguage;
   messages: UIMessage[];
   preferredName?: string;
+  textAudience?: TextChatAudience;
   voiceTranscript: VoiceTranscriptEntry[];
   programId?: ProgramId;
   programStage?: "intro" | "conversation" | "review" | "handoff";
@@ -75,14 +77,24 @@ export interface VoiceCareSignal {
   matchedCues: string[];
 }
 
+export interface TextChatAudienceOption {
+  id: TextChatAudience;
+  englishLabel: string;
+  urduLabel: string;
+  englishDescription: string;
+  urduDescription: string;
+  englishStarter: string;
+  urduStarter: string;
+}
+
 export const APP_SETTINGS_STORAGE_KEY = "willing-ways-ai:settings";
 export const CHAT_SESSIONS_STORAGE_KEY = "willing-ways-ai:sessions";
 export const ACTIVE_CHAT_STORAGE_KEY = "willing-ways-ai:active-chat";
 export const REALTIME_VOICE_STORAGE_KEY = "willing-ways-ai:realtime-voice";
 export const REALTIME_VOICE_VERSION_STORAGE_KEY = "willing-ways-ai:realtime-voice-version";
-export const CURRENT_REALTIME_VOICE_VERSION = "3";
+export const CURRENT_REALTIME_VOICE_VERSION = "4";
 export const DEFAULT_CHAT_MODEL_ID: ModelId = "gpt-4o-mini";
-export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "cedar";
+export const DEFAULT_REALTIME_VOICE_ID: RealtimeVoiceId = "marin";
 export const DEFAULT_VOICE_CALL_FOCUS_ID: VoiceCallFocusId = "general-support";
 export const MAX_PERSISTED_VOICE_TURNS = 24;
 
@@ -165,6 +177,45 @@ export const VOICE_CALL_FOCUS_OPTIONS: VoiceCallFocusOption[] = [
     urduDescription: "نام یا شناخت بتائے بغیر بات کریں جب تک آپ تیار نہ ہوں۔",
     englishStarter: "I want to talk without saying names right now.",
     urduStarter: "میں ابھی نام بتائے بغیر بات کرنا چاہتا ہوں۔",
+  },
+];
+
+export const TEXT_CHAT_AUDIENCE_OPTIONS: TextChatAudienceOption[] = [
+  {
+    id: "patient",
+    englishLabel: "Patient check-in",
+    urduLabel: "مریض کی رہنمائی",
+    englishDescription: "For cravings, relapse fear, mood instability, and one calm next step.",
+    urduDescription: "cravings، relapse کے خوف، mood instability اور ایک پرسکون اگلے قدم کے لئے۔",
+    englishStarter: "I need one calm step for myself right now.",
+    urduStarter: "مجھے ابھی اپنے لئے ایک پرسکون اگلا قدم چاہیے۔",
+  },
+  {
+    id: "family",
+    englishLabel: "Family support",
+    urduLabel: "خاندانی سپورٹ",
+    englishDescription: "For boundaries, denial, intervention readiness, and post-rehab follow-through.",
+    urduDescription: "حدود، denial، intervention کی تیاری اور post-rehab follow-through کے لئے۔",
+    englishStarter: "Help me support my loved one without making things worse.",
+    urduStarter: "مجھے اپنے پیارے کی مدد کرنے کا بہتر طریقہ بتائیں۔",
+  },
+  {
+    id: "staff",
+    englishLabel: "Staff learning",
+    urduLabel: "اسٹاف لرننگ",
+    englishDescription: "For counselors, referrers, and care teams reviewing Dr. Sadaqat’s approach.",
+    urduDescription: "counselors، referrers اور care teams کے لئے جو ڈاکٹر صداقت کے approach کو دیکھنا چاہتے ہیں۔",
+    englishStarter: "Teach me the Willing Ways approach in a clinically useful way.",
+    urduStarter: "مجھے ولنگ ویز approach کو clinically useful انداز میں سمجھائیں۔",
+  },
+  {
+    id: "classroom",
+    englishLabel: "Classroom mode",
+    urduLabel: "کلاس روم موڈ",
+    englishDescription: "For projector-led sessions, rehab classes, and daily psychoeducation.",
+    urduDescription: "projector-led sessions، rehab classes اور روزمرہ psychoeducation کے لئے۔",
+    englishStarter: "Explain this clearly for a classroom or group learning session.",
+    urduStarter: "اسے کلاس روم یا group learning session کے لئے واضح انداز میں سمجھائیں۔",
   },
 ];
 
@@ -284,6 +335,7 @@ export function createChatSession(
     language,
     messages: [],
     preferredName: "",
+    textAudience: "patient",
     voiceTranscript: [],
     programStage: "intro",
   };
@@ -415,6 +467,13 @@ export function normalizeChatSessions(rawSessions: ChatSession[]): ChatSession[]
         : "adaptive",
     messages: normalizeStoredMessages((session as { messages?: unknown }).messages),
     preferredName: session.preferredName ?? "",
+    textAudience:
+      session.textAudience === "patient" ||
+      session.textAudience === "family" ||
+      session.textAudience === "staff" ||
+      session.textAudience === "classroom"
+        ? session.textAudience
+        : "patient",
     programId:
       session.programId === "find-treatment" ||
       session.programId === "family-recovery" ||
@@ -646,6 +705,10 @@ export function voiceCallActionLabel(focusId: VoiceCallFocusId, language: ChatLa
 
 export function getSuggestionChips(language: ChatLanguage) {
   return SUGGESTION_CHIPS[language];
+}
+
+export function getTextChatAudienceOption(audience: TextChatAudience) {
+  return TEXT_CHAT_AUDIENCE_OPTIONS.find((option) => option.id === audience) ?? TEXT_CHAT_AUDIENCE_OPTIONS[0];
 }
 
 export function isUrduText(value: string) {

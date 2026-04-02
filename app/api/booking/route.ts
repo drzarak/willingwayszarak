@@ -365,6 +365,35 @@ function getSubmissionSourceLabel(source: BookingSourceId) {
   return source === "ai-guided-intake" ? "AI-guided intake" : "Website form";
 }
 
+function getCallbackDueLabel(slaMinutes: number) {
+  const dueAt = new Date(Date.now() + slaMinutes * 60 * 1000);
+
+  return `${new Intl.DateTimeFormat("en-PK", {
+    timeZone: PAKISTAN_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(dueAt)} PKT`;
+}
+
+function getOwnerHint(sectionId: QueueSectionId) {
+  if (sectionId === "family-system-work") {
+    return "Assign a family coaching owner";
+  }
+
+  if (sectionId === "aftercare-follow-through") {
+    return "Assign an aftercare follow-up owner";
+  }
+
+  if (sectionId === "needs-same-day-action") {
+    return "Assign the on-duty same-day callback owner";
+  }
+
+  return "Assign an intake owner";
+}
+
 function inferFocusForPayload(payload: ReturnType<typeof validatePayload>) {
   if (payload.aiIntake?.urgency === "urgent") {
     return "crisis-triage" as const;
@@ -434,6 +463,8 @@ function createFollowUpQueueEntry(
   );
   const sourceLabel = getSubmissionSourceLabel(payload.source);
   const urgencyLabel = getUrgencyLabel(urgency).toUpperCase();
+  const callbackDueLabel = getCallbackDueLabel(workflow.slaMinutes);
+  const ownerHint = getOwnerHint(workflow.queueSectionId);
 
   const children: Array<Record<string, unknown>> = [
     makeCalloutBlock(
@@ -441,6 +472,11 @@ function createFollowUpQueueEntry(
       getFollowUpQueueColor(urgency),
       getFollowUpQueueEmoji(urgency),
     ),
+    makeBulletedItem(`Status: Open - awaiting owner assignment`),
+    makeBulletedItem(`Owner: ${ownerHint}`),
+    makeBulletedItem(`Queue: ${workflow.queueEnglishLabel}`),
+    makeBulletedItem(`SLA: ${workflow.slaEnglishLabel}`),
+    makeBulletedItem(`Callback due: ${callbackDueLabel}`),
     makeBulletedItem(`Requester: ${payload.requesterName}`),
     makeBulletedItem(`Patient: ${payload.patientName || "Not provided"}`),
     makeBulletedItem(`Service: ${serviceLabel}`),
@@ -530,7 +566,7 @@ async function ensureFollowUpQueueBlock(
         "Open follow-up queue",
         [
           makeCalloutBlock(
-            "Newest submissions are inserted at the top of this queue. Move or archive items here once the team has followed up.",
+            "Newest submissions are inserted at the top of this queue. Assign an owner, honor the SLA, then move or archive the item once follow-up is complete.",
             "yellow_background",
             "📌",
           ),
@@ -616,6 +652,8 @@ function createRequestLogBlock(
   const sourceLabel = getSubmissionSourceLabel(payload.source);
   const urgency = getSubmissionUrgency(payload);
   const workflow = getWorkflowProfileForPayload(payload);
+  const callbackDueLabel = getCallbackDueLabel(workflow.slaMinutes);
+  const ownerHint = getOwnerHint(workflow.queueSectionId);
   const aiSections: Array<Record<string, unknown>> = [];
 
   if (payload.aiIntake) {
@@ -753,6 +791,10 @@ function createRequestLogBlock(
       makeBulletedItem(`Preferred language: ${languageLabel}`),
       makeBulletedItem(`Best time to contact: ${availabilityLabel}`),
       makeBulletedItem(`Urgency: ${getUrgencyLabel(urgency)}`),
+      makeBulletedItem(`Queue: ${workflow.queueEnglishLabel}`),
+      makeBulletedItem(`SLA: ${workflow.slaEnglishLabel}`),
+      makeBulletedItem(`Callback due: ${callbackDueLabel}`),
+      makeBulletedItem(`Suggested owner: ${ownerHint}`),
       makeHeadingBlock("heading_3", "Summary"),
       ...makeParagraphBlocks(payload.notes),
       ...aiSections,

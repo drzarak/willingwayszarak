@@ -12,7 +12,6 @@ import {
   Mic,
   MicOff,
   PhoneCall,
-  PhoneOff,
   RefreshCcw,
   ShieldAlert,
   UserRound,
@@ -380,6 +379,7 @@ export function RealtimeVoicePanel({
   const analyserFrameRef = useRef<number | null>(null);
   const analyserBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const ringToneTimerRef = useRef<number | null>(null);
+  const orbHoldTimerRef = useRef<number | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
@@ -391,6 +391,7 @@ export function RealtimeVoicePanel({
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
   const lastAssistantSpeechAtRef = useRef(0);
   const recentAssistantDeltaSignatureRef = useRef<{ signature: string; at: number } | null>(null);
+  const orbLongPressTriggeredRef = useRef(false);
   const pendingResponseTimerRef = useRef<number | null>(null);
   const activeSpeechEpochRef = useRef(0);
   const latestSpeechEpochRef = useRef(0);
@@ -408,7 +409,10 @@ export function RealtimeVoicePanel({
     const storedVoice = safeStorageGet(REALTIME_VOICE_STORAGE_KEY);
     const storedVersion = safeStorageGet(REALTIME_VOICE_VERSION_STORAGE_KEY);
     const shouldRefreshVoicePreference =
-      !storedVoice || storedVoice === "marin" || storedVoice === "marine";
+      !storedVoice ||
+      storedVoice === "cedar" ||
+      storedVoice === "marin" ||
+      storedVoice === "marine";
     const nextVoice =
       storedVersion !== CURRENT_REALTIME_VOICE_VERSION && shouldRefreshVoicePreference
         ? DEFAULT_REALTIME_VOICE_ID
@@ -915,6 +919,11 @@ export function RealtimeVoicePanel({
       ringToneTimerRef.current = null;
     }
 
+    if (orbHoldTimerRef.current !== null) {
+      window.clearTimeout(orbHoldTimerRef.current);
+      orbHoldTimerRef.current = null;
+    }
+
     if (pendingResponseTimerRef.current !== null) {
       window.clearTimeout(pendingResponseTimerRef.current);
       pendingResponseTimerRef.current = null;
@@ -965,6 +974,7 @@ export function RealtimeVoicePanel({
     micNoiseFloorRef.current = 0.004;
     turnCooldownUntilRef.current = 0;
     recentAssistantDeltaSignatureRef.current = null;
+    orbLongPressTriggeredRef.current = false;
     setCallConnectedAt(null);
     setCallDurationSeconds(0);
     setIsMicMuted(false);
@@ -1050,6 +1060,13 @@ export function RealtimeVoicePanel({
     if (ringToneTimerRef.current !== null) {
       window.clearTimeout(ringToneTimerRef.current);
       ringToneTimerRef.current = null;
+    }
+  }
+
+  function clearCallOrbHoldTimer() {
+    if (orbHoldTimerRef.current !== null) {
+      window.clearTimeout(orbHoldTimerRef.current);
+      orbHoldTimerRef.current = null;
     }
   }
 
@@ -2043,7 +2060,13 @@ export function RealtimeVoicePanel({
   const callIsLive =
     status === "connected" || status === "listening" || status === "responding";
   const CallOrbIcon =
-    status === "responding" ? Volume2 : status === "listening" || status === "connected" ? Mic : PhoneCall;
+    callIsLive && isMicMuted
+      ? MicOff
+      : status === "responding"
+        ? Volume2
+        : status === "listening" || status === "connected"
+          ? Mic
+          : PhoneCall;
   const showContinuityCard = hasConversationHistory && !callIsStarting && !callIsLive;
   const showMinimalIdleIntro = false;
   const showUtilityPanels =
@@ -2116,6 +2139,76 @@ export function RealtimeVoicePanel({
     [selectedProgramId],
   );
 
+  const orbHelperText =
+    callIsStarting
+      ? language === "urdu"
+        ? "کال مل رہی ہے۔ ایک بار دبا کر منسوخ کریں۔"
+        : "The line is ringing. Tap once to cancel."
+      : callIsLive && isMicMuted
+        ? language === "urdu"
+          ? "سننا فی الحال paused ہے۔ دوبارہ سننے کے لئے tap کریں۔ ختم کرنے کے لئے hold کریں۔"
+          : "Listening is paused. Tap to resume. Press and hold to end."
+        : callIsLive
+          ? language === "urdu"
+            ? "tap کر کے سننا pause کریں۔ کال ختم کرنے کے لئے hold کریں۔"
+            : "Tap to pause listening. Press and hold to end."
+          : language === "urdu"
+            ? "درمیانی بٹن پر tap کر کے کال شروع کریں۔"
+            : "Tap the center button to start the call.";
+
+  async function handleCallOrbClick() {
+    if (orbLongPressTriggeredRef.current) {
+      orbLongPressTriggeredRef.current = false;
+      return;
+    }
+
+    if (callIsStarting) {
+      stopSession();
+      return;
+    }
+
+    if (callIsLive) {
+      if (!isMicMuted && activeResponseRef.current) {
+        interruptAssistantResponse();
+      }
+
+      const nextMuted = !isMicMuted;
+      setMicMutedState(nextMuted);
+      setToolActivity(
+        nextMuted
+          ? language === "urdu"
+            ? "سننا وقتی طور پر pause کر دیا گیا ہے۔"
+            : "Listening is paused for a moment."
+          : language === "urdu"
+            ? "کال دوبارہ سننے کے لئے تیار ہے۔"
+            : "The call is ready to listen again.",
+      );
+      return;
+    }
+
+    await startSession({
+      focus: selectedFocus,
+      lessonId: selectedFamilyLessonId,
+    });
+  }
+
+  function handleCallOrbPointerDown() {
+    if (!callIsStarting && !callIsLive) {
+      return;
+    }
+
+    orbLongPressTriggeredRef.current = false;
+    clearCallOrbHoldTimer();
+    orbHoldTimerRef.current = window.setTimeout(() => {
+      orbLongPressTriggeredRef.current = true;
+      stopSession();
+    }, 850);
+  }
+
+  function handleCallOrbPointerRelease() {
+    clearCallOrbHoldTimer();
+  }
+
   async function handleStartFamilyTraining(lessonId: FamilyTrainingLessonId) {
     if (callIsStarting || callIsLive) {
       return;
@@ -2174,8 +2267,8 @@ export function RealtimeVoicePanel({
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {language === "urdu"
-                ? "یہ کال پہلے آپ کو سنتی ہے، پھر ایک عملی قدم، family script یا human follow-up طے کرتی ہے۔ گفتگو اردو، پنجابی یا انگریزی میں نجی رہتی ہے۔"
-                : "This call listens first, then helps with one practical step, one family script, or a clean human handoff. The line stays private in Urdu, Punjabi, or English."}
+                ? "یہ ایک پرسکون Willing Ways call ہے۔ اے آئی پہلے سلام کرتی ہے، پھر مسئلہ سمجھ کر ایک واضح اگلا قدم، family script یا human handoff دیتی ہے۔"
+                : "This is a calm Willing Ways call. The AI greets first, understands what is happening, and then gives one clear next step, one family script, or a clean human handoff."}
             </p>
           </div>
 
@@ -2210,8 +2303,27 @@ export function RealtimeVoicePanel({
             </div>
 
             <div className="mt-4 flex flex-col items-center text-center sm:mt-5">
-              <div
-                className={`voice-orb h-20 w-20 sm:h-24 sm:w-24 ${
+              <button
+                type="button"
+                onClick={() => void handleCallOrbClick()}
+                onPointerDown={handleCallOrbPointerDown}
+                onPointerUp={handleCallOrbPointerRelease}
+                onPointerLeave={handleCallOrbPointerRelease}
+                onPointerCancel={handleCallOrbPointerRelease}
+                aria-label={
+                  callIsLive
+                    ? isMicMuted
+                      ? language === "urdu"
+                        ? "سننا دوبارہ شروع کریں"
+                        : "Resume listening"
+                      : language === "urdu"
+                        ? "سننا pause کریں"
+                        : "Pause listening"
+                    : language === "urdu"
+                      ? "ولنگ ویز AI call شروع کریں"
+                      : "Start the Willing Ways AI call"
+                }
+                className={`voice-orb h-20 w-20 cursor-pointer sm:h-24 sm:w-24 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
@@ -2226,12 +2338,16 @@ export function RealtimeVoicePanel({
                     }`}
                   />
                 </div>
-              </div>
+              </button>
 
               {callIsStarting || callIsLive ? (
                 <div
                   className={`voice-wave ${
-                    callIsLive ? "voice-wave-live" : "voice-wave-ringing"
+                    callIsLive
+                      ? isMicMuted
+                        ? "voice-wave-idle"
+                        : "voice-wave-live"
+                      : "voice-wave-ringing"
                   }`}
                 >
                   {Array.from({ length: 6 }).map((_, index) => (
@@ -2249,10 +2365,10 @@ export function RealtimeVoicePanel({
                   language === "urdu" ? "font-urdu text-right" : "text-left"
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
+                role="status"
+                aria-live="polite"
               >
-                {language === "urdu"
-                  ? "پہلے بات سنیں گے، پھر ایک واضح اور پرسکون plan بنائیں گے۔"
-                  : "First we listen, then we shape one clear and calm plan."}
+                {orbHelperText}
               </div>
             </div>
 
@@ -2270,7 +2386,9 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
-            {!selectedFamilyLesson && selectedProgram ? (
+            {!selectedFamilyLesson &&
+            selectedProgram &&
+            (selectedFocus !== "general-support" || transcriptStoryLength > 0) ? (
               <div className="mt-4 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div
@@ -2352,46 +2470,14 @@ export function RealtimeVoicePanel({
               </div>
             ) : null}
 
-            {status === "idle" || status === "error" ? (
-              <Button
-                onClick={() => {
-                  void startSession({
-                    focus: selectedFocus,
-                    lessonId: selectedFamilyLessonId,
-                  });
-                }}
-                className="mt-3.5 h-12 w-full rounded-full text-base shadow-[0_12px_24px_rgba(15,23,42,0.1)] sm:mt-4"
-              >
-                <PhoneCall className="h-4 w-4" />
-                {primaryCallActionLabel}
-              </Button>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr]">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setMicMutedState(!isMicMuted)}
-                  className="h-12 border-slate-200 bg-white text-base shadow-sm"
-                >
-                  {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {language === "urdu"
-                    ? isMicMuted
-                      ? "مائیک آن کریں"
-                      : "مائیک خاموش کریں"
-                    : isMicMuted
-                      ? "Unmute mic"
-                      : "Mute mic"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={stopSession}
-                  className="h-12 border-slate-200 bg-white text-base shadow-sm"
-                >
-                  <PhoneOff className="h-4 w-4" />
-                  {language === "urdu" ? "کال ختم کریں" : "End the call"}
-                </Button>
-              </div>
-            )}
+            <div
+              className={`mt-3 text-center text-sm font-semibold text-slate-700 ${
+                language === "urdu" ? "font-urdu" : ""
+              }`}
+              dir={language === "urdu" ? "rtl" : "ltr"}
+            >
+              {callIsLive || callIsStarting ? orbHelperText : primaryCallActionLabel}
+            </div>
 
             {!showUtilityPanels ? (
               <div className="mt-4 space-y-3">
@@ -2418,27 +2504,6 @@ export function RealtimeVoicePanel({
                     : "This one call handles repetitive family guidance, calming steps, and the team handoff in one place."}
                 </div>
 
-                {!callIsLive ? (
-                  <div className="pt-2">
-                    <div
-                      className={`mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
-                        language === "urdu" ? "font-urdu text-right normal-case" : "text-left"
-                      }`}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {language === "urdu"
-                        ? "وہ مدد منتخب کریں جو آپ کی صورتحال کے قریب ہو"
-                        : "Choose the kind of help that feels closest to your situation"}
-                    </div>
-                    <ProgramCardList
-                      language={language}
-                      programIds={HOME_RECOVERY_PROGRAM_IDS}
-                      selectedProgramId={selectedProgramId}
-                      onSelect={handleSelectRecoveryProgram}
-                    />
-                  </div>
-                ) : null}
-
                 <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 text-sm">
                   <Link href="/chat" className="site-inline-link">
                     <MessageSquare className="h-4 w-4" />
@@ -2447,8 +2512,8 @@ export function RealtimeVoicePanel({
                       dir={language === "urdu" ? "rtl" : "ltr"}
                     >
                       {language === "urdu"
-                        ? "اگر بولنا مشکل ہو تو لکھیں"
-                        : "If speaking feels hard, write instead"}
+                        ? "ڈاکٹر صداقت GPT میں لکھیں"
+                        : "Open Dr Sadaqat GPT"}
                     </span>
                   </Link>
                   <a href="tel:+923007413639" className="site-inline-link">
@@ -2617,6 +2682,34 @@ export function RealtimeVoicePanel({
 
             {showUtilityPanels ? (
               <>
+            {!callIsLive ? (
+              <div className="mt-4 rounded-[24px] border border-black/5 bg-white px-4 py-4 shadow-sm sm:px-5">
+                <div
+                  className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
+                  dir={language === "urdu" ? "rtl" : "ltr"}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {language === "urdu"
+                      ? "اپنی صورتحال کے مطابق support track"
+                      : "Choose a support track"}
+                  </div>
+                  <div className="mt-2 text-sm leading-7 text-slate-600">
+                    {language === "urdu"
+                      ? "اگر آپ چاہیں تو کال سے پہلے track منتخب کریں۔ عام support کے لئے سیدھی کال کافی ہے۔"
+                      : "If you want, choose a track before the call. For general support, you can simply start the call."}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <ProgramCardList
+                    language={language}
+                    programIds={HOME_RECOVERY_PROGRAM_IDS}
+                    selectedProgramId={selectedProgramId}
+                    onSelect={handleSelectRecoveryProgram}
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"

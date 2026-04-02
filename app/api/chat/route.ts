@@ -17,6 +17,7 @@ import {
   type ChatLanguage,
   type ChatMode,
   type ModelId,
+  type TextChatAudience,
 } from "@/lib/chat";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
@@ -63,6 +64,19 @@ interface ChatRequestBody {
   responseMode?: "json" | "stream";
   resumeContext?: string;
   trigger?: string;
+}
+
+function normalizeTextChatAudience(value: string | undefined): TextChatAudience | null {
+  if (
+    value === "patient" ||
+    value === "family" ||
+    value === "staff" ||
+    value === "classroom"
+  ) {
+    return value;
+  }
+
+  return null;
 }
 
 function createAssistantTextMessage(text: string): UIMessage {
@@ -394,6 +408,7 @@ export async function POST(request: Request) {
         preferredName: normalizePreferredName(body.preferredName),
         resumeContext: typeof body.resumeContext === "string" ? body.resumeContext : "",
         surface: "chat",
+        textAudience: normalizeTextChatAudience(body.trigger),
       }),
       messages: preparedMessages,
       toolChoice: "auto" as const,
