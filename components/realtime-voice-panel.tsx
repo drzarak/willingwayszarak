@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -67,9 +68,23 @@ import {
 } from "@/lib/support-tools";
 import { createSafeId, safeStorageGet, safeStorageSet } from "@/lib/utils";
 
-import { VoiceIntakeReview } from "@/components/voice-intake-review";
-import { ProgramCardList } from "@/components/program-card-list";
 import { Button } from "@/components/ui/button";
+
+const ProgramCardList = dynamic(
+  () => import("@/components/program-card-list").then((mod) => mod.ProgramCardList),
+  {
+    ssr: false,
+    loading: () => <div className="h-[188px] animate-pulse rounded-[24px] border border-slate-200 bg-slate-100/80" />,
+  },
+);
+
+const VoiceIntakeReview = dynamic(
+  () => import("@/components/voice-intake-review").then((mod) => mod.VoiceIntakeReview),
+  {
+    ssr: false,
+    loading: () => <div className="h-[320px] animate-pulse rounded-[24px] border border-slate-200 bg-slate-100/80" />,
+  },
+);
 
 type VoiceStatus =
   | "idle"

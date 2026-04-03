@@ -12,11 +12,13 @@ const canonicalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.includes("willingways
   : "https://willingways.uk";
 
 const manrope = Manrope({
+  display: "swap",
   subsets: ["latin"],
   variable: "--font-manrope",
 });
 
 const merriweather = Merriweather({
+  display: "swap",
   subsets: ["latin"],
   weight: ["400", "700"],
   preload: false,
@@ -24,6 +26,8 @@ const merriweather = Merriweather({
 });
 
 const notoNaskhArabic = Noto_Naskh_Arabic({
+  display: "swap",
+  preload: false,
   subsets: ["arabic"],
   variable: "--font-urdu",
 });

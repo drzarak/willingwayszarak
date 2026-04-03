@@ -31,7 +31,6 @@ import { safeStorageGet, safeStorageRemove, safeStorageSet } from "@/lib/utils";
 
 import { LanguageToggle } from "@/components/language-toggle";
 import { useSiteLanguage } from "@/components/site-language-provider";
-import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 
 if (typeof globalThis.structuredClone !== "function") {
@@ -45,6 +44,11 @@ const ChatPane = dynamic(
 
 const RealtimeVoicePanel = dynamic(
   () => import("@/components/realtime-voice-panel").then((mod) => mod.RealtimeVoicePanel),
+  { ssr: false },
+);
+
+const Sidebar = dynamic(
+  () => import("@/components/sidebar").then((mod) => mod.Sidebar),
   { ssr: false },
 );
 
