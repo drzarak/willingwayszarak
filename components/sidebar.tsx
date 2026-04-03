@@ -67,7 +67,7 @@ export function Sidebar({
                   width={260}
                   height={64}
                   className="h-11 w-auto object-contain"
-                  unoptimized
+                  sizes="220px"
                 />
               </Link>
               <p

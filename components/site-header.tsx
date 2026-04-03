@@ -53,8 +53,8 @@ export function SiteHeader() {
             width={360}
             height={88}
             className="h-11 w-auto max-w-[210px] object-contain sm:h-14 sm:max-w-[280px]"
-            unoptimized
             priority
+            sizes="(max-width: 640px) 210px, 280px"
           />
           <span
             className={`mt-1 hidden text-[11px] font-semibold tracking-[0.18em] text-[#8a4b5d] sm:block ${
@@ -120,7 +120,7 @@ export function SiteHeader() {
                 width={340}
                 height={80}
                 className="h-11 w-auto object-contain"
-                unoptimized
+                sizes="220px"
               />
               <div
                 className={`mt-2 text-[11px] font-semibold tracking-[0.18em] text-[#8a4b5d] ${

@@ -7,6 +7,10 @@ import { SiteLanguageProvider } from "@/components/site-language-provider";
 
 import "./globals.css";
 
+const canonicalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.includes("willingways.uk")
+  ? process.env.NEXT_PUBLIC_SITE_URL
+  : "https://willingways.uk";
+
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
@@ -14,7 +18,8 @@ const manrope = Manrope({
 
 const merriweather = Merriweather({
   subsets: ["latin"],
-  weight: ["300", "400", "700"],
+  weight: ["400", "700"],
+  preload: false,
   variable: "--font-merriweather",
 });
 
@@ -24,7 +29,7 @@ const notoNaskhArabic = Noto_Naskh_Arabic({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://willingways.uk"),
+  metadataBase: new URL(canonicalSiteUrl),
   title: {
     default: "Willing Ways Pakistan",
     template: "%s | Willing Ways Pakistan",

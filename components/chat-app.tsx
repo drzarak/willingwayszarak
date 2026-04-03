@@ -52,11 +52,31 @@ interface ChatAppProps {
   surface: "voice" | "chat";
 }
 
+const BOOTSTRAP_SESSION_ID = "bootstrap-session";
+const BOOTSTRAP_TIMESTAMP = "2026-01-01T00:00:00.000Z";
+
+function createBootstrapSession(language: ChatSession["language"] = "english"): ChatSession {
+  return {
+    id: BOOTSTRAP_SESSION_ID,
+    title: "New conversation",
+    createdAt: BOOTSTRAP_TIMESTAMP,
+    updatedAt: BOOTSTRAP_TIMESTAMP,
+    welcomed: false,
+    mode: "adaptive",
+    language,
+    messages: [],
+    preferredName: "",
+    textAudience: "patient",
+    voiceTranscript: [],
+    programStage: "intro",
+  };
+}
+
 export function ChatApp({ surface }: ChatAppProps) {
   const { isUrdu, language: siteLanguage, hydrated: siteLanguageHydrated } = useSiteLanguage();
-  const [hydrated, setHydrated] = useState(false);
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeChatId, setActiveChatId] = useState("");
+  const [storageReady, setStorageReady] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([createBootstrapSession()]);
+  const [activeChatId, setActiveChatId] = useState(BOOTSTRAP_SESSION_ID);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
     realtimeConfigured: false,
@@ -64,7 +84,7 @@ export function ChatApp({ surface }: ChatAppProps) {
   });
 
   useEffect(() => {
-    if (!siteLanguageHydrated || hydrated) {
+    if (!siteLanguageHydrated || storageReady) {
       return;
     }
 
@@ -91,9 +111,9 @@ export function ChatApp({ surface }: ChatAppProps) {
       setActiveChatId(fallbackSession.id);
     } finally {
       safeStorageRemove(APP_SETTINGS_STORAGE_KEY);
-      setHydrated(true);
+      setStorageReady(true);
     }
-  }, [hydrated, siteLanguage, siteLanguageHydrated]);
+  }, [siteLanguage, siteLanguageHydrated, storageReady]);
 
   useEffect(() => {
     void fetch("/api/runtime")
@@ -111,13 +131,13 @@ export function ChatApp({ surface }: ChatAppProps) {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) {
+    if (!storageReady) {
       return;
     }
 
     safeStorageSet(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
     safeStorageSet(ACTIVE_CHAT_STORAGE_KEY, activeChatId);
-  }, [activeChatId, hydrated, sessions]);
+  }, [activeChatId, sessions, storageReady]);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeChatId) ?? null,
@@ -212,7 +232,7 @@ export function ChatApp({ surface }: ChatAppProps) {
     patchSession(activeSession.id, { language });
   }
 
-  if (!hydrated || !activeSession) {
+  if (!activeSession) {
     return (
       <div className="min-h-screen bg-[#f7f7f8] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[84vh] max-w-4xl items-center justify-center rounded-[32px] border border-black/5 bg-white/92 px-6 py-10 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
@@ -223,8 +243,8 @@ export function ChatApp({ surface }: ChatAppProps) {
               width={320}
               height={80}
               className="mx-auto h-11 w-auto object-contain sm:h-12"
-              unoptimized
               priority
+              sizes="(max-width: 640px) 180px, 220px"
             />
             <div className={`mt-5 text-lg font-semibold text-slate-900 ${isUrdu ? "font-urdu" : ""}`}>
               {isUrdu ? "ولنگ ویز اے آئی تیار ہو رہی ہے" : "Willing Ways AI is getting ready"}
@@ -299,8 +319,8 @@ export function ChatApp({ surface }: ChatAppProps) {
                   width={320}
                   height={80}
                   className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
-                  unoptimized
                   priority
+                  sizes="(max-width: 640px) 148px, 172px"
                 />
               </Link>
               <LanguageToggle
@@ -329,8 +349,8 @@ export function ChatApp({ surface }: ChatAppProps) {
                     width={320}
                     height={80}
                     className="h-10 w-auto max-w-[170px] object-contain sm:h-11 sm:max-w-[220px]"
-                    unoptimized
                     priority
+                    sizes="(max-width: 640px) 170px, 220px"
                   />
                 </Link>
               </div>

@@ -12,6 +12,7 @@ import {
   Mic,
   MicOff,
   PhoneCall,
+  PhoneOff,
   RefreshCcw,
   ShieldAlert,
   UserRound,
@@ -32,7 +33,6 @@ import {
   analyzeVoiceCareSignals,
   normalizeRealtimeVoiceId,
   normalizeVoiceCallFocusId,
-  voiceCallActionLabel,
   type ChatLanguage,
   type ChatMode,
   type RealtimeVoiceId,
@@ -2067,7 +2067,6 @@ export function RealtimeVoicePanel({
         : status === "listening" || status === "connected"
           ? Mic
           : PhoneCall;
-  const showContinuityCard = hasConversationHistory && !callIsStarting && !callIsLive;
   const showMinimalIdleIntro = false;
   const showUtilityPanels =
     showMoreOptions ||
@@ -2077,29 +2076,6 @@ export function RealtimeVoicePanel({
     Boolean(submissionNotice) ||
     Boolean(toolActivity) ||
     Boolean(errorMessage);
-  const selectedCallActionLabel =
-    selectedFocus === "general-support"
-      ? language === "urdu"
-        ? "کال شروع کریں"
-        : "Start the call"
-      : voiceCallActionLabel(selectedFocus, language);
-  const primaryCallActionLabel = selectedFamilyLesson
-    ? selectedCallActionLabel
-    : showContinuityCard
-      ? language === "urdu"
-        ? "جہاں بات ختم ہوئی تھی وہیں سے جاری رکھیں"
-        : "Continue where you left off"
-      : identityHint === "family"
-        ? language === "urdu"
-          ? "اپنے پیارے کے لئے پرسکون رہنمائی لیں"
-          : "Get calm guidance for your loved one"
-      : identityHint === "self"
-          ? language === "urdu"
-            ? "اپنے لئے پرسکون رہنمائی لیں"
-            : "Get calm guidance for yourself"
-      : language === "urdu"
-        ? "کال شروع کریں"
-        : "Start the call";
   const guidancePreview = lastAssistantGuidance?.text
     ? lastAssistantGuidance.text.length > 300
       ? `${lastAssistantGuidance.text.slice(0, 300).trimEnd()}...`
@@ -2142,19 +2118,57 @@ export function RealtimeVoicePanel({
   const orbHelperText =
     callIsStarting
       ? language === "urdu"
-        ? "کال مل رہی ہے۔ ایک بار دبا کر منسوخ کریں۔"
-        : "The line is ringing. Tap once to cancel."
+        ? "کال مل رہی ہے۔"
+        : "The line is ringing."
       : callIsLive && isMicMuted
         ? language === "urdu"
-          ? "سننا فی الحال paused ہے۔ دوبارہ سننے کے لئے tap کریں۔ ختم کرنے کے لئے hold کریں۔"
-          : "Listening is paused. Tap to resume. Press and hold to end."
+          ? "مائیک paused ہے۔"
+          : "The microphone is paused."
         : callIsLive
           ? language === "urdu"
-            ? "tap کر کے سننا pause کریں۔ کال ختم کرنے کے لئے hold کریں۔"
-            : "Tap to pause listening. Press and hold to end."
+            ? "کال سن رہی ہے۔"
+            : "The call is listening."
           : language === "urdu"
-            ? "درمیانی بٹن پر tap کر کے کال شروع کریں۔"
-            : "Tap the center button to start the call.";
+            ? "درمیانی بٹن سے کال شروع کریں۔"
+            : "Use the center button to start the call.";
+  const primaryControlInstruction =
+    callIsStarting
+      ? language === "urdu"
+        ? "ایک بار دبا کر کال منسوخ کریں"
+        : "Tap once to cancel the call"
+      : callIsLive && isMicMuted
+        ? language === "urdu"
+          ? "ایک بار دبا کر مائیک دوبارہ شروع کریں"
+          : "Tap once to resume the microphone"
+        : callIsLive
+          ? language === "urdu"
+            ? "ایک بار دبا کر مائیک pause کریں"
+            : "Tap once to pause the microphone"
+          : language === "urdu"
+            ? "ایک بار دبا کر کال شروع کریں"
+            : "Tap once to start the call";
+  const secondaryControlInstruction =
+    callIsStarting
+      ? language === "urdu"
+        ? "اگر دیر لگے تو یہی بڑا بٹن دبا کر منسوخ کریں"
+        : "If it takes too long, use the same big button to cancel"
+      : callIsLive
+        ? language === "urdu"
+          ? "اسی بڑے بٹن کو تھوڑی دیر دبا کر کال ختم کریں"
+          : "Press and hold the same big button to end the call"
+        : language === "urdu"
+          ? "کال کے دوران یہی بڑا بٹن دبا کر مائیک pause کریں"
+          : "During the call, use the same big button to pause the microphone";
+  const PrimaryControlIcon =
+    callIsStarting ? RefreshCcw : callIsLive ? (isMicMuted ? Mic : MicOff) : PhoneCall;
+  const secondaryControlTitle =
+    callIsStarting
+      ? language === "urdu"
+        ? "کال منسوخ کریں"
+        : "Cancel the call"
+      : language === "urdu"
+        ? "کال ختم کریں"
+        : "End the call";
 
   async function handleCallOrbClick() {
     if (orbLongPressTriggeredRef.current) {
@@ -2243,10 +2257,10 @@ export function RealtimeVoicePanel({
       <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-black/5 bg-white/96 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6 sm:py-5">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
-        <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
           <div className="mx-auto max-w-[720px]">
             <h1
-              className={`max-w-[640px] text-[1.72rem] font-semibold leading-[1.05] tracking-[-0.02em] text-slate-900 sm:text-[3rem] ${
+              className={`max-w-[640px] text-[1.72rem] font-semibold leading-[1.05] tracking-[-0.02em] text-slate-900 sm:text-[3rem] [@media(max-height:700px)]:text-[1.45rem] ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2261,7 +2275,7 @@ export function RealtimeVoicePanel({
             </h1>
 
             <p
-              className={`mt-2 max-w-[600px] text-[14px] leading-6 text-slate-600 ${
+              className={`mt-2 max-w-[600px] text-[14px] leading-6 text-slate-600 [@media(max-height:700px)]:hidden ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2272,7 +2286,7 @@ export function RealtimeVoicePanel({
             </p>
           </div>
 
-          <div className="mx-auto mt-3 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:mt-4 sm:px-5 sm:py-5">
+          <div className="mx-auto mt-3 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:mt-4 sm:px-5 sm:py-5 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
             <div className="flex items-center justify-between gap-3">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
@@ -2323,11 +2337,11 @@ export function RealtimeVoicePanel({
                       ? "ولنگ ویز AI call شروع کریں"
                       : "Start the Willing Ways AI call"
                 }
-                className={`voice-orb h-20 w-20 cursor-pointer sm:h-24 sm:w-24 ${
+                className={`voice-orb h-24 w-24 cursor-pointer sm:h-24 sm:w-24 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-14 sm:w-14">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-14 sm:w-14">
                   <CallOrbIcon
                     className={`h-[22px] w-[22px] sm:h-6 sm:w-6 ${
                       status === "responding"
@@ -2369,6 +2383,76 @@ export function RealtimeVoicePanel({
                 aria-live="polite"
               >
                 {orbHelperText}
+              </div>
+
+              <div
+                className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold shadow-sm ${
+                  callIsLive && !isMicMuted
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : callIsLive && isMicMuted
+                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      : "border-slate-200 bg-white text-slate-700"
+                } ${language === "urdu" ? "font-urdu" : ""}`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {callIsStarting
+                  ? language === "urdu"
+                    ? "کال مل رہی ہے"
+                    : "Calling now"
+                  : callIsLive && isMicMuted
+                    ? language === "urdu"
+                      ? "مائیک عارضی طور پر بند ہے"
+                      : "Microphone paused"
+                    : callIsLive
+                      ? language === "urdu"
+                        ? "مائیک کھلا ہے اور کال سن رہی ہے"
+                        : "Microphone is live"
+                      : language === "urdu"
+                        ? "کال شروع کرنے کے لئے تیار"
+                        : "Ready to start"}
+              </div>
+
+              <div
+                className={`mt-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-[12px] font-semibold text-slate-700 shadow-sm [@media(min-height:701px)]:hidden ${
+                  language === "urdu" ? "font-urdu" : ""
+                }`}
+                dir={language === "urdu" ? "rtl" : "ltr"}
+              >
+                {language === "urdu"
+                  ? `${primaryControlInstruction} • ${secondaryControlInstruction}`
+                  : `${primaryControlInstruction} • ${secondaryControlInstruction}`}
+              </div>
+
+              <div className="mt-3 hidden w-full max-w-[540px] gap-2 sm:grid-cols-2 [@media(min-height:701px)]:grid">
+                <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <PrimaryControlIcon className="h-4 w-4" />
+                    <span>{language === "urdu" ? "ایک بار دبائیں" : "Tap once"}</span>
+                  </div>
+                  <div
+                    className={`mt-2 text-sm leading-6 text-slate-700 ${
+                      language === "urdu" ? "font-urdu text-right" : ""
+                    }`}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {primaryControlInstruction}
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <PhoneOff className="h-4 w-4" />
+                    <span>{secondaryControlTitle}</span>
+                  </div>
+                  <div
+                    className={`mt-2 text-sm leading-6 text-slate-700 ${
+                      language === "urdu" ? "font-urdu text-right" : ""
+                    }`}
+                    dir={language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {secondaryControlInstruction}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2469,15 +2553,6 @@ export function RealtimeVoicePanel({
                   : "Mic required. The AI greets first, then listens."}
               </div>
             ) : null}
-
-            <div
-              className={`mt-3 text-center text-sm font-semibold text-slate-700 ${
-                language === "urdu" ? "font-urdu" : ""
-              }`}
-              dir={language === "urdu" ? "rtl" : "ltr"}
-            >
-              {callIsLive || callIsStarting ? orbHelperText : primaryCallActionLabel}
-            </div>
 
             {!showUtilityPanels ? (
               <div className="mt-4 space-y-3">

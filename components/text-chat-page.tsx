@@ -57,6 +57,25 @@ interface ChatResponseBody {
 
 const EMPTY_MESSAGES: UIMessage[] = [];
 const CLASSROOM_DISPLAY_STORAGE_KEY = "willing-ways-ai:classroom-display";
+const TEXT_BOOTSTRAP_SESSION_ID = "bootstrap-text-session";
+const TEXT_BOOTSTRAP_TIMESTAMP = "2026-01-01T00:00:00.000Z";
+
+function createBootstrapTextSession(language: ChatLanguage = "english"): ChatSession {
+  return {
+    id: TEXT_BOOTSTRAP_SESSION_ID,
+    title: "New conversation",
+    createdAt: TEXT_BOOTSTRAP_TIMESTAMP,
+    updatedAt: TEXT_BOOTSTRAP_TIMESTAMP,
+    welcomed: false,
+    mode: "adaptive",
+    language,
+    messages: [],
+    preferredName: "",
+    textAudience: "patient",
+    voiceTranscript: [],
+    programStage: "intro",
+  };
+}
 
 function createTextUiMessage(role: "assistant" | "user", text: string): UIMessage {
   return {
@@ -154,12 +173,12 @@ function mapAudienceToMode(audience: TextChatAudience) {
 export function TextChatPage() {
   const { hydrated: siteLanguageHydrated, language: siteLanguage, setLanguage: setSiteLanguage } =
     useSiteLanguage();
-  const [hydrated, setHydrated] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
     realtimeConfigured: false,
     serverKeyConfigured: false,
   });
-  const [session, setSession] = useState<ChatSession | null>(null);
+  const [session, setSession] = useState<ChatSession | null>(createBootstrapTextSession());
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"ready" | "submitted">("ready");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -177,7 +196,7 @@ export function TextChatPage() {
   const isGenerating = status === "submitted";
 
   useEffect(() => {
-    if (!siteLanguageHydrated || hydrated) {
+    if (!siteLanguageHydrated || storageReady) {
       return;
     }
 
@@ -200,9 +219,9 @@ export function TextChatPage() {
       setClassroomDisplay(false);
     } finally {
       safeStorageRemove(APP_SETTINGS_STORAGE_KEY);
-      setHydrated(true);
+      setStorageReady(true);
     }
-  }, [hydrated, siteLanguage, siteLanguageHydrated]);
+  }, [siteLanguage, siteLanguageHydrated, storageReady]);
 
   useEffect(() => {
     void fetch("/api/runtime")
@@ -220,13 +239,13 @@ export function TextChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || !session) {
+    if (!storageReady || !session) {
       return;
     }
 
     safeStorageSet(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify([session]));
     safeStorageSet(ACTIVE_CHAT_STORAGE_KEY, session.id);
-  }, [hydrated, session]);
+  }, [session, storageReady]);
 
   useEffect(() => {
     safeStorageSet(CLASSROOM_DISPLAY_STORAGE_KEY, classroomDisplay ? "true" : "false");
@@ -602,7 +621,7 @@ export function TextChatPage() {
     }
   }
 
-  if (!hydrated || !session) {
+  if (!session) {
     return (
       <div className="min-h-screen bg-[#f4f3ee] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[84vh] max-w-4xl items-center justify-center rounded-[32px] border border-black/5 bg-white/92 px-6 py-10 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
@@ -613,8 +632,8 @@ export function TextChatPage() {
               width={320}
               height={80}
               className="mx-auto h-11 w-auto object-contain sm:h-12"
-              unoptimized
               priority
+              sizes="(max-width: 640px) 180px, 220px"
             />
             <div className="mt-5 text-lg font-semibold text-slate-900">
               {siteLanguage === "urdu" ? "ڈاکٹر صداقت GPT تیار ہو رہی ہے" : "Dr Sadaqat GPT is getting ready"}
@@ -679,14 +698,14 @@ export function TextChatPage() {
               <div className="flex min-w-0 items-center gap-3">
                 <Link href="/" className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-full px-1">
                   <Image
-                    src={SITE_MEDIA.logo}
-                    alt="Willing Ways"
-                    width={320}
-                    height={80}
-                    className="h-9 w-auto max-w-[180px] object-contain sm:h-10 sm:max-w-[220px]"
-                    unoptimized
-                    priority
-                  />
+                  src={SITE_MEDIA.logo}
+                  alt="Willing Ways"
+                  width={320}
+                  height={80}
+                  className="h-9 w-auto max-w-[180px] object-contain sm:h-10 sm:max-w-[220px]"
+                  priority
+                  sizes="(max-width: 640px) 180px, 220px"
+                />
                 </Link>
                 <div className="hidden min-w-0 sm:block">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
