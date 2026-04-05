@@ -286,8 +286,8 @@ export function ChatApp({ surface }: ChatAppProps) {
   const rootClass = voiceSurface ? "h-[100dvh] overflow-hidden" : "min-h-screen";
 
   return (
-    <div className={`bg-[#f4f4f1] text-slate-950 ${rootClass}`}>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.03),_transparent_24%)]" />
+    <div className={`bg-[linear-gradient(180deg,#f8f7f3_0%,#f4f1e9_100%)] text-slate-950 ${rootClass}`}>
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(101,19,40,0.08),_transparent_24%),radial-gradient(circle_at_bottom,_rgba(202,138,4,0.06),_transparent_28%)]" />
       {surface === "chat" ? (
         <Sidebar
           activeChatId={activeChatId}
@@ -303,20 +303,20 @@ export function ChatApp({ surface }: ChatAppProps) {
       <div
         className={`relative mx-auto flex w-full flex-col ${
           voiceSurface
-            ? "h-full max-w-[980px] overflow-hidden px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
+            ? "h-full max-w-[1260px] overflow-hidden px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
             : "min-h-[100dvh] max-w-5xl px-3 py-3 sm:px-5 sm:py-5"
         }`}
       >
         <header
           className={`border bg-white/88 px-4 py-4 backdrop-blur sm:px-6 ${
             voiceSurface
-              ? "rounded-[24px] border-black/5 bg-white/92 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:px-4 sm:py-3"
+              ? "rounded-[28px] border-[rgba(101,19,40,0.08)] bg-white/78 px-3 py-3 shadow-[0_18px_42px_rgba(15,23,42,0.07)] sm:px-5 sm:py-3.5"
               : "rounded-[30px] border-white/80 shadow-[0_18px_60px_rgba(47,24,32,0.08)]"
           }`}
         >
           {voiceSurface ? (
-            <div className="flex items-center justify-between gap-2">
-              <Link href="/" className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Link href="/" className="flex min-w-0 items-center gap-3">
                 <Image
                   src={SITE_MEDIA.logo}
                   alt="Willing Ways"
@@ -327,12 +327,23 @@ export function ChatApp({ surface }: ChatAppProps) {
                   sizes="(max-width: 640px) 148px, 172px"
                 />
               </Link>
-              <LanguageToggle
-                language={activeSession.language}
-                onChange={handleLanguageChange}
-                compact
-                className="w-[120px]"
-              />
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/chat"
+                  className="hidden items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 lg:inline-flex"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                    {isUrdu ? "typing کے لئے Dr Sadaqat GPT" : "Prefer typing? Open Dr Sadaqat GPT"}
+                  </span>
+                </Link>
+                <LanguageToggle
+                  language={activeSession.language}
+                  onChange={handleLanguageChange}
+                  compact
+                  className="w-[120px]"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">

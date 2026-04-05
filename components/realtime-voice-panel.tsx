@@ -394,7 +394,6 @@ export function RealtimeVoicePanel({
   const analyserFrameRef = useRef<number | null>(null);
   const analyserBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const ringToneTimerRef = useRef<number | null>(null);
-  const orbHoldTimerRef = useRef<number | null>(null);
   const assistantEntryIdRef = useRef<string | null>(null);
   const handledToolCallsRef = useRef<Set<string>>(new Set());
   const lastSessionIdRef = useRef(sessionId);
@@ -406,7 +405,6 @@ export function RealtimeVoicePanel({
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
   const lastAssistantSpeechAtRef = useRef(0);
   const recentAssistantDeltaSignatureRef = useRef<{ signature: string; at: number } | null>(null);
-  const orbLongPressTriggeredRef = useRef(false);
   const pendingResponseTimerRef = useRef<number | null>(null);
   const activeSpeechEpochRef = useRef(0);
   const latestSpeechEpochRef = useRef(0);
@@ -934,11 +932,6 @@ export function RealtimeVoicePanel({
       ringToneTimerRef.current = null;
     }
 
-    if (orbHoldTimerRef.current !== null) {
-      window.clearTimeout(orbHoldTimerRef.current);
-      orbHoldTimerRef.current = null;
-    }
-
     if (pendingResponseTimerRef.current !== null) {
       window.clearTimeout(pendingResponseTimerRef.current);
       pendingResponseTimerRef.current = null;
@@ -989,7 +982,6 @@ export function RealtimeVoicePanel({
     micNoiseFloorRef.current = 0.004;
     turnCooldownUntilRef.current = 0;
     recentAssistantDeltaSignatureRef.current = null;
-    orbLongPressTriggeredRef.current = false;
     setCallConnectedAt(null);
     setCallDurationSeconds(0);
     setIsMicMuted(false);
@@ -1075,13 +1067,6 @@ export function RealtimeVoicePanel({
     if (ringToneTimerRef.current !== null) {
       window.clearTimeout(ringToneTimerRef.current);
       ringToneTimerRef.current = null;
-    }
-  }
-
-  function clearCallOrbHoldTimer() {
-    if (orbHoldTimerRef.current !== null) {
-      window.clearTimeout(orbHoldTimerRef.current);
-      orbHoldTimerRef.current = null;
     }
   }
 
@@ -2165,53 +2150,46 @@ export function RealtimeVoicePanel({
   const secondaryControlInstruction =
     callIsStarting
       ? language === "urdu"
-        ? "اگر دیر لگے تو یہی بڑا بٹن دبا کر منسوخ کریں"
-        : "If it takes too long, use the same big button to cancel"
+        ? "اگر دیر لگے تو نیچے والا End call بٹن استعمال کریں"
+        : "If it takes too long, use the End call button below"
       : callIsLive
         ? language === "urdu"
-          ? "اسی بڑے بٹن کو تھوڑی دیر دبا کر کال ختم کریں"
-          : "Press and hold the same big button to end the call"
+          ? "جب چاہیں نیچے والا End call بٹن دبا کر کال ختم کریں"
+          : "Use the End call button when you are ready to finish"
         : language === "urdu"
-          ? "کال کے دوران یہی بڑا بٹن دبا کر مائیک pause کریں"
-          : "During the call, use the same big button to pause the microphone";
-  const PrimaryControlIcon =
-    callIsStarting ? RefreshCcw : callIsLive ? (isMicMuted ? Mic : MicOff) : PhoneCall;
-  const secondaryControlTitle =
-    callIsStarting
-      ? language === "urdu"
-        ? "کال منسوخ کریں"
-        : "Cancel the call"
-      : language === "urdu"
-        ? "کال ختم کریں"
-        : "End the call";
+          ? "کال کے دوران یہی بڑا بٹن دبا کر مائیک pause یا resume کریں"
+          : "During the call, use the same big button to pause or resume the microphone";
 
-  async function handleCallOrbClick() {
-    if (orbLongPressTriggeredRef.current) {
-      orbLongPressTriggeredRef.current = false;
+  function toggleMicListeningState() {
+    if (!callIsLive) {
       return;
     }
 
+    if (!isMicMuted && activeResponseRef.current) {
+      interruptAssistantResponse();
+    }
+
+    const nextMuted = !isMicMuted;
+    setMicMutedState(nextMuted);
+    setToolActivity(
+      nextMuted
+        ? language === "urdu"
+          ? "سننا وقتی طور پر pause کر دیا گیا ہے۔"
+          : "Listening is paused for a moment."
+        : language === "urdu"
+          ? "کال دوبارہ سننے کے لئے تیار ہے۔"
+          : "The call is ready to listen again.",
+    );
+  }
+
+  async function handleCallOrbClick() {
     if (callIsStarting) {
       stopSession();
       return;
     }
 
     if (callIsLive) {
-      if (!isMicMuted && activeResponseRef.current) {
-        interruptAssistantResponse();
-      }
-
-      const nextMuted = !isMicMuted;
-      setMicMutedState(nextMuted);
-      setToolActivity(
-        nextMuted
-          ? language === "urdu"
-            ? "سننا وقتی طور پر pause کر دیا گیا ہے۔"
-            : "Listening is paused for a moment."
-          : language === "urdu"
-            ? "کال دوبارہ سننے کے لئے تیار ہے۔"
-            : "The call is ready to listen again.",
-      );
+      toggleMicListeningState();
       return;
     }
 
@@ -2221,21 +2199,12 @@ export function RealtimeVoicePanel({
     });
   }
 
-  function handleCallOrbPointerDown() {
+  function handleEndCall() {
     if (!callIsStarting && !callIsLive) {
       return;
     }
 
-    orbLongPressTriggeredRef.current = false;
-    clearCallOrbHoldTimer();
-    orbHoldTimerRef.current = window.setTimeout(() => {
-      orbLongPressTriggeredRef.current = true;
-      stopSession();
-    }, 850);
-  }
-
-  function handleCallOrbPointerRelease() {
-    clearCallOrbHoldTimer();
+    stopSession();
   }
 
   async function handleStartFamilyTraining(lessonId: FamilyTrainingLessonId) {
@@ -2266,51 +2235,64 @@ export function RealtimeVoicePanel({
   }
 
   return (
-    <section id="call" className="mx-auto h-full max-w-3xl">
+    <section id="call" className="mx-auto h-full max-w-[1120px]">
       <audio ref={audioRef} autoPlay />
 
       <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-black/5 bg-white/96 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-6 sm:py-5">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
-          <div className="mx-auto max-w-[720px]">
+        <div
+          className={`relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] ${
+            !showUtilityPanels && !hasConversationHistory && !errorMessage ? "md:justify-center" : ""
+          }`}
+        >
+          <div className="mx-auto max-w-[900px]">
             <h1
-              className={`max-w-[640px] text-[1.72rem] font-semibold leading-[1.05] tracking-[-0.02em] text-slate-900 sm:text-[3rem] [@media(max-height:700px)]:text-[1.45rem] ${
+              className={`max-w-[760px] text-[1.9rem] font-semibold leading-[1.02] tracking-[-0.03em] text-slate-900 sm:text-[3.35rem] [@media(max-height:700px)]:text-[1.55rem] ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
               {selectedFamilyLesson
                 ? language === "urdu"
-                  ? "فیملی کوچنگ، قدم بہ قدم"
-                  : "Family coaching, step by step"
+                  ? "گھر کے اندر مشکل گفتگو کو پرسکون اور مؤثر بنائیں"
+                  : "Make the hard family conversation calmer and more effective."
                 : language === "urdu"
-                  ? "بات کریں، سانس ہموار کریں، اگلا قدم لیں"
-                  : "Talk it through. Leave with one steady next step."}
+                  ? "نشہ، relapse کے خطرے، اور پریشان خاندانوں کے لئے فوری مدد"
+                  : "Immediate support for addiction, relapse risk, and overwhelmed families."}
             </h1>
 
             <p
-              className={`mt-2 max-w-[600px] text-[14px] leading-6 text-slate-600 [@media(max-height:700px)]:hidden ${
+              className={`mt-3 max-w-[700px] text-[15px] leading-7 text-slate-600 [@media(max-height:700px)]:hidden ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
             >
-              {language === "urdu"
-                ? "یہ ایک پرسکون Willing Ways call ہے۔ اے آئی پہلے سلام کرتی ہے، پھر مسئلہ سمجھ کر ایک واضح اگلا قدم، family script یا human handoff دیتی ہے۔"
-                : "This is a calm Willing Ways call. The AI greets first, understands what is happening, and then gives one clear next step, one family script, or a clean human handoff."}
+              {selectedFamilyLesson
+                ? language === "urdu"
+                  ? "یہ call خاندان کو denial، boundaries، enabling اور intervention readiness کے لئے ایک سیدھی، پرسکون اور عملی script دیتی ہے۔"
+                  : "This call gives the family a calm, practical script for denial, boundaries, enabling, and intervention readiness."
+                : language === "urdu"
+                  ? "اے آئی پہلے سلام کرتی ہے، آپ کا نام کنفرم کرتی ہے، پوری بات سنتی ہے، اور پھر relapse prevention، family support یا مناسب human handoff کے ساتھ ایک واضح اگلا قدم دیتی ہے۔"
+                  : "The AI greets first, confirms your name, listens fully, and then gives one clear next step for relapse prevention, family support, or the right human handoff."}
             </p>
           </div>
 
-          <div className="mx-auto mt-3 flex w-full max-w-[760px] flex-col rounded-[28px] border border-black/5 bg-[#fbfbfc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_28px_rgba(15,23,42,0.04)] sm:mt-4 sm:px-5 sm:py-5 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
+          <div className="mx-auto mt-4 flex w-full max-w-[920px] flex-col rounded-[30px] border border-[rgba(15,23,42,0.06)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,249,246,0.96))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_42px_rgba(15,23,42,0.06)] sm:px-6 sm:py-6 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
             <div className="flex items-center justify-between gap-3">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                <div className="text-[13px] font-medium text-slate-500">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {language === "urdu"
-                    ? "ولنگ ویز اے آئی counselor"
-                    : "Willing Ways AI Counselor"}
+                    ? "پرائیویٹ اے آئی کال"
+                    : "Private AI call"}
+                </div>
+                <div className="mt-1 text-base font-semibold text-slate-950">
+                  {language === "urdu"
+                    ? "درمیانی دائرہ سب سے اہم بٹن ہے"
+                    : "The center circle is the main call button"}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
                   {selectedFamilyLesson
@@ -2318,8 +2300,8 @@ export function RealtimeVoicePanel({
                       ? "نجی فیملی کوچنگ سپورٹ"
                       : "Private family coaching support"
                     : language === "urdu"
-                      ? "relapse prevention اور family support"
-                      : "Relapse prevention and family support"}
+                      ? "relapse prevention، family support اور post-rehab follow-through"
+                      : "Relapse prevention, family support, and post-rehab follow-through"}
                 </div>
               </div>
 
@@ -2335,10 +2317,6 @@ export function RealtimeVoicePanel({
               <button
                 type="button"
                 onClick={() => void handleCallOrbClick()}
-                onPointerDown={handleCallOrbPointerDown}
-                onPointerUp={handleCallOrbPointerRelease}
-                onPointerLeave={handleCallOrbPointerRelease}
-                onPointerCancel={handleCallOrbPointerRelease}
                 aria-label={
                   callIsLive
                     ? isMicMuted
@@ -2352,13 +2330,13 @@ export function RealtimeVoicePanel({
                       ? "ولنگ ویز AI call شروع کریں"
                       : "Start the Willing Ways AI call"
                 }
-                className={`voice-orb h-24 w-24 cursor-pointer sm:h-24 sm:w-24 ${
+                className={`voice-orb h-32 w-32 cursor-pointer sm:h-36 sm:w-36 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-14 sm:w-14">
+                <div className="flex h-[4.6rem] w-[4.6rem] items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-[5.2rem] sm:w-[5.2rem]">
                   <CallOrbIcon
-                    className={`h-[22px] w-[22px] sm:h-6 sm:w-6 ${
+                    className={`h-7 w-7 sm:h-8 sm:w-8 ${
                       status === "responding"
                         ? "text-slate-900"
                         : status === "listening" || status === "connected"
@@ -2424,50 +2402,71 @@ export function RealtimeVoicePanel({
                         : "Microphone is live"
                       : language === "urdu"
                         ? "کال شروع کرنے کے لئے تیار"
-                        : "Ready to start"}
+                      : "Ready to start"}
+              </div>
+
+              <div className="mt-4 flex w-full max-w-[540px] flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  onClick={() => void handleCallOrbClick()}
+                  className="h-12 flex-1 rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,23,42,0.16)] hover:bg-slate-900"
+                >
+                  {callIsStarting ? (
+                    <RefreshCcw className="h-4 w-4" />
+                  ) : callIsLive ? (
+                    isMicMuted ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />
+                  ) : (
+                    <PhoneCall className="h-4 w-4" />
+                  )}
+                  {callIsStarting
+                    ? language === "urdu"
+                      ? "کال منسوخ کریں"
+                      : "Cancel call"
+                    : callIsLive && isMicMuted
+                      ? language === "urdu"
+                        ? "مائیک دوبارہ شروع کریں"
+                        : "Resume microphone"
+                      : callIsLive
+                        ? language === "urdu"
+                          ? "مائیک pause کریں"
+                          : "Pause microphone"
+                        : language === "urdu"
+                          ? "ولنگ ویز اے آئی کال شروع کریں"
+                          : "Start the Willing Ways AI call"}
+                </Button>
+
+                {callIsStarting || callIsLive ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleEndCall}
+                    className="h-12 rounded-2xl border-rose-200 bg-white px-5 text-sm font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                  >
+                    <PhoneOff className="h-4 w-4" />
+                    {language === "urdu" ? "کال ختم کریں" : "End call"}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowMoreOptions(true)}
+                    className="h-12 rounded-2xl border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    {language === "urdu" ? "مزید اختیارات" : "More options"}
+                  </Button>
+                )}
               </div>
 
               <div
-                className={`mt-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-[12px] font-semibold text-slate-700 shadow-sm [@media(min-height:701px)]:hidden ${
+                className={`mt-3 text-center text-[12px] leading-6 text-slate-500 ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
-                {language === "urdu"
-                  ? `${primaryControlInstruction} • ${secondaryControlInstruction}`
-                  : `${primaryControlInstruction} • ${secondaryControlInstruction}`}
-              </div>
-
-              <div className="mt-3 hidden w-full max-w-[540px] gap-2 sm:grid-cols-2 [@media(min-height:701px)]:grid">
-                <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    <PrimaryControlIcon className="h-4 w-4" />
-                    <span>{language === "urdu" ? "ایک بار دبائیں" : "Tap once"}</span>
-                  </div>
-                  <div
-                    className={`mt-2 text-sm leading-6 text-slate-700 ${
-                      language === "urdu" ? "font-urdu text-right" : ""
-                    }`}
-                    dir={language === "urdu" ? "rtl" : "ltr"}
-                  >
-                    {primaryControlInstruction}
-                  </div>
-                </div>
-
-                <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    <PhoneOff className="h-4 w-4" />
-                    <span>{secondaryControlTitle}</span>
-                  </div>
-                  <div
-                    className={`mt-2 text-sm leading-6 text-slate-700 ${
-                      language === "urdu" ? "font-urdu text-right" : ""
-                    }`}
-                    dir={language === "urdu" ? "rtl" : "ltr"}
-                  >
-                    {secondaryControlInstruction}
-                  </div>
-                </div>
+                {primaryControlInstruction}
+                <span className="mx-2 text-slate-300">•</span>
+                {secondaryControlInstruction}
               </div>
             </div>
 
@@ -2487,6 +2486,7 @@ export function RealtimeVoicePanel({
 
             {!selectedFamilyLesson &&
             selectedProgram &&
+            showMoreOptions &&
             (selectedFocus !== "general-support" || transcriptStoryLength > 0) ? (
               <div className="mt-4 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2571,63 +2571,50 @@ export function RealtimeVoicePanel({
 
             {!showUtilityPanels ? (
               <div className="mt-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span className="info-chip px-3 py-1.5 text-xs">
-                    {language === "urdu" ? "اردو، انگریزی، پنجابی" : "Urdu, English, Punjabi"}
-                  </span>
-                  <span className="info-chip px-3 py-1.5 text-xs">
-                    {language === "urdu" ? "فیملی + ریلیپس سپورٹ" : "Family + relapse support"}
-                  </span>
-                  <span className="info-chip px-3 py-1.5 text-xs">
-                    {language === "urdu" ? "صاف handoff جب ضرورت ہو" : "Clean handoff when needed"}
-                  </span>
-                </div>
-
                 <div
-                  className={`text-center text-sm leading-6 text-slate-500 ${
+                  className={`mx-auto max-w-[680px] text-center text-sm leading-6 text-slate-500 ${
                     language === "urdu" ? "font-urdu" : ""
                   }`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
                 >
                   {language === "urdu"
-                    ? "یہ کال repetitive family guidance، calming steps اور team handoff کو ایک ہی جگہ سنبھالتی ہے۔"
-                    : "This one call handles repetitive family guidance, calming steps, and the team handoff in one place."}
+                    ? "اے آئی پہلے سلام کرتی ہے، آپ کا نام کنفرم کرتی ہے، پوری بات سنتی ہے، اور پھر ایک واضح اگلا قدم دیتی ہے۔"
+                    : "The AI greets first, confirms your name, listens fully, and then gives one clear next step."}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 text-sm">
-                  <Link href="/chat" className="site-inline-link">
-                    <MessageSquare className="h-4 w-4" />
-                    <span
-                      className={language === "urdu" ? "font-urdu" : ""}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {[
+                    {
+                      icon: HeartHandshake,
+                      urdu: "فیملی سسٹم سپورٹ",
+                      english: "Family-system support",
+                    },
+                    {
+                      icon: Mic,
+                      urdu: "اردو، انگریزی، پنجابی",
+                      english: "Urdu, English, Punjabi",
+                    },
+                    {
+                      icon: CheckCircle2,
+                      urdu: "ضرورت پر صاف handoff",
+                      english: "Clear handoff when needed",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.english}
+                      className="rounded-[18px] border border-slate-200/80 bg-white/90 px-4 py-3 text-center shadow-sm"
                     >
-                      {language === "urdu"
-                        ? "ڈاکٹر صداقت GPT میں لکھیں"
-                        : "Open Dr Sadaqat GPT"}
-                    </span>
-                  </Link>
-                  <a href="tel:+923007413639" className="site-inline-link">
-                    <PhoneCall className="h-4 w-4" />
-                    <span
-                      className={language === "urdu" ? "font-urdu" : ""}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {language === "urdu" ? "ٹیم کو براہ راست کال کریں" : "Call the team directly"}
-                    </span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setShowMoreOptions(true)}
-                    className="site-inline-link"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                    <span
-                      className={language === "urdu" ? "font-urdu" : ""}
-                      dir={language === "urdu" ? "rtl" : "ltr"}
-                    >
-                      {language === "urdu" ? "مزید اختیارات" : "More support options"}
-                    </span>
-                  </button>
+                      <item.icon className="mx-auto h-4 w-4 text-slate-700" />
+                      <div
+                        className={`mt-2 text-xs font-semibold text-slate-700 ${
+                          language === "urdu" ? "font-urdu" : ""
+                        }`}
+                        dir={language === "urdu" ? "rtl" : "ltr"}
+                      >
+                        {language === "urdu" ? item.urdu : item.english}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}
