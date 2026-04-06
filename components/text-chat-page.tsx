@@ -34,6 +34,11 @@ import {
   type TextChatAudience,
 } from "@/lib/chat";
 import {
+  DEFAULT_LOCAL_PRIVACY_PREFERENCES,
+  LOCAL_PRIVACY_STORAGE_KEY,
+  normalizeLocalPrivacyPreferences,
+} from "@/lib/privacy";
+import {
   DR_ZARAK_LINKEDIN_URL,
   DR_ZARAK_NAME,
   DR_ZARAK_PHONE_DISPLAY,
@@ -46,6 +51,7 @@ import { cn, createSafeId, safeStorageGet, safeStorageRemove, safeStorageSet } f
 
 import { LanguageToggle } from "@/components/language-toggle";
 import { MessageBubble } from "@/components/message-bubble";
+import { PrivacyDeviceToggle } from "@/components/privacy-device-toggle";
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -246,6 +252,9 @@ export function TextChatPage() {
   const { hydrated: siteLanguageHydrated, language: siteLanguage, setLanguage: setSiteLanguage } =
     useSiteLanguage();
   const [storageReady, setStorageReady] = useState(false);
+  const [rememberOnDevice, setRememberOnDevice] = useState(
+    DEFAULT_LOCAL_PRIVACY_PREFERENCES.rememberOnDevice,
+  );
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
     realtimeConfigured: false,
     serverKeyConfigured: false,
@@ -276,6 +285,20 @@ export function TextChatPage() {
     }
 
     try {
+      const storedPrivacyPreferences = safeStorageGet(LOCAL_PRIVACY_STORAGE_KEY);
+      const privacyPreferences = normalizeLocalPrivacyPreferences(
+        storedPrivacyPreferences ? JSON.parse(storedPrivacyPreferences) : null,
+      );
+      setRememberOnDevice(privacyPreferences.rememberOnDevice);
+
+      if (!privacyPreferences.rememberOnDevice) {
+        safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+        safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
+        setSession(createChatSession("adaptive", siteLanguage));
+        setClassroomDisplay(false);
+        return;
+      }
+
       const storedSessions = safeStorageGet(CHAT_SESSIONS_STORAGE_KEY);
       const storedActiveChatId = safeStorageGet(ACTIVE_CHAT_STORAGE_KEY);
       const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
@@ -314,17 +337,35 @@ export function TextChatPage() {
   }, []);
 
   useEffect(() => {
+    safeStorageSet(
+      LOCAL_PRIVACY_STORAGE_KEY,
+      JSON.stringify({ rememberOnDevice }),
+    );
+  }, [rememberOnDevice]);
+
+  useEffect(() => {
     if (!storageReady || !session) {
+      return;
+    }
+
+    if (!rememberOnDevice) {
+      safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+      safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
       return;
     }
 
     safeStorageSet(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify([session]));
     safeStorageSet(ACTIVE_CHAT_STORAGE_KEY, session.id);
-  }, [session, storageReady]);
+  }, [rememberOnDevice, session, storageReady]);
 
   useEffect(() => {
+    if (!rememberOnDevice) {
+      safeStorageRemove(CLASSROOM_DISPLAY_STORAGE_KEY);
+      return;
+    }
+
     safeStorageSet(CLASSROOM_DISPLAY_STORAGE_KEY, classroomDisplay ? "true" : "false");
-  }, [classroomDisplay]);
+  }, [classroomDisplay, rememberOnDevice]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -399,6 +440,16 @@ export function TextChatPage() {
     setSpeechError(null);
     if (nextAudience === "classroom") {
       setClassroomDisplay(true);
+    }
+  }
+
+  function handleRememberOnDeviceChange(nextValue: boolean) {
+    setRememberOnDevice(nextValue);
+
+    if (!nextValue) {
+      safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+      safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
+      safeStorageRemove(CLASSROOM_DISPLAY_STORAGE_KEY);
     }
   }
 
@@ -891,6 +942,11 @@ export function TextChatPage() {
                   onChange={handleLanguageChange}
                   compact
                   className="w-full sm:w-[170px]"
+                />
+                <PrivacyDeviceToggle
+                  checked={rememberOnDevice}
+                  isUrdu={session.language === "urdu"}
+                  onCheckedChange={handleRememberOnDeviceChange}
                 />
                 <Link
                   href="/"

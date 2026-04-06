@@ -19,6 +19,11 @@ import {
   type VoiceTranscriptEntry,
 } from "@/lib/chat";
 import {
+  DEFAULT_LOCAL_PRIVACY_PREFERENCES,
+  LOCAL_PRIVACY_STORAGE_KEY,
+  normalizeLocalPrivacyPreferences,
+} from "@/lib/privacy";
+import {
   DR_ZARAK_LINKEDIN_URL,
   DR_ZARAK_NAME,
   DR_ZARAK_PHONE_DISPLAY,
@@ -30,6 +35,7 @@ import { SITE_MEDIA } from "@/lib/site-assets";
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from "@/lib/utils";
 
 import { LanguageToggle } from "@/components/language-toggle";
+import { PrivacyDeviceToggle } from "@/components/privacy-device-toggle";
 import { useSiteLanguage } from "@/components/site-language-provider";
 import { Button } from "@/components/ui/button";
 
@@ -82,6 +88,9 @@ export function ChatApp({ surface }: ChatAppProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([createBootstrapSession()]);
   const [activeChatId, setActiveChatId] = useState(BOOTSTRAP_SESSION_ID);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rememberOnDevice, setRememberOnDevice] = useState(
+    DEFAULT_LOCAL_PRIVACY_PREFERENCES.rememberOnDevice,
+  );
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>({
     realtimeConfigured: false,
     serverKeyConfigured: false,
@@ -93,6 +102,21 @@ export function ChatApp({ surface }: ChatAppProps) {
     }
 
     try {
+      const storedPrivacyPreferences = safeStorageGet(LOCAL_PRIVACY_STORAGE_KEY);
+      const privacyPreferences = normalizeLocalPrivacyPreferences(
+        storedPrivacyPreferences ? JSON.parse(storedPrivacyPreferences) : null,
+      );
+      setRememberOnDevice(privacyPreferences.rememberOnDevice);
+
+      if (!privacyPreferences.rememberOnDevice) {
+        safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+        safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
+        const fallbackSession = createChatSession("adaptive", siteLanguage);
+        setSessions([fallbackSession]);
+        setActiveChatId(fallbackSession.id);
+        return;
+      }
+
       const storedSessions = safeStorageGet(CHAT_SESSIONS_STORAGE_KEY);
       const storedActiveChatId = safeStorageGet(ACTIVE_CHAT_STORAGE_KEY);
       const parsedSessions = storedSessions ? (JSON.parse(storedSessions) as ChatSession[]) : [];
@@ -135,13 +159,26 @@ export function ChatApp({ surface }: ChatAppProps) {
   }, []);
 
   useEffect(() => {
+    safeStorageSet(
+      LOCAL_PRIVACY_STORAGE_KEY,
+      JSON.stringify({ rememberOnDevice }),
+    );
+  }, [rememberOnDevice]);
+
+  useEffect(() => {
     if (!storageReady) {
+      return;
+    }
+
+    if (!rememberOnDevice) {
+      safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+      safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
       return;
     }
 
     safeStorageSet(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
     safeStorageSet(ACTIVE_CHAT_STORAGE_KEY, activeChatId);
-  }, [activeChatId, sessions, storageReady]);
+  }, [activeChatId, rememberOnDevice, sessions, storageReady]);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeChatId) ?? null,
@@ -234,6 +271,15 @@ export function ChatApp({ surface }: ChatAppProps) {
     }
 
     patchSession(activeSession.id, { language });
+  }
+
+  function handleRememberOnDeviceChange(nextValue: boolean) {
+    setRememberOnDevice(nextValue);
+
+    if (!nextValue) {
+      safeStorageRemove(CHAT_SESSIONS_STORAGE_KEY);
+      safeStorageRemove(ACTIVE_CHAT_STORAGE_KEY);
+    }
   }
 
   if (!activeSession) {
@@ -343,6 +389,12 @@ export function ChatApp({ surface }: ChatAppProps) {
                   compact
                   className="w-[120px]"
                 />
+                <PrivacyDeviceToggle
+                  checked={rememberOnDevice}
+                  compact
+                  isUrdu={isUrdu}
+                  onCheckedChange={handleRememberOnDeviceChange}
+                />
               </div>
             </div>
           ) : (
@@ -385,6 +437,12 @@ export function ChatApp({ surface }: ChatAppProps) {
                   {WILLING_WAYS_HELPLINE_DISPLAY}
                 </a>
                 <LanguageToggle language={activeSession.language} onChange={handleLanguageChange} />
+                <PrivacyDeviceToggle
+                  checked={rememberOnDevice}
+                  compact
+                  isUrdu={isUrdu}
+                  onCheckedChange={handleRememberOnDeviceChange}
+                />
               </div>
             </div>
           )}

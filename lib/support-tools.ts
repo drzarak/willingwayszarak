@@ -66,6 +66,10 @@ export interface EscalateToHumanToolInput {
   reason?: string;
 }
 
+export interface KnowledgeLookupToolInput {
+  query: string;
+}
+
 const RELATION_IDS = BOOKING_RELATION_OPTIONS.map((option) => option.id);
 const BRANCH_IDS = BOOKING_BRANCH_OPTIONS.map((option) => option.id);
 const SERVICE_IDS = BOOKING_SERVICE_OPTIONS.map((option) => option.id);
@@ -448,6 +452,19 @@ export const REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS = {
     },
   },
   required: ["preferredName"],
+} satisfies JSONSchema7;
+
+export const KNOWLEDGE_LOOKUP_TOOL_PARAMETERS = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    query: {
+      type: "string",
+      description:
+        "Short search query for Dr. Sadaqat Ali's method, Willing Ways treatment philosophy, relapse prevention, family-system guidance, or other factual Willing Ways knowledge.",
+    },
+  },
+  required: ["query"],
 } satisfies JSONSchema7;
 
 export function buildBookingPayloadFromToolInput(

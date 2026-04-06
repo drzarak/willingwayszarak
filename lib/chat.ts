@@ -53,8 +53,14 @@ export interface ChatSession {
 
 export interface RuntimeStatus {
   bookingConfigured?: boolean;
+  caseStoreConfigured?: boolean;
+  notionDailyDigestConfigured?: boolean;
   realtimeConfigured: boolean;
   serverKeyConfigured: boolean;
+  staffDashboardAuthConfigured?: boolean;
+  staffDashboardConfigured?: boolean;
+  staffDashboardStorageConfigured?: boolean;
+  usageAnalyticsConfigured?: boolean;
 }
 
 export interface VoiceCallFocusOption {

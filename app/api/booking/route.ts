@@ -11,12 +11,23 @@ import {
   getBookingOptionLabel,
   type AiIntakePayload,
   type BookingRelationId,
+  type BookingAvailabilityId,
+  type BookingBranchId,
+  type BookingContactMethodId,
+  type BookingLanguageId,
   type BookingRequestPayload,
   type BookingServiceId,
   type BookingSourceId,
 } from "@/lib/booking";
 import { buildCaseWorkflowProfile, type QueueSectionId } from "@/lib/case-workflows";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
+import {
+  appendStaffCaseRecord,
+  createStaffCaseId,
+  isStructuredCaseStoreConfigured,
+} from "@/lib/server/staff-case-store";
+import { logUsageEvent } from "@/lib/server/usage-analytics";
+import { buildStaffCaseSnapshot } from "@/lib/staff-cases";
 
 export const maxDuration = 30;
 const BOOKING_RATE_LIMIT = {
@@ -376,6 +387,10 @@ function getCallbackDueLabel(slaMinutes: number) {
     minute: "2-digit",
     hour12: true,
   }).format(dueAt)} PKT`;
+}
+
+function getCallbackDueIso(slaMinutes: number) {
+  return new Date(Date.now() + slaMinutes * 60 * 1000).toISOString();
 }
 
 function getOwnerHint(sectionId: QueueSectionId) {
@@ -879,6 +894,53 @@ async function appendBookingRequestToNotionPage(
   await appendBlockChildren(notionToken, dayBlock.id, [requestBlock]);
 }
 
+async function appendBookingRequestToCaseStore(
+  payload: ReturnType<typeof validatePayload>,
+) {
+  const workflow = getWorkflowProfileForPayload(payload);
+  const createdAt = new Date().toISOString();
+  const callbackDueAt = getCallbackDueIso(workflow.slaMinutes);
+  const caseId = createStaffCaseId();
+
+  await appendStaffCaseRecord(
+    "",
+    "",
+    buildStaffCaseSnapshot({
+      aiIntake: payload.aiIntake,
+      availability: payload.availability as BookingAvailabilityId,
+      branchPreference: payload.branchPreference as BookingBranchId,
+      callbackDueAt,
+      caseId,
+      consentConfirmed: payload.consent,
+      contactLanguage: payload.contactLanguage as BookingLanguageId,
+      contactMethod: payload.contactMethod as BookingContactMethodId,
+      createdAt,
+      email: payload.email,
+      laneLabel: workflow.laneEnglishLabel,
+      nextContactDueAt: callbackDueAt,
+      notes: payload.notes,
+      patientName: payload.patientName,
+      phone: payload.phone,
+      queueLabel: workflow.queueEnglishLabel,
+      queueSectionId: workflow.queueSectionId,
+      recommendedProgramId: workflow.recommendedProgramId,
+      recommendedProgramLabel: workflow.recommendedProgramEnglishLabel,
+      relation: payload.relation as BookingRelationId,
+      requesterName: payload.requesterName,
+      serviceInterest: payload.serviceInterest as BookingServiceId,
+      source: payload.source,
+      updatedAt: createdAt,
+      urgency: getSubmissionUrgency(payload),
+    }),
+  );
+
+  return {
+    caseId,
+    callbackDueAt,
+    workflow,
+  };
+}
+
 function jsonError(error: string, status: number, headers?: HeadersInit) {
   return Response.json({ error }, { status, headers });
 }
@@ -996,6 +1058,7 @@ function validatePayload(raw: Partial<BookingRequestPayload>) {
 export async function POST(request: Request) {
   const notionToken = process.env.NOTION_TOKEN?.trim();
   const notionParentPageId = process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim();
+  const bookingStoreConfigured = isStructuredCaseStoreConfigured();
   const rateLimitResult = checkRateLimit(request, "booking", BOOKING_RATE_LIMIT);
   const responseHeaders = rateLimitHeaders(rateLimitResult);
 
@@ -1007,7 +1070,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!notionToken || !notionParentPageId) {
+  if (!bookingStoreConfigured) {
     return Response.json(
       {
         error:
@@ -1051,11 +1114,40 @@ export async function POST(request: Request) {
   }
 
   try {
-    await appendBookingRequestToNotionPage(notionToken, notionParentPageId, payload);
+    const storedCase = await appendBookingRequestToCaseStore(payload);
+    let mirroredToNotion = false;
+
+    if (notionToken && notionParentPageId) {
+      try {
+        await appendBookingRequestToNotionPage(notionToken, notionParentPageId, payload);
+        mirroredToNotion = true;
+      } catch {
+        mirroredToNotion = false;
+      }
+    }
+
+    await logUsageEvent({
+      eventType: "booking-submission",
+      route: "/api/booking",
+      surface: payload.source === "ai-guided-intake" ? "voice" : "chat",
+      userRole: payload.relation,
+      metadata: {
+        availability: payload.availability,
+        branchPreference: payload.branchPreference,
+        caseId: storedCase.caseId,
+        contactLanguage: payload.contactLanguage,
+        contactMethod: payload.contactMethod,
+        mirroredToNotion,
+        serviceInterest: payload.serviceInterest,
+        source: payload.source,
+      },
+    });
 
     return Response.json(
       {
         ok: true,
+        caseId: storedCase.caseId,
+        mirroredToNotion,
       },
       { headers: responseHeaders },
     );

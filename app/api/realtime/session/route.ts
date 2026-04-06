@@ -12,11 +12,14 @@ import {
   normalizeFamilyTrainingLessonId,
   type FamilyTrainingLessonId,
 } from "@/lib/family-training";
+import { isStructuredCaseStoreConfigured } from "@/lib/server/staff-case-store";
+import { logUsageEvent } from "@/lib/server/usage-analytics";
 import {
   BOOK_SESSION_TOOL_PARAMETERS,
   CRISIS_REDIRECT_TOOL_PARAMETERS,
   ESCALATE_TO_HUMAN_TOOL_PARAMETERS,
   GET_CONTACT_TOOL_PARAMETERS,
+  KNOWLEDGE_LOOKUP_TOOL_PARAMETERS,
   REMEMBER_PREFERRED_NAME_TOOL_PARAMETERS,
   SEND_RESOURCE_TOOL_PARAMETERS,
   normalizePreferredName,
@@ -220,6 +223,13 @@ function buildRealtimeSession(
       },
       {
         type: "function",
+        name: "lookup_knowledge_base",
+        description:
+          "Use when the caller asks for Willing Ways-specific methodology, Dr. Sadaqat Ali's approach, factual treatment philosophy, or program details that should be grounded in the imported knowledge base.",
+        parameters: KNOWLEDGE_LOOKUP_TOOL_PARAMETERS,
+      },
+      {
+        type: "function",
         name: "escalate_to_human",
         description:
           "Use when the caller insists on a real team member now and a booking tool call is not yet possible.",
@@ -254,10 +264,7 @@ function buildRealtimeSession(
 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  const bookingConfigured = Boolean(
-    process.env.NOTION_TOKEN?.trim() &&
-      process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim(),
-  );
+  const bookingConfigured = isStructuredCaseStoreConfigured();
   const rateLimitResult = checkRateLimit(request, "realtime-session", REALTIME_RATE_LIMIT);
   const responseHeaders = rateLimitHeaders(rateLimitResult);
 
@@ -328,6 +335,7 @@ export async function POST(request: Request) {
     });
   }
 
+  let selectedModel = PRIMARY_REALTIME_MODEL;
   let response = await postRealtimeCall(
       apiKey,
       sdp,
@@ -348,6 +356,7 @@ export async function POST(request: Request) {
     const primaryBody = await response.text();
 
     if (shouldFallbackToDocumentedModel(response.status, primaryBody)) {
+        selectedModel = FALLBACK_REALTIME_MODEL;
         response = await postRealtimeCall(
           apiKey,
           sdp,
@@ -381,6 +390,24 @@ export async function POST(request: Request) {
   }
 
   const answerSdp = await response.text();
+
+  await logUsageEvent({
+    eventType: "realtime-session-start",
+    route: "/api/realtime/session",
+    surface: "voice",
+    userRole: mode,
+    model: selectedModel,
+    metadata: {
+      familyTrainingLessonId: familyTrainingLessonId ?? "",
+      focus,
+      language,
+      mode,
+      preferredNameKnown: Boolean(preferredName),
+      requestId: response.headers.get("x-request-id") ?? "",
+      responseModel: response.headers.get("openai-model") ?? "",
+      voice,
+    },
+  });
 
   return new Response(answerSdp, {
     headers: {

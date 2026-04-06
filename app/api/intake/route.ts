@@ -27,6 +27,7 @@ import {
   type VoiceCallFocusId,
 } from "@/lib/chat";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
+import { logUsageEventFromUnknown } from "@/lib/server/usage-analytics";
 
 export const maxDuration = 30;
 
@@ -518,6 +519,26 @@ export async function POST(request: Request) {
       aiIntake,
       website: "",
     };
+
+    await logUsageEventFromUnknown({
+      eventType: "intake-draft",
+      route: "/api/intake",
+      surface: "voice",
+      userRole: relation,
+      model: INTAKE_MODEL,
+      usage: result.usage,
+      metadata: {
+        detectedLanguage,
+        focus,
+        language,
+        mode,
+        responseId:
+          result.response && typeof result.response === "object" && "id" in result.response
+            ? (result.response as { id?: string }).id ?? ""
+            : "",
+        serviceInterest,
+      },
+    });
 
     return Response.json(
       {

@@ -19,7 +19,10 @@ import {
   type ModelId,
   type TextChatAudience,
 } from "@/lib/chat";
+import { buildKnowledgeContext } from "@/lib/server/knowledge-base";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
+import { isStructuredCaseStoreConfigured } from "@/lib/server/staff-case-store";
+import { logUsageEventFromUnknown } from "@/lib/server/usage-analytics";
 import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
 import {
   BOOK_SESSION_TOOL_PARAMETERS,
@@ -307,10 +310,7 @@ function createDeterministicCrisisResponse(
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  const bookingConfigured = Boolean(
-    process.env.NOTION_TOKEN?.trim() &&
-      process.env.NOTION_BOOKING_PARENT_PAGE_ID?.trim(),
-  );
+  const bookingConfigured = isStructuredCaseStoreConfigured();
   const rateLimitResult = checkRateLimit(request, "chat", CHAT_RATE_LIMIT);
   const responseHeaders = rateLimitHeaders(rateLimitResult);
 
@@ -364,6 +364,7 @@ export async function POST(request: Request) {
     .slice(-4)
     .map((message) => getMessageText(message))
     .filter(Boolean);
+  const latestUserText = recentUserTexts[recentUserTexts.length - 1] ?? "";
   const careSignal = analyzeVoiceCareSignals(recentUserTexts);
 
   if (careSignal?.severity === "urgent") {
@@ -394,6 +395,10 @@ export async function POST(request: Request) {
 
   try {
     const openai = createOpenAI({ apiKey });
+    const knowledgeContext = buildKnowledgeContext(
+      latestUserText,
+      body.trigger === "staff" || body.trigger === "classroom" ? 5 : 3,
+    );
     const preparedMessages = await convertToModelMessages(
       body.messages.map(
         (message) =>
@@ -402,14 +407,19 @@ export async function POST(request: Request) {
           ) as Omit<UIMessage, "id">,
       ),
     );
+    const groundedSystemPrompt = `${composeSystemPrompt(body.mode, body.language, {
+      preferredName: normalizePreferredName(body.preferredName),
+      resumeContext: typeof body.resumeContext === "string" ? body.resumeContext : "",
+      surface: "chat",
+      textAudience: normalizeTextChatAudience(body.trigger),
+    })}${
+      knowledgeContext.context
+        ? `\n\nWilling Ways knowledge grounding:\nUse the following imported Willing Ways material as your first factual source for Willing Ways-specific answers. If the exact answer is not clearly present here, say what is clear and what still needs human confirmation instead of inventing proprietary details.\n\n${knowledgeContext.context}`
+        : ""
+    }`;
     const modelConfig = {
       model: openai.chat(body.modelId),
-      system: composeSystemPrompt(body.mode, body.language, {
-        preferredName: normalizePreferredName(body.preferredName),
-        resumeContext: typeof body.resumeContext === "string" ? body.resumeContext : "",
-        surface: "chat",
-        textAudience: normalizeTextChatAudience(body.trigger),
-      }),
+      system: groundedSystemPrompt,
       messages: preparedMessages,
       toolChoice: "auto" as const,
       tools: createChatTools(request, bookingConfigured),
@@ -418,6 +428,26 @@ export async function POST(request: Request) {
 
     if (body.responseMode === "json") {
       const result = await generateText(modelConfig);
+
+      await logUsageEventFromUnknown({
+        eventType: "chat-completion",
+        route: "/api/chat",
+        surface: "chat",
+        sessionId: body.id ?? body.messageId,
+        userRole: body.trigger ?? body.mode,
+        model: body.modelId,
+        usage: result.totalUsage,
+        metadata: {
+          finishReason: result.finishReason,
+          language: body.language,
+          mode: body.mode,
+          responseId:
+            result.response && typeof result.response === "object" && "id" in result.response
+              ? (result.response as { id?: string }).id ?? ""
+              : "",
+          trigger: body.trigger ?? "",
+        },
+      });
 
       return Response.json(
         {
@@ -434,7 +464,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = streamText(modelConfig);
+    const result = streamText({
+      ...modelConfig,
+      onFinish: async (event) => {
+        await logUsageEventFromUnknown({
+          eventType: "chat-completion",
+          route: "/api/chat",
+          surface: "chat",
+          sessionId: body.id ?? body.messageId,
+          userRole: body.trigger ?? body.mode,
+          model: body.modelId,
+          usage: event.totalUsage,
+          metadata: {
+            finishReason: event.finishReason,
+            language: body.language,
+            mode: body.mode,
+            responseId:
+              event.response && typeof event.response === "object" && "id" in event.response
+                ? (event.response as { id?: string }).id ?? ""
+                : "",
+            trigger: body.trigger ?? "",
+          },
+        });
+      },
+    });
 
     return result.toUIMessageStreamResponse({
       headers: responseHeaders,

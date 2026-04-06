@@ -63,6 +63,7 @@ import {
   type ContactToolInput,
   type CrisisRedirectToolInput,
   type EscalateToHumanToolInput,
+  type KnowledgeLookupToolInput,
   type RememberPreferredNameToolInput,
   type SendResourceToolInput,
 } from "@/lib/support-tools";
@@ -138,6 +139,9 @@ const MIN_TRANSCRIPT_PROBABILITY = 0.45;
 const MIN_SHORT_TRANSCRIPT_PROBABILITY = 0.62;
 const MIN_TRANSCRIPT_CHARACTERS = 3;
 const MIN_SPEECH_LEVEL = 0.009;
+const NOISY_ROOM_FLOOR = 0.01;
+const NOISY_ROOM_SHORT_TRANSCRIPT_PROBABILITY = 0.78;
+const NOISY_ROOM_EXTRA_DEBOUNCE_MS = 240;
 const ECHO_GUARD_WINDOW_MS = 1600;
 const INTRODUCTORY_TURN_HOLD_MS = 1200;
 const SHORT_TURN_HOLD_MS = 900;
@@ -230,6 +234,10 @@ function normalizeTranscriptComparisonText(value: string) {
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isNoisyRoom(noiseFloor: number) {
+  return noiseFloor >= NOISY_ROOM_FLOOR;
 }
 
 function transcriptLooksLikeAssistantEcho(
@@ -403,6 +411,7 @@ export function RealtimeVoicePanel({
   const initialGreetingRequestedRef = useRef(false);
   const queuedResponseRequestRef = useRef<QueuedResponseRequest | null>(null);
   const pendingToolOutputsRef = useRef<Array<{ callId: string; output: string }>>([]);
+  const loggedUsageEventsRef = useRef<Set<string>>(new Set());
   const lastAssistantSpeechAtRef = useRef(0);
   const recentAssistantDeltaSignatureRef = useRef<{ signature: string; at: number } | null>(null);
   const pendingResponseTimerRef = useRef<number | null>(null);
@@ -968,6 +977,7 @@ export function RealtimeVoicePanel({
 
     assistantEntryIdRef.current = null;
     handledToolCallsRef.current.clear();
+    loggedUsageEventsRef.current.clear();
     activeResponseRef.current = false;
     initialGreetingRequestedRef.current = false;
     queuedResponseRequestRef.current = null;
@@ -1079,6 +1089,48 @@ export function RealtimeVoicePanel({
     return false;
   }
 
+  function queueUsageEvent(
+    dedupeKey: string,
+    payload: {
+      eventType: "realtime-response" | "realtime-transcription";
+      usage: unknown;
+      model?: string;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    if (!dedupeKey || loggedUsageEventsRef.current.has(dedupeKey)) {
+      return;
+    }
+
+    loggedUsageEventsRef.current.add(dedupeKey);
+
+    void fetch("/api/usage/events", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventType: payload.eventType,
+        model: payload.model,
+        route: "/api/realtime/session",
+        sessionId,
+        surface: "voice",
+        usage: payload.usage,
+        userRole: mode,
+        metadata: {
+          focus: selectedFocus,
+          language,
+          mode,
+          voice: voiceId,
+          ...(payload.metadata ?? {}),
+        },
+      }),
+      keepalive: true,
+    }).catch(() => {
+      loggedUsageEventsRef.current.delete(dedupeKey);
+    });
+  }
+
   function setMicMutedState(nextMuted: boolean) {
     localStreamRef.current?.getAudioTracks().forEach((track) => {
       track.enabled = !nextMuted;
@@ -1184,7 +1236,11 @@ export function RealtimeVoicePanel({
   }
 
   function isLikelySpeechLevel(level = currentMicLevelRef.current) {
-    const adaptiveThreshold = Math.max(MIN_SPEECH_LEVEL, micNoiseFloorRef.current * 2.2);
+    const adaptiveMultiplier = isNoisyRoom(micNoiseFloorRef.current) ? 2.8 : 2.2;
+    const adaptiveThreshold = Math.max(
+      MIN_SPEECH_LEVEL,
+      micNoiseFloorRef.current * adaptiveMultiplier,
+    );
     return level >= adaptiveThreshold;
   }
 
@@ -1245,6 +1301,14 @@ export function RealtimeVoicePanel({
       normalizedTranscript.length < MIN_TRANSCRIPT_CHARACTERS &&
       (confidence === null || confidence < MIN_SHORT_TRANSCRIPT_PROBABILITY) &&
       !isLikelySpeechLevel(turn.peakLevel)
+    ) {
+      return true;
+    }
+
+    if (
+      isNoisyRoom(micNoiseFloorRef.current) &&
+      normalizedTranscript.length < 10 &&
+      (confidence === null || confidence < NOISY_ROOM_SHORT_TRANSCRIPT_PROBABILITY)
     ) {
       return true;
     }
@@ -1322,9 +1386,15 @@ export function RealtimeVoicePanel({
     const continuationHoldDelay = pendingTurn.transcript
       ? getContinuationHoldDelay(pendingTurn.transcript)
       : 0;
+    const noisyRoomDelay = isNoisyRoom(micNoiseFloorRef.current)
+      ? NOISY_ROOM_EXTRA_DEBOUNCE_MS
+      : 0;
 
     const waitUntil = Math.max(
-      pendingTurn.stoppedAt + RESPONSE_DEBOUNCE_MS + continuationHoldDelay,
+      pendingTurn.stoppedAt +
+        RESPONSE_DEBOUNCE_MS +
+        continuationHoldDelay +
+        noisyRoomDelay,
       turnCooldownUntilRef.current,
     );
     const delay = Math.max(0, waitUntil - Date.now());
@@ -1528,6 +1598,54 @@ export function RealtimeVoicePanel({
       return getSupportResourceResult(rawInput as SendResourceToolInput);
     }
 
+    if (name === "lookup_knowledge_base") {
+      const input = rawInput as KnowledgeLookupToolInput;
+      const query = (input.query ?? "").trim();
+
+      if (!query) {
+        return {
+          ok: false,
+          message: "A short knowledge query is still needed before searching the Willing Ways knowledge base.",
+        };
+      }
+
+      const response = await fetch(`/api/knowledge?q=${encodeURIComponent(query)}&limit=4`);
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message:
+            "The Willing Ways knowledge base could not be searched right now. Give the closest grounded answer you can and suggest a human follow-up if needed.",
+        };
+      }
+
+      const result = (await response.json()) as {
+        hits?: Array<{
+          path?: string;
+          snippet?: string;
+          sourceUrl?: string;
+          title?: string;
+        }>;
+      };
+
+      const hits = Array.isArray(result.hits) ? result.hits.slice(0, 4) : [];
+
+      return {
+        ok: true,
+        query,
+        hits: hits.map((hit) => ({
+          title: hit.title ?? "Willing Ways resource",
+          path: hit.path ?? "",
+          sourceUrl: hit.sourceUrl ?? "",
+          snippet: hit.snippet ?? "",
+        })),
+        note:
+          hits.length > 0
+            ? "Use these Willing Ways excerpts as the factual grounding for your answer. If they are partial, say so clearly."
+            : "No close Willing Ways knowledge-base match was found. Be honest about that and give the closest safe guidance without inventing proprietary details.",
+      };
+    }
+
     if (name === "escalate_to_human") {
       return getHumanEscalationResult(rawInput as EscalateToHumanToolInput);
     }
@@ -1651,6 +1769,27 @@ export function RealtimeVoicePanel({
     }
 
     if (type === "response.done") {
+      const responseRecord =
+        payload.response && typeof payload.response === "object"
+          ? (payload.response as Record<string, unknown>)
+          : null;
+      const responseId =
+        (typeof responseRecord?.id === "string" ? responseRecord.id : "") ||
+        (typeof payload.response_id === "string" ? payload.response_id : "");
+      const usage = responseRecord?.usage ?? payload.usage;
+
+      if (responseId && usage) {
+        queueUsageEvent(`response:${responseId}`, {
+          eventType: "realtime-response",
+          model:
+            typeof responseRecord?.model === "string" ? responseRecord.model : undefined,
+          usage,
+          metadata: {
+            responseId,
+          },
+        });
+      }
+
       activeResponseRef.current = false;
       lastAssistantSpeechAtRef.current = Date.now();
       assistantEntryIdRef.current = null;
@@ -1676,8 +1815,21 @@ export function RealtimeVoicePanel({
         typeof payload.item_id === "string" ? payload.item_id : createSafeId("voice-user");
       const transcriptText =
         typeof payload.transcript === "string" ? payload.transcript.trim() : "";
+      const usage = payload.usage;
       const confidence = probabilityFromAverageLogprob(extractAverageLogprob(payload));
       const pendingTurn = createOrUpdateTurn(itemId);
+
+      if (usage) {
+        queueUsageEvent(`transcription:${itemId}`, {
+          eventType: "realtime-transcription",
+          usage,
+          metadata: {
+            confidence: confidence ?? null,
+            itemId,
+            transcriptLength: transcriptText.length,
+          },
+        });
+      }
 
       if (!transcriptText) {
         pendingTurn.ignored = true;

@@ -1,4 +1,8 @@
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
+import {
+  estimateSpeechGenerationMetrics,
+  logUsageEvent,
+} from "@/lib/server/usage-analytics";
 
 export const maxDuration = 30;
 
@@ -114,6 +118,26 @@ export async function POST(request: Request) {
       headers,
     });
   }
+
+  const speechMetrics = estimateSpeechGenerationMetrics(text);
+
+  await logUsageEvent({
+    eventType: "speech-generation",
+    route: "/api/speech",
+    surface: "chat",
+    userRole: body.audience ?? "patient",
+    model: "gpt-4o-mini-tts",
+    estimatedCostUsd: speechMetrics.estimatedCostUsd,
+    inputTokens: speechMetrics.estimatedInputTokens,
+    durationMs: speechMetrics.estimatedDurationSeconds * 1000,
+    metadata: {
+      audience: body.audience ?? "patient",
+      estimatedDurationSeconds: speechMetrics.estimatedDurationSeconds,
+      language: body.language ?? "english",
+      textLength: text.length,
+      voice: "marin",
+    },
+  });
 
   return new Response(response.body, {
     status: 200,
