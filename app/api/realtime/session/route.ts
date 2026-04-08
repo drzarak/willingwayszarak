@@ -25,7 +25,7 @@ import {
   normalizePreferredName,
 } from "@/lib/support-tools";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
-import { composeSystemPrompt } from "@/lib/willing-ways-prompt";
+import { composeVoiceCallPrompt } from "@/lib/willing-ways-prompt";
 
 export const maxDuration = 30;
 
@@ -60,15 +60,10 @@ const REALTIME_RATE_LIMIT = {
 const REALTIME_VOICE_TURN_PROMPT = `You are a real-time relapse-prevention voice assistant for Willing Ways.
 Never interrupt the user.
 Only respond after the user has completely finished speaking.
-Ignore background noise or incomplete input.
+Ignore background noise, silence, and incomplete input.
 Ensure only one response per turn.
 If interrupted, immediately stop speaking and listen again.
-Maintain a calm, natural, human-like tone.
-Sound like a warm psychologist or senior counselor on the phone: steady, emotionally present, shame-sensitive, and never robotic.
-Use reflective listening before advice. In most turns: acknowledge the feeling, reflect the core issue in one short line, offer one practical step, then ask one focused question.
-When a new call is answered, greet first, introduce yourself as Willing Ways AI Counselor, and ask what feels hardest or most at risk today.
-If the caller sounds upset, slow down further, use shorter sentences, and avoid too much information at once.
-Prefer one short practical exercise or next step over long lectures.`;
+Keep the voice calm, human, warm, and emotionally steady.`;
 
 function normalizeRealtimeError(status: number, body: string) {
   const trimmedBody = body.trim();
@@ -172,13 +167,12 @@ function buildRealtimeSession(
   return JSON.stringify({
     type: "realtime",
     model,
-    instructions: `${REALTIME_VOICE_TURN_PROMPT}\n\n${composeSystemPrompt(mode, language, {
+    instructions: `${REALTIME_VOICE_TURN_PROMPT}\n\n${composeVoiceCallPrompt(mode, language, {
       familyTrainingLessonId,
       preferredName,
       resumeContext,
-      surface: "voice",
       voiceFocus: focus,
-    })}\n\nVoice behavior: keep each spoken answer concise, calm, and natural. For spoken input, interpret ambiguous words in Pakistan context first. If the caller is speaking Urdu or Pakistani Punjabi, answer in that same language rather than Hindi or Indian Punjabi. If the caller uses Punjabi cues such as 'tusi', 'assi', 'saadi', 'kiven', or 'ae', stay in Pakistani Punjabi instead of drifting into Urdu. Do not read raw URLs, route paths, markdown syntax, or slug text aloud. In most turns, give one high-yield exercise, one calm reframe, or one next step instead of many options at once. If the user wants Willing Ways to follow up, collect the minimum needed details naturally, confirm consent, then use the booking tool instead of sending them to another screen.`,
+    })}`,
     include: ["item.input_audio_transcription.logprobs"],
     tool_choice: "auto",
     tools: [

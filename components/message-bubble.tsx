@@ -51,6 +51,61 @@ export function MessageBubble({
     return null;
   }
 
+  const actionButtons = !isUser ? (
+    <div
+      className={cn(
+        "flex flex-wrap gap-2",
+        stageVariant && presentationMode
+          ? "opacity-100"
+          : presentationMode
+            ? "opacity-100"
+            : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition",
+      )}
+    >
+      <Button variant={stageVariant ? "surface" : "ghost"} size="sm" onClick={() => onCopy(text)}>
+        <Copy className="h-3.5 w-3.5" />
+        {isUrdu ? "کاپی" : "Copy"}
+      </Button>
+
+      {onReadAloud ? (
+        <Button
+          variant={stageVariant ? "surface" : "ghost"}
+          size="sm"
+          onClick={() => onReadAloud(message.id, text)}
+          disabled={readAloudLoadingMessageId !== null && readAloudLoadingMessageId !== message.id}
+        >
+          {readAloudActiveMessageId === message.id ? (
+            <Square className="h-3.5 w-3.5" />
+          ) : (
+            <Volume2 className="h-3.5 w-3.5" />
+          )}
+          {readAloudLoadingMessageId === message.id
+            ? isUrdu
+              ? "آواز بن رہی ہے"
+              : "Preparing audio"
+            : readAloudActiveMessageId === message.id
+              ? isUrdu
+                ? "آواز بند کریں"
+                : "Stop audio"
+              : readAloudNeedsTap
+                ? isUrdu
+                  ? "سننے کے لئے دوبارہ دبائیں"
+                  : "Tap again to play"
+                : isUrdu
+                  ? "بلند آواز میں سنیں"
+                  : "Read aloud"}
+        </Button>
+      ) : null}
+
+      {isLatestAssistant && canRegenerate ? (
+        <Button variant={stageVariant ? "surface" : "ghost"} size="sm" onClick={onRegenerate}>
+          <RotateCcw className="h-3.5 w-3.5" />
+          {isUrdu ? "دوبارہ جواب" : "Regenerate"}
+        </Button>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")} dir={isUrdu ? "rtl" : "ltr"}>
       <div
@@ -60,25 +115,28 @@ export function MessageBubble({
           stageVariant
             ? isUser
               ? "border border-slate-800/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.94))] text-white shadow-[0_18px_38px_rgba(15,23,42,0.24)]"
-              : "border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,247,255,0.98))] text-slate-800 shadow-[0_18px_38px_rgba(15,23,42,0.08)]"
+              : "border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(247,247,255,0.99))] text-slate-800 shadow-[0_18px_38px_rgba(15,23,42,0.08)]"
             : isUser
               ? "border border-slate-200 bg-[#f3f4f6] text-slate-900"
               : "border border-slate-100 bg-white text-slate-800",
         )}
       >
-        <div
-          className={cn(
-            "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
-            stageVariant
-              ? isUser
-                ? "text-white/65"
-                : "text-[#7a5470]"
-              : isUser
-                ? "text-slate-500"
-                : "text-slate-400",
-          )}
-        >
-          {isUser ? (isUrdu ? "آپ" : "You") : isUrdu ? "ڈاکٹر صداقت GPT" : assistantLabel}
+        <div className={cn("mb-2 flex flex-wrap items-center justify-between gap-2", stageVariant && !isUser ? "border-b border-slate-200/80 pb-2.5" : "")}>
+          <div
+            className={cn(
+              "text-[11px] font-semibold uppercase tracking-[0.18em]",
+              stageVariant
+                ? isUser
+                  ? "text-white/65"
+                  : "text-[#7a5470]"
+                : isUser
+                  ? "text-slate-500"
+                  : "text-slate-400",
+            )}
+          >
+            {isUser ? (isUrdu ? "آپ" : "You") : isUrdu ? "ڈاکٹر صداقت GPT" : assistantLabel}
+          </div>
+          {!isUser && stageVariant ? actionButtons : null}
         </div>
 
         {isUser ? (
@@ -86,7 +144,7 @@ export function MessageBubble({
             className={cn(
               "whitespace-pre-wrap text-[15px] leading-7 sm:text-[16px]",
               stageVariant ? "text-white" : "text-slate-900",
-              presentationMode ? "text-[17px] leading-8 sm:text-[21px] sm:leading-9" : "",
+              presentationMode ? "text-[17px] leading-8 sm:text-[20px] sm:leading-9" : "",
             )}
           >
             {text}
@@ -96,71 +154,39 @@ export function MessageBubble({
             className={cn(
               "space-y-4 text-[15px] leading-7 sm:text-[16px]",
               stageVariant ? "text-slate-800" : "text-slate-800",
-              presentationMode ? "text-[17px] leading-8 sm:text-[22px] sm:leading-10" : "",
+              presentationMode ? "text-[17px] leading-8 sm:text-[21px] sm:leading-10" : "",
             )}
           >
             {assistantParagraphs.length > 0 ? (
               assistantParagraphs.map((paragraph, index) => (
-                <p key={`${message.id}:paragraph:${index}`} className="whitespace-pre-wrap">
+                <p
+                  key={`${message.id}:paragraph:${index}`}
+                  className={cn(
+                    "whitespace-pre-wrap",
+                    stageVariant
+                      ? "rounded-[16px] border border-slate-200/80 bg-slate-50/85 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:px-4"
+                      : "",
+                  )}
+                >
                   {paragraph}
                 </p>
               ))
             ) : (
-              <p className="whitespace-pre-wrap">{text}</p>
+              <p
+                className={cn(
+                  "whitespace-pre-wrap",
+                  stageVariant
+                    ? "rounded-[16px] border border-slate-200/80 bg-slate-50/85 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:px-4"
+                    : "",
+                )}
+              >
+                {text}
+              </p>
             )}
           </div>
         )}
 
-        {!isUser ? (
-          <div
-            className={cn(
-              "mt-4 flex flex-wrap gap-2 opacity-100 transition",
-              presentationMode ? "" : "sm:opacity-0 sm:group-hover:opacity-100",
-            )}
-          >
-            <Button variant={stageVariant ? "surface" : "ghost"} size="sm" onClick={() => onCopy(text)}>
-              <Copy className="h-3.5 w-3.5" />
-              {isUrdu ? "کاپی" : "Copy"}
-            </Button>
-
-            {onReadAloud ? (
-              <Button
-                variant={stageVariant ? "surface" : "ghost"}
-                size="sm"
-                onClick={() => onReadAloud(message.id, text)}
-                disabled={readAloudLoadingMessageId !== null && readAloudLoadingMessageId !== message.id}
-              >
-                {readAloudActiveMessageId === message.id ? (
-                  <Square className="h-3.5 w-3.5" />
-                ) : (
-                  <Volume2 className="h-3.5 w-3.5" />
-                )}
-                {readAloudLoadingMessageId === message.id
-                  ? isUrdu
-                    ? "آواز بن رہی ہے"
-                    : "Preparing audio"
-                  : readAloudActiveMessageId === message.id
-                    ? isUrdu
-                      ? "آواز بند کریں"
-                      : "Stop audio"
-                    : readAloudNeedsTap
-                      ? isUrdu
-                        ? "سننے کے لئے دوبارہ دبائیں"
-                        : "Tap again to play"
-                    : isUrdu
-                      ? "بلند آواز میں سنیں"
-                      : "Read aloud"}
-              </Button>
-            ) : null}
-
-            {isLatestAssistant && canRegenerate ? (
-              <Button variant={stageVariant ? "surface" : "ghost"} size="sm" onClick={onRegenerate}>
-                <RotateCcw className="h-3.5 w-3.5" />
-                {isUrdu ? "دوبارہ جواب" : "Regenerate"}
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+        {!isUser && !stageVariant ? <div className="mt-4">{actionButtons}</div> : null}
       </div>
     </div>
   );

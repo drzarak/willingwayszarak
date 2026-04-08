@@ -6,7 +6,6 @@ import type { UIMessage } from "ai";
 import {
   AlertTriangle,
   Check,
-  ExternalLink,
   LoaderCircle,
   MessageSquareText,
   PhoneCall,
@@ -39,10 +38,7 @@ import {
   normalizeLocalPrivacyPreferences,
 } from "@/lib/privacy";
 import {
-  DR_ZARAK_LINKEDIN_URL,
   DR_ZARAK_NAME,
-  DR_ZARAK_PHONE_DISPLAY,
-  DR_ZARAK_PHONE_HREF,
   WILLING_WAYS_HELPLINE_DISPLAY,
   WILLING_WAYS_HELPLINE_HREF,
 } from "@/lib/site-contact";
@@ -142,27 +138,23 @@ function isAutoplayDeniedError(error: unknown) {
   );
 }
 
-function getAudienceCardClass(audience: TextChatAudience, selected: boolean) {
+function getAudiencePillClass(audience: TextChatAudience, selected: boolean) {
   const themes: Record<TextChatAudience, { selected: string; idle: string }> = {
     patient: {
-      selected:
-        "border-fuchsia-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(244,114,182,0.18))] shadow-[0_18px_34px_rgba(217,70,239,0.16)]",
-      idle: "border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(244,114,182,0.08))] hover:border-fuchsia-200/50 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(244,114,182,0.12))]",
+      selected: "border-fuchsia-300/70 bg-fuchsia-400/22 text-white shadow-[0_10px_24px_rgba(217,70,239,0.25)]",
+      idle: "border-white/16 bg-white/6 text-white/78 hover:bg-white/10 hover:text-white",
     },
     family: {
-      selected:
-        "border-emerald-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(16,185,129,0.18))] shadow-[0_18px_34px_rgba(16,185,129,0.16)]",
-      idle: "border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(16,185,129,0.08))] hover:border-emerald-200/50 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(16,185,129,0.12))]",
+      selected: "border-emerald-300/70 bg-emerald-400/20 text-white shadow-[0_10px_24px_rgba(16,185,129,0.24)]",
+      idle: "border-white/16 bg-white/6 text-white/78 hover:bg-white/10 hover:text-white",
     },
     staff: {
-      selected:
-        "border-sky-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(56,189,248,0.18))] shadow-[0_18px_34px_rgba(56,189,248,0.16)]",
-      idle: "border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(56,189,248,0.08))] hover:border-sky-200/50 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(56,189,248,0.12))]",
+      selected: "border-sky-300/70 bg-sky-400/22 text-white shadow-[0_10px_24px_rgba(56,189,248,0.24)]",
+      idle: "border-white/16 bg-white/6 text-white/78 hover:bg-white/10 hover:text-white",
     },
     classroom: {
-      selected:
-        "border-amber-300/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(251,191,36,0.18))] shadow-[0_18px_34px_rgba(251,191,36,0.16)]",
-      idle: "border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(251,191,36,0.08))] hover:border-amber-200/50 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(251,191,36,0.12))]",
+      selected: "border-amber-300/70 bg-amber-400/22 text-white shadow-[0_10px_24px_rgba(251,191,36,0.24)]",
+      idle: "border-white/16 bg-white/6 text-white/78 hover:bg-white/10 hover:text-white",
     },
   };
 
@@ -415,6 +407,8 @@ export function TextChatPage() {
     (message) => message.role === "assistant",
   );
   const isEmptyConversation = messages.length === 0;
+  const hasAssistantResponse = messages.some((message) => message.role === "assistant");
+  const isHeroCollapsed = hasAssistantResponse;
 
   function patchSession(patch: Partial<ChatSession>) {
     setSession((current) => {
@@ -909,30 +903,32 @@ export function TextChatPage() {
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1440px] flex-col px-3 py-3 sm:px-5 sm:py-5">
         <audio ref={speechAudioRef} className="hidden" playsInline preload="none" aria-hidden="true" />
 
-        <header className="rounded-[34px] border border-white/10 bg-[rgba(8,15,28,0.78)] px-4 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.32)] backdrop-blur-xl sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <header className="rounded-[30px] border border-white/10 bg-[rgba(8,15,28,0.78)] px-4 py-4 shadow-[0_22px_64px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <Link href="/" className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-full px-1">
                   <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={320}
-                  height={80}
-                  className="h-9 w-auto max-w-[180px] object-contain sm:h-10 sm:max-w-[220px]"
-                  priority
-                  sizes="(max-width: 640px) 180px, 220px"
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={320}
+                    height={80}
+                    className="h-9 w-auto max-w-[180px] object-contain sm:h-10 sm:max-w-[220px]"
+                    priority
+                    sizes="(max-width: 640px) 180px, 220px"
                   />
                 </Link>
-                <div className="hidden min-w-0 sm:block">
+                <div className="min-w-0">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/55">
                     {headerTitle}
                   </div>
-                  <div className="mt-1 text-sm text-white/70">
-                    {sessionLanguage === "urdu"
-                      ? "teaching، read-aloud اور روزانہ psychoeducation"
-                      : "Teaching, read-aloud, and daily psychoeducation"}
-                  </div>
+                  {!isHeroCollapsed ? (
+                    <div className="mt-1 text-sm text-white/72">
+                      {sessionLanguage === "urdu"
+                        ? "ایک سادہ چیٹ اسٹیج برائے teaching، counseling اور follow-up"
+                        : "A cleaner chat stage for teaching, counseling, and follow-up"}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -950,24 +946,27 @@ export function TextChatPage() {
                 />
                 <Link
                   href="/"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/12"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/12"
                 >
                   <PhoneCall className="h-4 w-4" />
-                  <span className={session.language === "urdu" ? "font-urdu" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                    {session.language === "urdu" ? "واپس AI call" : "Back to the AI call"}
+                  <span
+                    className={session.language === "urdu" ? "font-urdu" : ""}
+                    dir={session.language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {session.language === "urdu" ? "واپس AI call" : "Back to AI call"}
                   </span>
                 </Link>
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_340px]">
-              <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(21,31,54,0.98),rgba(27,42,70,0.98)_44%,rgba(74,32,80,0.94)_100%)] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(5,11,22,0.34)] sm:px-6">
+            {!isHeroCollapsed ? (
+              <div className="rounded-[26px] border border-white/12 bg-[linear-gradient(135deg,rgba(21,31,54,0.96),rgba(27,42,70,0.96)_48%,rgba(62,31,76,0.9)_100%)] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:px-6">
                 <div className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85 shadow-sm">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/12 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/88">
                     <Sparkles className="h-3.5 w-3.5" />
-                    {session.language === "urdu" ? "Dr Sadaqat GPT classroom stage" : "Dr Sadaqat GPT classroom stage"}
+                    {session.language === "urdu" ? "AI counseling classroom stage" : "AI counseling classroom stage"}
                   </div>
-                  <h1 className="mt-4 max-w-3xl text-[2.15rem] font-semibold tracking-[-0.035em] text-white sm:text-[3.35rem] sm:leading-[1.01]">
+                  <h1 className="mt-4 max-w-3xl text-[2.1rem] font-semibold tracking-[-0.03em] text-white sm:text-[3rem] sm:leading-[1.02]">
                     {pageTitle}
                   </h1>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78 sm:text-[15px]">
@@ -976,151 +975,87 @@ export function TextChatPage() {
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold text-white/85">
-                    {session.language === "urdu" ? "بڑی اسکرین کے لئے تیار" : "Projector ready"}
-                  </div>
-                  <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold text-white/85">
-                    {session.language === "urdu" ? "AI read aloud" : "AI read aloud"}
-                  </div>
-                  <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold text-white/85">
-                    {session.language === "urdu" ? "اردو + English" : "Urdu + English"}
-                  </div>
-                  <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold text-white/85">
-                    {session.language === "urdu" ? "rehab teaching + Q&A" : "Rehab teaching + Q&A"}
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {TEXT_CHAT_AUDIENCE_OPTIONS.map((option) => {
                     const selected = audience === option.id;
-
                     return (
                       <button
                         key={option.id}
                         type="button"
                         onClick={() => handleAudienceChange(option.id)}
                         className={cn(
-                          "rounded-[24px] border px-4 py-4 text-left text-white transition hover:-translate-y-0.5",
-                          getAudienceCardClass(option.id, selected),
-                          session.language === "urdu" ? "font-urdu text-right" : "",
+                          "rounded-full border px-3.5 py-2 text-sm font-semibold transition",
+                          getAudiencePillClass(option.id, selected),
+                          session.language === "urdu" ? "font-urdu" : "",
                         )}
                         dir={session.language === "urdu" ? "rtl" : "ltr"}
                       >
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-                          {selected
-                            ? session.language === "urdu"
-                              ? "منتخب"
-                              : "Selected"
-                            : session.language === "urdu"
-                              ? "کردار"
-                              : "Role"}
-                        </div>
-                        <div className="mt-2 text-base font-semibold text-white">
-                          {session.language === "urdu" ? option.urduLabel : option.englishLabel}
-                        </div>
-                        <div className="mt-1 text-sm leading-6 text-white/78">
-                          {session.language === "urdu"
-                            ? option.urduDescription
-                            : option.englishDescription}
-                        </div>
+                        {session.language === "urdu" ? option.urduLabel : option.englishLabel}
                       </button>
                     );
                   })}
                 </div>
               </div>
-
-              <div className="rounded-[30px] border border-white/10 bg-[rgba(10,19,32,0.88)] px-4 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.28)] sm:px-5">
-                <div className={session.language === "urdu" ? "font-urdu text-right" : ""} dir={session.language === "urdu" ? "rtl" : "ltr"}>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                    {session.language === "urdu" ? "اسٹیج controls" : "Stage controls"}
+            ) : (
+              <div className="rounded-[22px] border border-white/12 bg-white/6 px-3 py-3 sm:px-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div
+                    className={cn(
+                      "text-sm text-white/78",
+                      session.language === "urdu" ? "font-urdu text-right" : "",
+                    )}
+                    dir={session.language === "urdu" ? "rtl" : "ltr"}
+                  >
+                    {session.language === "urdu"
+                      ? "گفتگو جاری ہے۔ کردار تبدیل کر سکتے ہیں یا projector mode آن کر سکتے ہیں۔"
+                      : "Conversation in progress. Switch audience or enable projector mode anytime."}
                   </div>
-                  <div className="mt-3 space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setClassroomDisplay((current) => !current)}
-                      className="flex w-full items-center justify-between rounded-[22px] border border-white/12 bg-white/8 px-4 py-3 text-left"
-                    >
-                      <div>
-                        <div className="text-sm font-semibold text-white">
-                          {session.language === "urdu" ? "Projector mode" : "Projector mode"}
-                        </div>
-                        <div className="mt-1 text-sm leading-6 text-white/72">
-                          {session.language === "urdu"
-                            ? "بڑی اسکرین اور auditorium کے لئے fonts، spacing اور contrast بڑھا دیں۔"
-                            : "Increase font size, spacing, and contrast for projectors and auditorium sessions."}
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-                        {classroomDisplay
-                          ? session.language === "urdu"
-                            ? "آن"
-                            : "On"
-                          : session.language === "urdu"
-                            ? "آف"
-                            : "Off"}
-                      </div>
-                    </button>
-
-                    <a
-                      href={WILLING_WAYS_HELPLINE_HREF}
-                      className="flex w-full items-center justify-between rounded-[22px] border border-white/12 bg-white/8 px-4 py-3"
-                    >
-                      <div>
-                        <div className="text-sm font-semibold text-white">
-                          {session.language === "urdu" ? "Willing Ways helpline" : "Willing Ways helpline"}
-                        </div>
-                        <div className="mt-1 text-sm leading-6 text-white/72">
-                          {session.language === "urdu"
-                            ? "اگر معاملہ urgent ہو تو براہ راست ٹیم سے رابطہ کریں۔"
-                            : "Use this if the matter is urgent or you want direct human contact."}
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-white/12 bg-white/10 px-3 py-1 text-sm font-semibold text-white">
-                        {WILLING_WAYS_HELPLINE_DISPLAY}
-                      </div>
-                    </a>
-
-                    <div className="rounded-[22px] border border-cyan-300/15 bg-[linear-gradient(180deg,rgba(56,189,248,0.12),rgba(14,165,233,0.05))] px-4 py-3 text-sm leading-6 text-white/78">
-                      <div className="flex items-center gap-2 font-semibold text-white">
-                        <Volume2 className="h-4 w-4 text-cyan-300" />
-                        {session.language === "urdu" ? "AI read-aloud" : "AI read-aloud"}
-                      </div>
-                      <div className="mt-2">
-                        {session.language === "urdu"
-                          ? "ہر جواب کو ایک نرم، واضح AI voice میں بلند آواز میں سنایا جا سکتا ہے۔"
-                          : "Each answer can be read aloud in a warm, clear AI voice built for teaching and reflection."}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[22px] border border-amber-300/15 bg-[linear-gradient(180deg,rgba(251,191,36,0.12),rgba(245,158,11,0.05))] px-4 py-3 text-sm leading-6 text-white/78">
-                      <div className="font-semibold text-white">
-                        {session.language === "urdu" ? "Built with love" : "Built with love"}
-                      </div>
-                      <div className="mt-2">
-                        {DR_ZARAK_NAME}
-                        <span className="mx-2 text-white/35">•</span>
-                        <a href={DR_ZARAK_PHONE_HREF} className="font-medium text-white">
-                          {DR_ZARAK_PHONE_DISPLAY}
-                        </a>
-                      </div>
-                      <a
-                        href={DR_ZARAK_LINKEDIN_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-amber-200"
+                  <a
+                    href={WILLING_WAYS_HELPLINE_HREF}
+                    className="inline-flex h-10 items-center rounded-full border border-white/16 bg-white/8 px-4 text-xs font-semibold text-white hover:bg-white/12"
+                  >
+                    {WILLING_WAYS_HELPLINE_DISPLAY}
+                  </a>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {TEXT_CHAT_AUDIENCE_OPTIONS.map((option) => {
+                    const selected = audience === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => handleAudienceChange(option.id)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:text-sm",
+                          getAudiencePillClass(option.id, selected),
+                          session.language === "urdu" ? "font-urdu" : "",
+                        )}
+                        dir={session.language === "urdu" ? "rtl" : "ltr"}
                       >
-                        <ExternalLink className="h-4 w-4" />
-                        LinkedIn
-                      </a>
-                    </div>
-                  </div>
+                        {session.language === "urdu" ? option.urduLabel : option.englishLabel}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setClassroomDisplay((current) => !current)}
+                    className="ml-auto inline-flex h-10 items-center rounded-full border border-white/16 bg-white/8 px-4 text-xs font-semibold text-white transition hover:bg-white/12 sm:text-sm"
+                  >
+                    <Volume2 className="mr-2 h-3.5 w-3.5" />
+                    {session.language === "urdu"
+                      ? classroomDisplay
+                        ? "Projector mode: آن"
+                        : "Projector mode: آف"
+                      : classroomDisplay
+                        ? "Projector mode: on"
+                        : "Projector mode: off"}
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </header>
 
-        <main className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[34px] border border-white/10 bg-[rgba(8,15,28,0.8)] shadow-[0_28px_80px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+        <main className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[rgba(8,15,28,0.8)] shadow-[0_24px_72px_rgba(0,0,0,0.34)] backdrop-blur-xl">
           <div
             ref={scrollContainerRef}
             className={cn(
@@ -1129,13 +1064,10 @@ export function TextChatPage() {
             )}
           >
             {isEmptyConversation ? (
-              <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col items-center justify-center py-8 text-center">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.05))] text-amber-200 shadow-[0_18px_36px_rgba(0,0,0,0.24)]">
-                  <MessageSquareText className="h-7 w-7" />
-                </div>
+              <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center py-8 text-center">
                 <h2
                   className={cn(
-                    "mt-6 max-w-4xl text-3xl font-semibold tracking-[-0.03em] text-white sm:text-[3rem]",
+                    "max-w-4xl text-3xl font-semibold tracking-[-0.03em] text-white sm:text-[3rem]",
                     session.language === "urdu" ? "font-urdu leading-[1.8]" : "",
                     classroomDisplay ? "sm:text-[3.4rem]" : "",
                   )}
@@ -1157,7 +1089,7 @@ export function TextChatPage() {
                     ? "یہاں سوال، case teaching، relapse prevention، bipolar psychoeducation، family scripts اور aftercare guidance سب ایک ہی جگہ ملتی ہے۔"
                     : "Use this space for questions, case teaching, relapse prevention, bipolar psychoeducation, family scripts, and aftercare guidance."}
                 </p>
-                <div className="mt-8 grid w-full max-w-5xl gap-3 sm:grid-cols-2">
+                <div className="mt-7 grid w-full max-w-4xl gap-3 sm:grid-cols-2">
                   {suggestionChips.map((chip) => (
                     <button
                       key={chip}
@@ -1176,7 +1108,7 @@ export function TextChatPage() {
                 </div>
               </div>
             ) : (
-              <div className={cn("mx-auto flex w-full max-w-5xl flex-col gap-4", classroomDisplay ? "gap-5" : "")}>
+              <div className={cn("mx-auto flex w-full max-w-4xl flex-col gap-4", classroomDisplay ? "max-w-5xl gap-5" : "")}>
                 {messages.map((message) => (
                   <MessageBubble
                     key={message.id}
@@ -1198,23 +1130,23 @@ export function TextChatPage() {
             )}
           </div>
 
-          <div className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(7,14,24,0.9),rgba(8,16,27,0.96))] px-3 py-3 sm:px-4 sm:py-4">
+          <div className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(7,14,24,0.92),rgba(8,16,27,0.98))] px-3 py-3 sm:px-4 sm:py-4">
             {localError ? (
-              <div className="mx-auto mb-3 flex w-full max-w-5xl items-start gap-3 rounded-[22px] border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mx-auto mb-3 flex w-full max-w-4xl items-start gap-3 rounded-[18px] border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{localError}</span>
               </div>
             ) : null}
 
             {speechError ? (
-              <div className="mx-auto mb-3 flex w-full max-w-5xl items-start gap-3 rounded-[22px] border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+              <div className="mx-auto mb-3 flex w-full max-w-4xl items-start gap-3 rounded-[18px] border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{speechError}</span>
               </div>
             ) : null}
 
             {copiedText ? (
-              <div className="mx-auto mb-3 flex w-full max-w-5xl items-center gap-2 rounded-[22px] border border-emerald-300/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-50">
+              <div className="mx-auto mb-3 flex w-full max-w-4xl items-center gap-2 rounded-[18px] border border-emerald-300/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-50">
                 <Check className="h-4 w-4" />
                 {session.language === "urdu"
                   ? "جواب clipboard میں کاپی ہو گیا۔"
@@ -1223,7 +1155,7 @@ export function TextChatPage() {
             ) : null}
 
             <form
-              className="mx-auto w-full max-w-5xl rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.07))] p-3 shadow-[0_22px_46px_rgba(0,0,0,0.26)] backdrop-blur"
+              className="mx-auto w-full max-w-4xl rounded-[26px] border border-white/18 bg-[linear-gradient(180deg,rgba(18,32,53,0.96),rgba(12,23,40,0.98))] p-3 shadow-[0_22px_46px_rgba(0,0,0,0.32)] backdrop-blur sm:p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 void submitPrompt(input);
@@ -1232,7 +1164,7 @@ export function TextChatPage() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div
                   className={cn(
-                    "text-xs font-semibold uppercase tracking-[0.18em] text-white/55",
+                    "text-xs font-semibold uppercase tracking-[0.18em] text-white/60",
                     session.language === "urdu" ? "font-urdu normal-case" : "",
                   )}
                   dir={session.language === "urdu" ? "rtl" : "ltr"}
@@ -1258,6 +1190,19 @@ export function TextChatPage() {
                 </div>
               </div>
 
+              <label
+                htmlFor="ai-text-input"
+                className={cn(
+                  "mb-2 block text-sm font-semibold text-white/84",
+                  session.language === "urdu" ? "font-urdu text-right" : "",
+                )}
+                dir={session.language === "urdu" ? "rtl" : "ltr"}
+              >
+                {session.language === "urdu"
+                  ? "اپنا سوال یا صورتحال لکھیں"
+                  : "Write your question or situation"}
+              </label>
+
               <Textarea
                 id="ai-text-input"
                 placeholder={
@@ -1274,7 +1219,7 @@ export function TextChatPage() {
                   }
                 }}
                 className={cn(
-                  "min-h-[128px] border-0 bg-transparent px-2 py-2 text-[15px] leading-7 text-white placeholder:text-white/42 shadow-none focus-visible:ring-0 sm:min-h-[140px] sm:text-[16px]",
+                  "min-h-[132px] rounded-[18px] border border-white/12 bg-white/[0.03] px-4 py-3 text-[15px] leading-7 text-white placeholder:text-white/42 shadow-none focus-visible:border-white/40 focus-visible:ring-0 sm:min-h-[148px] sm:text-[16px]",
                   classroomDisplay ? "sm:min-h-[168px] sm:text-[20px] sm:leading-9" : "",
                   session.language === "urdu" ? "font-urdu" : "",
                 )}
@@ -1284,17 +1229,17 @@ export function TextChatPage() {
               <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
                 <div
                   className={cn(
-                    "max-w-xl text-xs leading-6 text-white/55",
+                    "max-w-xl text-xs leading-6 text-white/62",
                     session.language === "urdu" ? "font-urdu text-right" : "",
                   )}
                   dir={session.language === "urdu" ? "rtl" : "ltr"}
                 >
                   {session.language === "urdu"
-                    ? "read-aloud کے لئے AI-generated voice استعمال ہوتی ہے۔ auditorium میں واضح آواز کے لئے projector mode آن رکھیں۔ urgent risk ہو تو 1122 یا 0300-7413639 سے فوراً رابطہ کریں۔"
-                    : "Read-aloud uses an AI-generated voice. Keep projector mode on for bigger type and cleaner spacing in classrooms. If there is urgent risk, contact 1122 or 0300-7413639 immediately."}
+                    ? "واضح رہنمائی کے لئے اپنی کیفیت سادہ الفاظ میں لکھیں۔ فوری خطرے کی صورت میں 1122 یا 0300-7413639 پر فوراً رابطہ کریں۔"
+                    : "For the best guidance, describe what is happening in plain words. In urgent risk, call 1122 or 0300-7413639 immediately."}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
                   {isGenerating ? (
                     <Button type="button" variant="outline" onClick={handleStop}>
                       <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -1304,7 +1249,7 @@ export function TextChatPage() {
 
                   <Button
                     type="submit"
-                    className="h-12 min-w-[176px] bg-[linear-gradient(135deg,#f97316,#ec4899_48%,#8b5cf6)] text-white shadow-[0_18px_34px_rgba(217,70,239,0.26)] hover:bg-[linear-gradient(135deg,#f97316,#ec4899_48%,#8b5cf6)]"
+                    className="h-12 w-full min-w-[176px] bg-[linear-gradient(135deg,#f97316,#ec4899_48%,#8b5cf6)] text-white shadow-[0_18px_34px_rgba(217,70,239,0.26)] hover:bg-[linear-gradient(135deg,#f97316,#ec4899_48%,#8b5cf6)] sm:w-auto"
                     disabled={!input.trim() || isGenerating}
                   >
                     {isGenerating ? (
@@ -1315,6 +1260,18 @@ export function TextChatPage() {
                     {session.language === "urdu" ? "ڈاکٹر صداقت GPT سے پوچھیں" : "Ask Dr Sadaqat GPT"}
                   </Button>
                 </div>
+              </div>
+
+              <div
+                className={cn(
+                  "mt-2 text-[11px] text-white/48",
+                  session.language === "urdu" ? "font-urdu text-right" : "",
+                )}
+                dir={session.language === "urdu" ? "rtl" : "ltr"}
+              >
+                {session.language === "urdu"
+                  ? `Built with love by ${DR_ZARAK_NAME}`
+                  : `Built with love by ${DR_ZARAK_NAME}`}
               </div>
             </form>
           </div>

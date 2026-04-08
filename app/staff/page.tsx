@@ -49,8 +49,9 @@ export default async function StaffPage() {
 
   const cookieStore = await cookies();
   const staffToken = cookieStore.get(getStaffSessionCookieName())?.value;
+  const session = readStaffSessionToken(staffToken);
 
-  if (!readStaffSessionToken(staffToken)) {
+  if (!session) {
     return <StaffDashboardAuth />;
   }
 
@@ -70,5 +71,16 @@ export default async function StaffPage() {
         : "The staff queue could not be loaded right now.";
   }
 
-  return <StaffDashboard initialData={initialData} initialError={initialError} />;
+  return (
+    <StaffDashboard
+      initialData={initialData}
+      initialError={initialError}
+      currentStaff={{
+        userId: session.userId,
+        displayName: session.displayName,
+        email: session.email,
+        role: session.role,
+      }}
+    />
+  );
 }

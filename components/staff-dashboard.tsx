@@ -28,18 +28,24 @@ import {
   type StaffCasesResponse,
   type StaffCaseSummary,
 } from "@/lib/staff-cases";
-import { cn, safeStorageGet, safeStorageSet } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
-
-const STAFF_ACTOR_STORAGE_KEY = "willing-ways-ai:staff-actor";
 
 type StaffActionType = StaffCaseActionInput["type"];
 type CaseFilter = "all" | "due" | "urgent" | "open" | "closed";
 
+interface CurrentStaffIdentity {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: string;
+}
+
 interface StaffDashboardProps {
   initialData: StaffCasesResponse | null;
   initialError: string | null;
+  currentStaff: CurrentStaffIdentity;
 }
 
 function formatDateTime(value: string) {
@@ -150,14 +156,31 @@ function buildCaseSearchText(caseItem: StaffCaseSummary) {
     .toLowerCase();
 }
 
-export function StaffDashboard({ initialData, initialError }: StaffDashboardProps) {
+function formatRoleLabel(rawRole: string) {
+  const normalized = rawRole.trim().toLowerCase();
+
+  if (normalized === "admin") {
+    return "Admin";
+  }
+
+  if (normalized === "doctor") {
+    return "Doctor";
+  }
+
+  if (normalized === "counselor") {
+    return "Counselor";
+  }
+
+  return "Staff";
+}
+
+export function StaffDashboard({ initialData, initialError, currentStaff }: StaffDashboardProps) {
   const [data, setData] = useState<StaffCasesResponse | null>(initialData);
   const [error, setError] = useState<string | null>(initialError);
   const [loading, setLoading] = useState(initialData === null && !initialError);
   const [selectedCaseId, setSelectedCaseId] = useState(initialData?.cases[0]?.caseId ?? "");
   const [filter, setFilter] = useState<CaseFilter>("open");
   const [query, setQuery] = useState("");
-  const [actor, setActor] = useState("");
   const [owner, setOwner] = useState("");
   const [status, setStatus] = useState<StaffCaseStatus>("assigned");
   const [nextContactDueAt, setNextContactDueAt] = useState("");
@@ -166,19 +189,7 @@ export function StaffDashboard({ initialData, initialError }: StaffDashboardProp
   const [actionType, setActionType] = useState<StaffActionType>("assign");
   const [submitting, setSubmitting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-
-  useEffect(() => {
-    const storedActor = safeStorageGet(STAFF_ACTOR_STORAGE_KEY);
-    if (storedActor) {
-      setActor(storedActor);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (actor.trim()) {
-      safeStorageSet(STAFF_ACTOR_STORAGE_KEY, actor.trim());
-    }
-  }, [actor]);
+  const actor = currentStaff.displayName?.trim() || currentStaff.email.trim();
 
   const refreshCases = useCallback(async () => {
     setLoading(true);
@@ -258,7 +269,7 @@ export function StaffDashboard({ initialData, initialError }: StaffDashboardProp
     }
 
     if (!actor.trim()) {
-      setError("Please enter the staff member handling this case.");
+      setError("Your staff session is missing identity details. Please sign in again.");
       return;
     }
 
@@ -749,15 +760,15 @@ export function StaffDashboard({ initialData, initialError }: StaffDashboardProp
                     </div>
 
                     <div className="mt-4 space-y-4 rounded-[26px] border border-slate-200 bg-slate-50 p-4">
-                      <label className="block">
-                        <span className="mb-2 block text-sm font-semibold text-slate-700">Staff member</span>
-                        <input
-                          value={actor}
-                          onChange={(event) => setActor(event.target.value)}
-                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-slate-400"
-                          placeholder="Who is updating this case?"
-                        />
-                      </label>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Signed-in staff
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{actor}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {currentStaff.email} · {formatRoleLabel(currentStaff.role)}
+                        </div>
+                      </div>
 
                       <label className="block">
                         <span className="mb-2 block text-sm font-semibold text-slate-700">Owner</span>

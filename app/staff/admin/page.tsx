@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { unstable_noStore as noStore } from "next/cache";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 
 import { getOpsDashboardOverview } from "@/lib/server/usage-analytics";
+import {
+  isStaffApprovalsConfigured,
+  listPendingStaffApprovalRequests,
+  listStaffApprovalBranches,
+  resolvePendingStaffApprovalRequest,
+} from "@/lib/server/staff-admin-approvals";
 import {
   getStaffSessionCookieName,
   isStaffDashboardConfigured,
@@ -33,6 +39,68 @@ function getBarHeight(value: number, maxValue: number) {
   }
 
   return Math.max(12, Math.round((value / maxValue) * 100));
+}
+
+const STAFF_APPROVAL_ROLE_OPTIONS = [
+  { id: "doctor", label: "Doctor" },
+  { id: "counselor", label: "Counselor" },
+  { id: "staff", label: "Staff / coordinator" },
+] as const;
+
+function normalizeApprovalRole(rawRole: string) {
+  const normalized = rawRole.trim().toLowerCase();
+
+  if (normalized === "doctor") {
+    return "doctor";
+  }
+
+  if (
+    normalized === "counselor" ||
+    normalized === "counsellor" ||
+    normalized === "pending_clinician"
+  ) {
+    return "counselor";
+  }
+
+  return "staff";
+}
+
+async function submitStaffApprovalDecision(formData: FormData) {
+  "use server";
+
+  const cookieStore = await cookies();
+  const staffToken = cookieStore.get(getStaffSessionCookieName())?.value;
+  const session = readStaffSessionToken(staffToken);
+
+  if (!session || session.role !== "admin") {
+    return;
+  }
+
+  const requestId = Number(formData.get("requestId"));
+  const decisionValue = String(formData.get("decision") || "").toLowerCase();
+  const decision =
+    decisionValue === "reject"
+      ? "reject"
+      : decisionValue === "approve"
+        ? "approve"
+        : null;
+
+  if (!Number.isInteger(requestId) || requestId <= 0 || !decision) {
+    return;
+  }
+
+  const role = normalizeApprovalRole(String(formData.get("approvedRole") || ""));
+  const branchId = String(formData.get("approvedBranchId") || "").trim() || null;
+
+  await resolvePendingStaffApprovalRequest({
+    requestId,
+    decidedByUserId: session.userId,
+    decision,
+    approvedRole: role,
+    approvedBranchId: branchId,
+  });
+
+  revalidatePath("/staff/admin");
 }
 
 function AdminUnavailable({
@@ -105,6 +173,24 @@ export default async function StaffAdminPage() {
     ...overview.daily.map((item) => item.chatCompletions + item.realtimeSessions),
     0,
   );
+  const approvalsConfigured = isStaffApprovalsConfigured();
+  let pendingApprovals: Awaited<ReturnType<typeof listPendingStaffApprovalRequests>> = [];
+  let approvalBranches: Awaited<ReturnType<typeof listStaffApprovalBranches>> = [];
+  let approvalsError: string | null = null;
+
+  if (approvalsConfigured) {
+    try {
+      [pendingApprovals, approvalBranches] = await Promise.all([
+        listPendingStaffApprovalRequests(),
+        listStaffApprovalBranches(),
+      ]);
+    } catch (error) {
+      approvalsError =
+        error instanceof Error
+          ? error.message
+          : "Pending signup requests could not be loaded right now.";
+    }
+  }
 
   return (
     <div className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
@@ -178,6 +264,136 @@ export default async function StaffAdminPage() {
               <div className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{item.value}</div>
             </div>
           ))}
+        </section>
+
+        <section className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Staff onboarding approvals
+              </div>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+                Pending clinician and staff signups
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Review each pending access request and approve only verified Willing Ways team
+                members.
+              </p>
+            </div>
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+              Pending now: {pendingApprovals.length}
+            </div>
+          </div>
+
+          {!approvalsConfigured ? (
+            <div className="mt-5 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Add <code>SUPABASE_SERVICE_ROLE_KEY</code> to enable approval actions for pending
+              clinician and staff requests.
+            </div>
+          ) : approvalsError ? (
+            <div className="mt-5 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {approvalsError}
+            </div>
+          ) : pendingApprovals.length === 0 ? (
+            <div className="mt-5 rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              No pending staff signups right now.
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {pendingApprovals.map((request) => (
+                <form
+                  key={request.requestId}
+                  action={submitStaffApprovalDecision}
+                  className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <input type="hidden" name="requestId" value={String(request.requestId)} />
+
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-semibold text-slate-900">
+                        {request.fullName || "Unnamed request"}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600">
+                        {request.email || request.userId}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        Requested: {request.requestedRoleLabel}
+                        {request.branchName ? ` · ${request.branchName}` : ""}
+                        {request.preferredLanguage
+                          ? ` · Language: ${request.preferredLanguage}`
+                          : ""}
+                      </div>
+                    </div>
+
+                    <div className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                      {new Date(request.requestedAt).toLocaleString("en-PK", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        timeZone: "Asia/Karachi",
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Activate role
+                      </span>
+                      <select
+                        name="approvedRole"
+                        defaultValue={normalizeApprovalRole(request.requestedRole)}
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-400"
+                      >
+                        {STAFF_APPROVAL_ROLE_OPTIONS.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Assign branch
+                      </span>
+                      <select
+                        name="approvedBranchId"
+                        defaultValue={request.branchId ?? ""}
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-400"
+                      >
+                        <option value="">No branch assignment</option>
+                        {approvalBranches.map((branch) => (
+                          <option key={branch.id} value={branch.id}>
+                            {branch.name}
+                            {branch.city ? ` (${branch.city})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="approve"
+                      className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                    >
+                      Approve request
+                    </button>
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="reject"
+                      className="rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 transition hover:bg-rose-100"
+                    >
+                      Reject request
+                    </button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">

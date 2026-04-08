@@ -332,8 +332,8 @@ export function ChatApp({ surface }: ChatAppProps) {
   const rootClass = voiceSurface ? "h-[100dvh] overflow-hidden" : "min-h-screen";
 
   return (
-    <div className={`bg-[linear-gradient(180deg,#f8f7f3_0%,#f4f1e9_100%)] text-slate-950 ${rootClass}`}>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(101,19,40,0.08),_transparent_24%),radial-gradient(circle_at_bottom,_rgba(202,138,4,0.06),_transparent_28%)]" />
+    <div className={`bg-[linear-gradient(180deg,#f7f7f5_0%,#f3f2ee_100%)] text-slate-950 ${rootClass}`}>
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.04),_transparent_26%)]" />
       {surface === "chat" ? (
         <Sidebar
           activeChatId={activeChatId}
@@ -349,52 +349,86 @@ export function ChatApp({ surface }: ChatAppProps) {
       <div
         className={`relative mx-auto flex w-full flex-col ${
           voiceSurface
-            ? "h-full max-w-[1260px] overflow-hidden px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-4"
+            ? "h-full max-w-[1200px] overflow-hidden px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-3"
             : "min-h-[100dvh] max-w-5xl px-3 py-3 sm:px-5 sm:py-5"
         }`}
       >
         <header
           className={`border bg-white/88 px-4 py-4 backdrop-blur sm:px-6 ${
             voiceSurface
-              ? "rounded-[28px] border-[rgba(101,19,40,0.08)] bg-white/78 px-3 py-3 shadow-[0_18px_42px_rgba(15,23,42,0.07)] sm:px-5 sm:py-3.5"
+              ? "rounded-[24px] border-slate-200/80 bg-white/82 px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] sm:px-4 sm:py-3"
               : "rounded-[30px] border-white/80 shadow-[0_18px_60px_rgba(47,24,32,0.08)]"
           }`}
         >
           {voiceSurface ? (
-            <div className="flex items-center justify-between gap-3">
-              <Link href="/" className="flex min-w-0 items-center gap-3">
-                <Image
-                  src={SITE_MEDIA.logo}
-                  alt="Willing Ways"
-                  width={320}
-                  height={80}
-                  className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
-                  priority
-                  sizes="(max-width: 640px) 148px, 172px"
-                />
-              </Link>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  aria-label="Go to Willing Ways AI home"
+                  className="flex min-w-0 items-center gap-3"
+                >
+                  <Image
+                    src={SITE_MEDIA.logo}
+                    alt="Willing Ways"
+                    width={320}
+                    height={80}
+                    className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
+                    priority
+                    sizes="(max-width: 640px) 148px, 172px"
+                  />
+                  <div className="hidden min-w-0 sm:block">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Willing Ways AI
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {isUrdu ? "پرسکون اے آئی کال" : "A calmer AI counseling call"}
+                    </div>
+                  </div>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/chat"
+                    className="hidden items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-950 md:inline-flex"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                      {isUrdu ? "Dr Sadaqat GPT" : "Dr Sadaqat GPT"}
+                    </span>
+                  </Link>
+                  <LanguageToggle
+                    language={activeSession.language}
+                    onChange={handleLanguageChange}
+                    compact
+                    className="w-[116px] shrink-0"
+                  />
+                  <PrivacyDeviceToggle
+                    checked={rememberOnDevice}
+                    compact
+                    isUrdu={isUrdu}
+                    onCheckedChange={handleRememberOnDeviceChange}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-slate-500">
+                <p
+                  className={`min-w-0 flex-1 leading-5 ${isUrdu ? "font-urdu text-right" : ""}`}
+                  dir={isUrdu ? "rtl" : "ltr"}
+                >
+                  {isUrdu
+                    ? "ایک آسان ون ونڈو اے آئی کال جو پہلے سنتی ہے، پھر واضح اگلا قدم دیتی ہے۔"
+                    : "One simple AI call window that listens first and then gives one clear next step."}
+                </p>
                 <Link
                   href="/chat"
-                  className="hidden items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 lg:inline-flex"
+                  className="inline-flex items-center gap-1.5 font-medium text-slate-600 transition hover:text-slate-950 md:hidden"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                    {isUrdu ? "typing کے لئے Dr Sadaqat GPT" : "Prefer typing? Open Dr Sadaqat GPT"}
+                    {isUrdu ? "ٹیکسٹ GPT" : "Text GPT"}
                   </span>
                 </Link>
-                <LanguageToggle
-                  language={activeSession.language}
-                  onChange={handleLanguageChange}
-                  compact
-                  className="w-[120px]"
-                />
-                <PrivacyDeviceToggle
-                  checked={rememberOnDevice}
-                  compact
-                  isUrdu={isUrdu}
-                  onCheckedChange={handleRememberOnDeviceChange}
-                />
               </div>
             </div>
           ) : (
@@ -409,7 +443,7 @@ export function ChatApp({ surface }: ChatAppProps) {
                   <Menu className="h-5 w-5" />
                 </Button>
 
-                <Link href="/" className="flex min-w-0 items-center gap-3">
+                <Link href="/" aria-label="Go to Willing Ways AI home" className="flex min-w-0 items-center gap-3">
                   <Image
                     src={SITE_MEDIA.logo}
                     alt="Willing Ways"
