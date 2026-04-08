@@ -35,21 +35,35 @@ const notoNaskhArabic = Noto_Naskh_Arabic({
 export const metadata: Metadata = {
   metadataBase: new URL(canonicalSiteUrl),
   title: {
-    default: "Willing Ways Pakistan",
-    template: "%s | Willing Ways Pakistan",
+    default: "Willing Ways AI Counselor",
+    template: "%s | Willing Ways AI Counselor",
   },
   description:
-    "Willing Ways Pakistan offers addiction treatment, rehabilitation, psychiatric care, family intervention, and AI-assisted intake support.",
+    "Private Willing Ways AI support for relapse prevention, family coaching, post-rehab follow-through, and addiction or mental health guidance.",
+  applicationName: "Willing Ways AI Counselor",
+  alternates: {
+    canonical: canonicalSiteUrl,
+  },
   icons: {
     icon: SITE_MEDIA.favicon,
     shortcut: SITE_MEDIA.favicon,
     apple: SITE_MEDIA.favicon,
   },
   openGraph: {
-    title: "Willing Ways Pakistan",
+    type: "website",
+    url: canonicalSiteUrl,
+    siteName: "Willing Ways AI Counselor",
+    title: "Willing Ways AI Counselor",
     description:
-      "Addiction treatment, rehabilitation, psychiatric care, family intervention, and AI-assisted intake support.",
+      "Private Willing Ways AI support for relapse prevention, family coaching, post-rehab follow-through, and addiction or mental health guidance.",
     images: [{ url: SITE_MEDIA.logo }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Willing Ways AI Counselor",
+    description:
+      "Private Willing Ways AI support for relapse prevention, family coaching, post-rehab follow-through, and addiction or mental health guidance.",
+    images: [SITE_MEDIA.logo],
   },
 };
 
