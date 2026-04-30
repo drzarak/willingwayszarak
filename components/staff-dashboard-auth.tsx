@@ -4,6 +4,14 @@ import Link from "next/link";
 import { LockKeyhole, PhoneCall } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import {
+  DR_ZARAK_NAME,
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
+} from "@/lib/site-contact";
+
 import { Button } from "@/components/ui/button";
 
 export function StaffDashboardAuth() {
@@ -153,9 +161,17 @@ export function StaffDashboardAuth() {
             <Link href="/" className="site-inline-link">
               Back to AI home
             </Link>
-            <a href="tel:+923357900295" className="site-inline-link">
+            <a href={DR_ZARAK_PHONE_HREF} className="site-inline-link">
               <PhoneCall className="h-4 w-4" />
-              Dr Zarak Khan · +92 335 7900295
+              {DR_ZARAK_NAME} · {DR_ZARAK_PHONE_DISPLAY}
+            </a>
+            <a
+              href={DR_ZARAK_WEBSITE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="site-inline-link"
+            >
+              {DR_ZARAK_WEBSITE_DISPLAY}
             </a>
           </div>
         </div>

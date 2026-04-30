@@ -20,6 +20,8 @@ import {
   DR_ZARAK_NAME,
   DR_ZARAK_PHONE_DISPLAY,
   DR_ZARAK_PHONE_HREF,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
 } from "@/lib/site-contact";
 import {
   getStaffCaseStatusLabel,
@@ -906,6 +908,15 @@ export function StaffDashboard({ initialData, initialError, currentStaff }: Staf
                       >
                         <ArrowUpRight className="h-4 w-4" />
                         LinkedIn
+                      </a>
+                      <a
+                        href={DR_ZARAK_WEBSITE_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="site-inline-link"
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                        {DR_ZARAK_WEBSITE_DISPLAY}
                       </a>
                     </div>
                   </div>

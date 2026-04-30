@@ -20,6 +20,12 @@ import {
   readStaffSessionToken,
 } from "@/lib/server/staff-auth";
 import { isStructuredCaseStoreConfigured, listStaffCases } from "@/lib/server/staff-case-store";
+import {
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
+} from "@/lib/site-contact";
 import type { StaffCaseSummary } from "@/lib/staff-cases";
 
 export const metadata = {
@@ -281,6 +287,17 @@ export default async function StaffAdminPage() {
               <Link href="/login" className="site-action-link">
                 Role-based login
               </Link>
+              <a
+                href={DR_ZARAK_WEBSITE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="site-action-link"
+              >
+                Platform: {DR_ZARAK_WEBSITE_DISPLAY}
+              </a>
+              <a href={DR_ZARAK_PHONE_HREF} className="site-action-link">
+                {DR_ZARAK_PHONE_DISPLAY}
+              </a>
               <a
                 href="/api/ops/daily-digest"
                 target="_blank"

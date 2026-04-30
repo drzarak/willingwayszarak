@@ -9,6 +9,8 @@ import {
   DR_ZARAK_LINKEDIN_URL,
   DR_ZARAK_PHONE_DISPLAY,
   DR_ZARAK_PHONE_HREF,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
 } from "@/lib/site-contact";
 import { SITE_MEDIA } from "@/lib/site-assets";
 
@@ -92,6 +94,14 @@ export function SiteFooter() {
             <a href={DR_ZARAK_PHONE_HREF} className="footer-pill">
               <Phone className="h-4 w-4" />
               {DR_ZARAK_PHONE_DISPLAY}
+            </a>
+            <a
+              href={DR_ZARAK_WEBSITE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="footer-pill"
+            >
+              {DR_ZARAK_WEBSITE_DISPLAY}
             </a>
             <a
               href={DR_ZARAK_LINKEDIN_URL}

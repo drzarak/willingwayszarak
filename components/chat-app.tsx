@@ -22,7 +22,15 @@ import {
   normalizeLocalPrivacyPreferences,
 } from "@/lib/privacy";
 import { SITE_MEDIA } from "@/lib/site-assets";
-import { WILLING_WAYS_HELPLINE_DISPLAY, WILLING_WAYS_HELPLINE_HREF } from "@/lib/site-contact";
+import {
+  DR_ZARAK_NAME,
+  DR_ZARAK_PHONE_DISPLAY,
+  DR_ZARAK_PHONE_HREF,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
+  WILLING_WAYS_HELPLINE_DISPLAY,
+  WILLING_WAYS_HELPLINE_HREF,
+} from "@/lib/site-contact";
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from "@/lib/utils";
 
 import { LanguageToggle } from "@/components/language-toggle";
@@ -319,13 +327,31 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
                   ? "مریضوں اور گھر والوں کے لئے 24/7 ریلیپس سپورٹ، فیملی گائیڈنس، اور ڈاکٹر کے لئے واضح بریف۔"
                   : "24/7 relapse support, family guidance, and a doctor-ready brief from one calm call."}
               </p>
-              <a
-                href={WILLING_WAYS_HELPLINE_HREF}
-                className="inline-flex items-center gap-1.5 font-medium text-slate-600 transition hover:text-slate-950"
-              >
-                <PhoneCall className="h-4 w-4" />
-                {WILLING_WAYS_HELPLINE_DISPLAY}
-              </a>
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                <a
+                  href={WILLING_WAYS_HELPLINE_HREF}
+                  className="inline-flex items-center gap-1.5 font-medium text-slate-700 transition hover:text-slate-950"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  {WILLING_WAYS_HELPLINE_DISPLAY}
+                </a>
+                <a
+                  href={DR_ZARAK_WEBSITE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-slate-500 transition hover:text-slate-900"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {DR_ZARAK_NAME} · {DR_ZARAK_WEBSITE_DISPLAY}
+                </a>
+                <a
+                  href={DR_ZARAK_PHONE_HREF}
+                  className="inline-flex items-center gap-1.5 text-slate-500 transition hover:text-slate-900"
+                >
+                  <PhoneCall className="h-3.5 w-3.5" />
+                  Product support {DR_ZARAK_PHONE_DISPLAY}
+                </a>
+              </div>
             </div>
           </div>
         </header>
