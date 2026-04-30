@@ -2410,8 +2410,8 @@ export function RealtimeVoicePanel({
                   ? "مشکل خاندانی گفتگو کو پرسکون اور مؤثر بنائیں"
                   : "Make the hard family conversation calmer and more effective."
                 : language === "urdu"
-                  ? "پرسکون اے آئی کال، جب نشہ، relapse یا گھر کی پریشانی بڑھ رہی ہو"
-                  : "A calmer AI call for addiction, relapse risk, and overwhelmed families."}
+                  ? "ابھی بات کریں، سکون لیں، اور اگلا درست قدم واضح کریں"
+                  : "Talk now, settle the moment, and get the next right step."}
             </h1>
 
             <p
@@ -2425,8 +2425,8 @@ export function RealtimeVoicePanel({
                   ? "یہ کال خاندان کو denial، boundaries، enabling اور intervention readiness کے لئے ایک سیدھی اور عملی script دیتی ہے۔"
                   : "This call gives the family a calm, practical script for denial, boundaries, enabling, and intervention readiness."
                 : language === "urdu"
-                  ? "اے آئی پہلے سلام کرتی ہے، پوری بات سنتی ہے، اور پھر ایک واضح اگلا قدم دیتی ہے: relapse prevention، family support، یا صحیح human follow-up."
-                  : "The AI greets first, listens fully, and then gives one clear next step for relapse prevention, family support, or the right human follow-up."}
+                  ? "اے آئی پہلے سلام کرتی ہے، پوری بات سنتی ہے، craving یا family stress کو de-escalate کرتی ہے، اور پھر human follow-up کے لئے واضح brief تیار کرتی ہے۔"
+                  : "The AI greets first, listens fully, helps de-escalate cravings or family stress, and prepares a clearer human follow-up brief."}
             </p>
           </div>
 
@@ -2443,8 +2443,8 @@ export function RealtimeVoicePanel({
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-950 sm:text-lg">
                   {language === "urdu"
-                    ? "ایک پرسکون، نجی اور سیدھی کال"
-                    : "One calm, private line for immediate support"}
+                    ? "ایک پرسکون، نجی اور عملی سپورٹ لائن"
+                    : "One calm, private line for support that actually moves things forward"}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
                   {selectedFamilyLesson
@@ -2452,8 +2452,8 @@ export function RealtimeVoicePanel({
                       ? "نجی فیملی کوچنگ سپورٹ"
                       : "Private family coaching support"
                     : language === "urdu"
-                      ? "relapse prevention، family support اور post-rehab follow-through"
-                      : "Relapse prevention, family support, and post-rehab follow-through"}
+                      ? "relapse prevention، family support، doctor-ready notes"
+                      : "Relapse prevention, family support, and doctor-ready notes"}
                 </div>
               </div>
 
@@ -2605,18 +2605,18 @@ export function RealtimeVoicePanel({
                   {[
                     {
                       icon: HeartHandshake,
-                      urdu: "فیملی سپورٹ",
-                      english: "Family support",
+                      urdu: "فیملی گائیڈنس",
+                      english: "Family guidance",
                     },
                     {
                       icon: Mic,
-                      urdu: "اردو، انگریزی، پنجابی",
-                      english: "Urdu, English, Punjabi",
+                      urdu: "24/7 وائس سپورٹ",
+                      english: "24/7 voice support",
                     },
                     {
                       icon: CheckCircle2,
-                      urdu: "واضح اگلا قدم",
-                      english: "One clear next step",
+                      urdu: "ڈاکٹر کے لئے واضح brief",
+                      english: "Doctor-ready brief",
                     },
                   ].map((item) => (
                     <div
@@ -2627,6 +2627,56 @@ export function RealtimeVoicePanel({
                       <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
                         {language === "urdu" ? item.urdu : item.english}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {!callIsStarting && !callIsLive && !showUtilityPanels ? (
+                <div className="mt-4 grid w-full max-w-[760px] gap-3 text-left sm:grid-cols-3">
+                  {[
+                    {
+                      title: language === "urdu" ? "1. مریض یا فیملی بات کرتی ہے" : "1. Patient or family speaks",
+                      body:
+                        language === "urdu"
+                          ? "اردو، انگریزی یا پنجابی میں پوری بات بتائیں۔"
+                          : "Speak naturally in Urdu, English, or Punjabi.",
+                    },
+                    {
+                      title: language === "urdu" ? "2. اے آئی لمحہ سنبھالتی ہے" : "2. AI stabilizes the moment",
+                      body:
+                        language === "urdu"
+                          ? "craving، denial، relapse risk یا family conflict پر فوری رہنمائی۔"
+                          : "Immediate guidance for cravings, denial, relapse risk, or family conflict.",
+                    },
+                    {
+                      title: language === "urdu" ? "3. ٹیم کو واضح brief ملتا ہے" : "3. Team gets a clear brief",
+                      body:
+                        language === "urdu"
+                          ? "اگر follow-up درکار ہو تو structured next step تیار ہوتا ہے۔"
+                          : "If follow-up is needed, the team gets a structured next step.",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.title}
+                      className="rounded-[20px] border border-slate-200 bg-white/90 px-4 py-3 shadow-sm"
+                    >
+                      <div
+                        className={`text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-700 ${
+                          language === "urdu" ? "font-urdu text-right" : ""
+                        }`}
+                        dir={language === "urdu" ? "rtl" : "ltr"}
+                      >
+                        {item.title}
+                      </div>
+                      <div
+                        className={`mt-2 text-sm leading-6 text-slate-600 ${
+                          language === "urdu" ? "font-urdu text-right" : ""
+                        }`}
+                        dir={language === "urdu" ? "rtl" : "ltr"}
+                      >
+                        {item.body}
+                      </div>
                     </div>
                   ))}
                 </div>

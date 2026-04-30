@@ -2,6 +2,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 
+import {
+  BOOKING_BRANCH_OPTIONS,
+  BOOKING_SERVICE_OPTIONS,
+  getBookingOptionLabel,
+} from "@/lib/booking";
 import { getOpsDashboardOverview } from "@/lib/server/usage-analytics";
 import {
   isStaffApprovalsConfigured,
@@ -14,7 +19,8 @@ import {
   isStaffDashboardConfigured,
   readStaffSessionToken,
 } from "@/lib/server/staff-auth";
-import { isStructuredCaseStoreConfigured } from "@/lib/server/staff-case-store";
+import { isStructuredCaseStoreConfigured, listStaffCases } from "@/lib/server/staff-case-store";
+import type { StaffCaseSummary } from "@/lib/staff-cases";
 
 export const metadata = {
   title: "Willing Ways Admin Summary",
@@ -39,6 +45,45 @@ function getBarHeight(value: number, maxValue: number) {
   }
 
   return Math.max(12, Math.round((value / maxValue) * 100));
+}
+
+function formatDateTime(value: string) {
+  const timestamp = Date.parse(value);
+
+  if (!Number.isFinite(timestamp)) {
+    return "Not set";
+  }
+
+  return new Intl.DateTimeFormat("en-PK", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Karachi",
+  }).format(new Date(timestamp));
+}
+
+function getUrgencyTone(urgency: StaffCaseSummary["urgency"]) {
+  if (urgency === "urgent") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  if (urgency === "priority") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
+function buildTopList(values: string[], limit = 4) {
+  const counts = new Map<string, number>();
+
+  for (const value of values.map((item) => item.trim()).filter(Boolean)) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, limit)
+    .map(([label, count]) => ({ label, count }));
 }
 
 const STAFF_APPROVAL_ROLE_OPTIONS = [
@@ -168,6 +213,25 @@ export default async function StaffAdminPage() {
   }
 
   const overview = await getOpsDashboardOverview(7);
+  const caseStore = await listStaffCases("", "");
+  const staffCases = caseStore.cases;
+  const openCases = staffCases.filter((item) => item.status !== "closed");
+  const recentBriefs = staffCases.slice(0, 6);
+  const topRiskFlags = buildTopList(openCases.flatMap((item) => item.riskFlags), 5);
+  const topQueueLabels = buildTopList(openCases.map((item) => item.queueLabel), 4);
+  const topPrograms = buildTopList(openCases.map((item) => item.recommendedProgramLabel), 4);
+  const topBranches = buildTopList(
+    openCases.map((item) =>
+      getBookingOptionLabel(BOOKING_BRANCH_OPTIONS, item.branchPreference),
+    ),
+    4,
+  );
+  const topServices = buildTopList(
+    openCases.map((item) =>
+      getBookingOptionLabel(BOOKING_SERVICE_OPTIONS, item.serviceInterest),
+    ),
+    4,
+  );
   const maxDailyCost = Math.max(...overview.daily.map((item) => item.estimatedCostUsd), 0);
   const maxDailySessions = Math.max(
     ...overview.daily.map((item) => item.chatCompletions + item.realtimeSessions),
@@ -213,6 +277,9 @@ export default async function StaffAdminPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link href="/staff" className="site-action-link">
                 Staff desk
+              </Link>
+              <Link href="/login" className="site-action-link">
+                Role-based login
               </Link>
               <a
                 href="/api/ops/daily-digest"
@@ -264,6 +331,104 @@ export default async function StaffAdminPage() {
               <div className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{item.value}</div>
             </div>
           ))}
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              System map
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+              Where the information lives
+            </h2>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  title: "Supabase",
+                  body: approvalsConfigured
+                    ? `Auth, staff roles, and ${pendingApprovals.length} pending access requests.`
+                    : "Auth and roles are wired, but approval actions still need the service key.",
+                },
+                {
+                  title: "Neon / PostgreSQL",
+                  body: `${staffCases.length} structured patient and family briefs are available for dashboard review.`,
+                },
+                {
+                  title: "Realtime AI",
+                  body: `${overview.today.realtimeSessions} voice sessions and ${overview.today.realtimeTranscriptions} transcription events were logged today.`,
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="text-sm font-semibold text-slate-950">{item.title}</div>
+                  <div className="mt-2 text-sm leading-6 text-slate-600">{item.body}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Clinical demand map
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+              What the AI line is surfacing most
+            </h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {[
+                {
+                  title: "Top risk cues",
+                  items: topRiskFlags.length
+                    ? topRiskFlags.map((item) => `${item.label} · ${item.count}`)
+                    : ["No risk flags captured yet."],
+                },
+                {
+                  title: "Busiest queues",
+                  items: topQueueLabels.length
+                    ? topQueueLabels.map((item) => `${item.label} · ${item.count}`)
+                    : ["No queue data yet."],
+                },
+                {
+                  title: "Most requested services",
+                  items: topServices.length
+                    ? topServices.map((item) => `${item.label} · ${item.count}`)
+                    : ["No service demand yet."],
+                },
+                {
+                  title: "Branch demand",
+                  items: topBranches.length
+                    ? topBranches.map((item) => `${item.label} · ${item.count}`)
+                    : ["No branch preferences captured yet."],
+                },
+                {
+                  title: "Program mix",
+                  items: topPrograms.length
+                    ? topPrograms.map((item) => `${item.label} · ${item.count}`)
+                    : ["No program recommendations yet."],
+                },
+              ].map((group) => (
+                <div
+                  key={group.title}
+                  className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="text-sm font-semibold text-slate-950">{group.title}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.items.map((item) => (
+                      <div
+                        key={`${group.title}:${item}`}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
@@ -487,6 +652,99 @@ export default async function StaffAdminPage() {
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Patient and family briefs
+              </div>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+                Recent cases the AI line has documented
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                These are the structured briefs coming out of the live intake and voice workflow.
+                This is the clearest operational proof that the app reduces documentation friction
+                while keeping the team informed.
+              </p>
+            </div>
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+              Total recorded briefs: {staffCases.length}
+            </div>
+          </div>
+
+          {recentBriefs.length === 0 ? (
+            <div className="mt-5 rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              No structured patient briefs are stored yet.
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 xl:grid-cols-2">
+              {recentBriefs.map((caseItem) => (
+                <div
+                  key={caseItem.caseId}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-semibold text-slate-950">
+                        {caseItem.patientName || caseItem.requesterName || "Unnamed case"}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600">
+                        {getBookingOptionLabel(BOOKING_SERVICE_OPTIONS, caseItem.serviceInterest)}
+                        {" · "}
+                        {getBookingOptionLabel(BOOKING_BRANCH_OPTIONS, caseItem.branchPreference)}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getUrgencyTone(
+                        caseItem.urgency,
+                      )}`}
+                    >
+                      {caseItem.urgency}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-[0.95fr_1.05fr]">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Counselor brief
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {caseItem.counselorBrief || caseItem.teamSummary || "No brief captured yet."}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Queue and next step
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {caseItem.queueLabel} · {caseItem.recommendedProgramLabel}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        Due: {formatDateTime(caseItem.nextContactDueAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(caseItem.riskFlags.length > 0 ? caseItem.riskFlags : [caseItem.laneLabel])
+                      .slice(0, 4)
+                      .map((item) => (
+                        <div
+                          key={`${caseItem.caseId}:${item}`}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+                        >
+                          {item}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>

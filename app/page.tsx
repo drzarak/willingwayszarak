@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <ChatApp surface="voice" />;
+  return <ChatApp />;
 }
