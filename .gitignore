@@ -10,3 +10,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .vercel
+.next_preclean_*
+.playwright-cli
+artifacts
+output
+tsconfig.tsbuildinfo

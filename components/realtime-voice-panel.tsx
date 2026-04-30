@@ -2634,14 +2634,14 @@ export function RealtimeVoicePanel({
 
               {!callIsStarting && !callIsLive ? (
                 <Link
-                  href="/chat"
+                  href="/family-training"
                   className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span className={language === "urdu" ? "font-urdu" : ""} dir={language === "urdu" ? "rtl" : "ltr"}>
                     {language === "urdu"
-                      ? "اگر بولنا مناسب نہ ہو تو Dr Sadaqat GPT کھولیں"
-                      : "Open Dr Sadaqat GPT if typing feels easier"}
+                      ? "اگر آپ family script یا practice چاہتے ہیں تو coaching modules کھولیں"
+                      : "Open the family coaching modules if you want scripts and guided practice"}
                   </span>
                 </Link>
               ) : null}

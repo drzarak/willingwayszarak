@@ -307,7 +307,25 @@ function createDeterministicCrisisResponse(
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
+  void _request;
+  return new Response(
+    JSON.stringify({
+      error:
+        "Text chat is disabled in this deployment because the current OpenAI key does not have the required text-generation scopes. Use the Willing Ways AI voice call instead.",
+      voiceRoute: "/",
+    }),
+    {
+      status: 503,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _legacyDisabledPOST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const bookingConfigured = isStructuredCaseStoreConfigured();

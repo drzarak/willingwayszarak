@@ -317,9 +317,9 @@ export function ChatApp({ surface }: ChatAppProps) {
   const alternateAction =
     surface === "voice"
       ? {
-          href: "/chat",
+          href: "/family-training",
           icon: MessageSquare,
-          label: isUrdu ? "ڈاکٹر صداقت GPT کھولیں" : "Open Dr Sadaqat GPT",
+          label: isUrdu ? "فیملی کوچنگ modules" : "Open family coaching",
         }
       : {
           href: "/",
@@ -388,12 +388,12 @@ export function ChatApp({ surface }: ChatAppProps) {
                 </Link>
                 <div className="flex items-center gap-2">
                   <Link
-                    href="/chat"
+                    href="/family-training"
                     className="hidden items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-950 md:inline-flex"
                   >
                     <MessageSquare className="h-4 w-4" />
                     <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                      {isUrdu ? "Dr Sadaqat GPT" : "Dr Sadaqat GPT"}
+                      {isUrdu ? "فیملی کوچنگ" : "Family coaching"}
                     </span>
                   </Link>
                   <LanguageToggle
@@ -421,12 +421,12 @@ export function ChatApp({ surface }: ChatAppProps) {
                     : "One simple AI call window that listens first and then gives one clear next step."}
                 </p>
                 <Link
-                  href="/chat"
+                  href="/family-training"
                   className="inline-flex items-center gap-1.5 font-medium text-slate-600 transition hover:text-slate-950 md:hidden"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
-                    {isUrdu ? "ٹیکسٹ GPT" : "Text GPT"}
+                    {isUrdu ? "فیملی کوچنگ" : "Family coaching"}
                   </span>
                 </Link>
               </div>
