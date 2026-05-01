@@ -3,6 +3,7 @@ export const SITE_MEDIA = {
   logo: "/site-assets/wp-content/uploads/2026/02/ww-logo-scaled-7261d452.png",
   favicon: "/site-assets/wp-content/uploads/2021/06/favicon-b9667644.png",
   founder: "/site-assets/wp-content/uploads/2026/01/Dr--Sadaqat-Ali-sab-01fb508c.png",
+  builder: "/images/dr-zarak-khan.png",
   services: {
     rehab: "/site-assets/wp-content/uploads/2022/09/Rehab-Services-9dddd74e.jpg",
     counseling: "/site-assets/wp-content/uploads/2022/09/Counseling-Services-612b9292.jpg",

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -67,6 +68,12 @@ import {
   type RememberPreferredNameToolInput,
   type SendResourceToolInput,
 } from "@/lib/support-tools";
+import { SITE_MEDIA } from "@/lib/site-assets";
+import {
+  DR_ZARAK_NAME,
+  DR_ZARAK_WEBSITE_DISPLAY,
+  DR_ZARAK_WEBSITE_URL,
+} from "@/lib/site-contact";
 import { createSafeId, safeStorageGet, safeStorageSet } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -386,7 +393,7 @@ export function RealtimeVoicePanel({
   const [showFamilyTraining, setShowFamilyTraining] = useState(false);
   const [showVoiceOptions, setShowVoiceOptions] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [identityHint, setIdentityHint] = useState<"self" | "family" | null>(null);
+  const [identityHint, setIdentityHint] = useState<"self" | "family" | "referrer" | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [callConnectedAt, setCallConnectedAt] = useState<number | null>(null);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
@@ -1999,6 +2006,8 @@ export function RealtimeVoicePanel({
         ? "Caller says they are the patient."
         : identityHint === "family"
           ? "Caller says they are a family member or loved one seeking help."
+          : identityHint === "referrer"
+            ? "Caller says they are staff, a doctor, counselor, or referrer coordinating care."
           : "";
     const sessionResumeContext =
       callFocus === "family-coach" && selectedCallLesson
@@ -2387,20 +2396,20 @@ export function RealtimeVoicePanel({
   }
 
   return (
-    <section id="call" className="mx-auto h-full max-w-[1120px]">
+    <section id="call" className="mx-auto min-h-full max-w-[1120px] md:h-full">
       <audio ref={audioRef} autoPlay />
 
-      <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-black/5 bg-white/96 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-5 sm:py-4">
+      <section className="relative flex min-h-full flex-col overflow-visible rounded-[32px] border border-black/5 bg-white/96 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-5 sm:py-4 md:h-full md:min-h-0 md:overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.035),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.98),_transparent_28%)]" />
 
         <div
-          className={`relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable] ${
+          className={`relative flex min-h-0 flex-1 flex-col overflow-visible overscroll-contain pr-1 md:overflow-y-auto md:[scrollbar-gutter:stable] ${
             !showUtilityPanels && !hasConversationHistory && !errorMessage ? "md:justify-center" : ""
           }`}
         >
           <div className="mx-auto max-w-[860px]">
             <h1
-              className={`max-w-[700px] text-[1.75rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] [@media(max-height:700px)]:text-[1.45rem] ${
+              className={`max-w-[700px] text-[1.48rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] [@media(min-width:480px)]:text-[1.75rem] [@media(max-height:700px)]:text-[1.45rem] ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2415,7 +2424,7 @@ export function RealtimeVoicePanel({
             </h1>
 
             <p
-              className={`mt-3 max-w-[640px] text-[15px] leading-7 text-slate-600 [@media(max-height:700px)]:hidden ${
+              className={`mt-3 hidden max-w-[640px] text-[15px] leading-7 text-slate-600 [@media(min-width:480px)]:block [@media(max-height:700px)]:hidden ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2431,7 +2440,7 @@ export function RealtimeVoicePanel({
           </div>
 
           <div className="mx-auto mt-4 flex w-full max-w-[880px] flex-col rounded-[30px] border border-[rgba(15,23,42,0.06)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(246,246,244,0.96))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_20px_46px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2457,7 +2466,31 @@ export function RealtimeVoicePanel({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <a
+                  href={DR_ZARAK_WEBSITE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex max-w-[270px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/92 px-2.5 py-2 text-left shadow-sm transition hover:border-slate-300 hover:bg-white"
+                >
+                  <Image
+                    src={SITE_MEDIA.builder}
+                    alt={DR_ZARAK_NAME}
+                    width={52}
+                    height={52}
+                    className="h-10 w-10 shrink-0 rounded-2xl object-cover"
+                    sizes="40px"
+                  />
+                  <span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Platform support
+                    </span>
+                    <span className="block text-sm font-semibold leading-5 text-slate-900">
+                      {DR_ZARAK_NAME}
+                    </span>
+                    <span className="block text-xs text-slate-500">{DR_ZARAK_WEBSITE_DISPLAY}</span>
+                  </span>
+                </a>
                 {callIsLive ? (
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                     <Clock3 className="h-4 w-4" />
@@ -2543,8 +2576,10 @@ export function RealtimeVoicePanel({
                 {orbHelperText}
               </div>
 
-              <div
-                className={`mt-3 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12px] font-semibold shadow-sm ${
+              <button
+                type="button"
+                onClick={() => void handleCallOrbClick()}
+                className={`mt-3 inline-flex min-h-[48px] items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                   callIsLive && !isMicMuted
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : callIsLive && isMicMuted
@@ -2568,7 +2603,7 @@ export function RealtimeVoicePanel({
                       : language === "urdu"
                         ? "دبائیں تاکہ کال شروع ہو"
                         : "Tap to start the call"}
-              </div>
+              </button>
 
               <div
                 className={`mt-4 max-w-[560px] text-center text-[13px] leading-6 text-slate-500 ${
@@ -2580,6 +2615,42 @@ export function RealtimeVoicePanel({
                 <span className="mx-2 text-slate-300">•</span>
                 {secondaryControlInstruction}
               </div>
+
+              {!callIsStarting && !callIsLive ? (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  {[
+                    {
+                      id: "self" as const,
+                      english: "I am the patient",
+                      urdu: "میں مریض ہوں",
+                    },
+                    {
+                      id: "family" as const,
+                      english: "I am family",
+                      urdu: "میں family ہوں",
+                    },
+                    {
+                      id: "referrer" as const,
+                      english: "I am staff/referrer",
+                      urdu: "میں staff/referrer ہوں",
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setIdentityHint(item.id)}
+                      className={`min-h-[42px] rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                        identityHint === item.id
+                          ? "border-slate-900 bg-slate-950 text-white shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      } ${language === "urdu" ? "font-urdu" : ""}`}
+                      dir={language === "urdu" ? "rtl" : "ltr"}
+                    >
+                      {language === "urdu" ? item.urdu : item.english}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               {!callIsStarting && !callIsLive ? (
                 <button

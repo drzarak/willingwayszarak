@@ -248,10 +248,10 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
   }
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,#f7f7f5_0%,#f3f2ee_100%)] text-slate-950">
+    <div className="min-h-[100dvh] overflow-x-hidden bg-[linear-gradient(180deg,#f7f7f5_0%,#f3f2ee_100%)] text-slate-950">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.04),_transparent_26%)]" />
 
-      <div className="relative mx-auto flex h-full w-full max-w-[1220px] flex-col overflow-hidden px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1220px] flex-col px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
         <header className="rounded-[24px] border border-slate-200/80 bg-white/84 px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] backdrop-blur sm:px-4 sm:py-3">
           <div className="flex flex-col gap-2 sm:gap-3">
             <div className="flex items-center justify-between gap-3">

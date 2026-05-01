@@ -8,6 +8,7 @@ import {
   Clock3,
   LoaderCircle,
   LogOut,
+  Mail,
   PhoneCall,
   RefreshCcw,
   ShieldCheck,
@@ -380,6 +381,10 @@ export function StaffDashboard({ initialData, initialError, currentStaff }: Staf
               <Link href="/staff/admin" className="site-action-link">
                 <ArrowUpRight className="h-4 w-4" />
                 Admin summary
+              </Link>
+              <Link href="/staff/email" className="site-action-link">
+                <Mail className="h-4 w-4" />
+                Team email
               </Link>
               <Button
                 type="button"

@@ -15,6 +15,13 @@ import {
   resolvePendingStaffApprovalRequest,
 } from "@/lib/server/staff-admin-approvals";
 import {
+  isEmailAliasStoreConfigured,
+  listEmailAliasRequests,
+  resolveEmailAliasRequest,
+  type EmailAliasRequest,
+  type EmailAliasStatus,
+} from "@/lib/server/email-alias-store";
+import {
   getStaffSessionCookieName,
   isStaffDashboardConfigured,
   readStaffSessionToken,
@@ -77,6 +84,22 @@ function getUrgencyTone(urgency: StaffCaseSummary["urgency"]) {
   }
 
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
+function getEmailAliasStatusTone(status: EmailAliasStatus) {
+  if (status === "configured") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+
+  if (status === "approved") {
+    return "border-sky-200 bg-sky-50 text-sky-800";
+  }
+
+  if (status === "rejected") {
+    return "border-rose-200 bg-rose-50 text-rose-800";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
 function buildTopList(values: string[], limit = 4) {
@@ -152,6 +175,43 @@ async function submitStaffApprovalDecision(formData: FormData) {
   });
 
   revalidatePath("/staff/admin");
+}
+
+async function submitEmailAliasDecision(formData: FormData) {
+  "use server";
+
+  const cookieStore = await cookies();
+  const staffToken = cookieStore.get(getStaffSessionCookieName())?.value;
+  const session = readStaffSessionToken(staffToken);
+
+  if (!session || session.role !== "admin") {
+    return;
+  }
+
+  const requestId = String(formData.get("requestId") || "").trim();
+  const decisionValue = String(formData.get("decision") || "").trim().toLowerCase();
+  const status: EmailAliasStatus | null =
+    decisionValue === "approve"
+      ? "approved"
+      : decisionValue === "configured"
+        ? "configured"
+        : decisionValue === "reject"
+          ? "rejected"
+          : null;
+
+  if (!requestId || !status) {
+    return;
+  }
+
+  await resolveEmailAliasRequest({
+    requestId,
+    status,
+    decidedByUserId: session.userId,
+    adminNote: String(formData.get("adminNote") || ""),
+  });
+
+  revalidatePath("/staff/admin");
+  revalidatePath("/staff/email");
 }
 
 function AdminUnavailable({
@@ -247,6 +307,9 @@ export default async function StaffAdminPage() {
   let pendingApprovals: Awaited<ReturnType<typeof listPendingStaffApprovalRequests>> = [];
   let approvalBranches: Awaited<ReturnType<typeof listStaffApprovalBranches>> = [];
   let approvalsError: string | null = null;
+  const emailAliasStoreConfigured = isEmailAliasStoreConfigured();
+  let emailAliasRequests: EmailAliasRequest[] = [];
+  let emailAliasError: string | null = null;
 
   if (approvalsConfigured) {
     try {
@@ -261,6 +324,21 @@ export default async function StaffAdminPage() {
           : "Pending signup requests could not be loaded right now.";
     }
   }
+
+  if (emailAliasStoreConfigured) {
+    try {
+      emailAliasRequests = await listEmailAliasRequests("all");
+    } catch (error) {
+      emailAliasError =
+        error instanceof Error
+          ? error.message
+          : "Team email alias requests could not be loaded right now.";
+    }
+  }
+
+  const pendingEmailAliasRequests = emailAliasRequests.filter(
+    (request) => request.status === "pending",
+  );
 
   return (
     <div className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
@@ -283,6 +361,9 @@ export default async function StaffAdminPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link href="/staff" className="site-action-link">
                 Staff desk
+              </Link>
+              <Link href="/staff/email" className="site-action-link">
+                Team email
               </Link>
               <Link href="/login" className="site-action-link">
                 Role-based login
@@ -570,6 +651,143 @@ export default async function StaffAdminPage() {
                       className="rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 transition hover:bg-rose-100"
                     >
                       Reject request
+                    </button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[30px] border border-white/80 bg-white/94 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Team email approvals
+              </div>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950">
+                @willingways.uk alias requests
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Staff can request a branded alias from the team email center. Admin approval records
+                the request and marks it ready for Cloudflare Email Routing or a full mailbox
+                provider.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-800">
+                Pending: {pendingEmailAliasRequests.length}
+              </div>
+              <Link href="/staff/email" className="site-action-link">
+                Staff request page
+              </Link>
+            </div>
+          </div>
+
+          {!emailAliasStoreConfigured ? (
+            <div className="mt-5 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Add <code>DATABASE_URL</code> or <code>NEON_DATABASE_URL</code> to store team email
+              alias requests.
+            </div>
+          ) : emailAliasError ? (
+            <div className="mt-5 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {emailAliasError}
+            </div>
+          ) : emailAliasRequests.length === 0 ? (
+            <div className="mt-5 rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              No team email alias requests yet.
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 xl:grid-cols-2">
+              {emailAliasRequests.map((request) => (
+                <form
+                  key={request.requestId}
+                  action={submitEmailAliasDecision}
+                  className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <input type="hidden" name="requestId" value={request.requestId} />
+
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-semibold text-slate-900">
+                        {request.aliasEmail}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600">
+                        {request.requesterName || request.requesterEmail}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        Forwarding target: {request.forwardingEmail}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getEmailAliasStatusTone(
+                        request.status,
+                      )}`}
+                    >
+                      {request.status}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-[18px] border border-slate-200 bg-white px-3 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Staff reason
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {request.reason || "No reason supplied."}
+                      </p>
+                    </div>
+
+                    <div className="rounded-[18px] border border-slate-200 bg-white px-3 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Routing state
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                        {request.cloudflareStatus.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Requested: {formatDateTime(request.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="mt-4 block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Admin note
+                    </span>
+                    <input
+                      name="adminNote"
+                      defaultValue={request.adminNote}
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-slate-400"
+                      placeholder="Example: Verify role, then add Cloudflare route."
+                    />
+                  </label>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="approve"
+                      className="rounded-full border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100"
+                    >
+                      Approve alias
+                    </button>
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="configured"
+                      className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                    >
+                      Mark configured
+                    </button>
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="reject"
+                      className="rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 transition hover:bg-rose-100"
+                    >
+                      Reject
                     </button>
                   </div>
                 </form>

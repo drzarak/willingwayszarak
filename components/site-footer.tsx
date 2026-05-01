@@ -82,6 +82,22 @@ export function SiteFooter() {
               ? "یہ اے آئی ڈاکٹر زارک خان کی محبت سے تیار کی گئی ہے۔"
               : "This AI is built with love by Dr Zarak Khan."}
           </div>
+          <div className="mt-5 flex max-w-md items-center gap-3 rounded-[24px] border border-white/12 bg-white/8 p-3">
+            <Image
+              src={SITE_MEDIA.builder}
+              alt="Dr Zarak Khan"
+              width={72}
+              height={72}
+              className="h-14 w-14 rounded-2xl object-cover"
+              sizes="56px"
+            />
+            <div>
+              <div className="text-sm font-semibold text-white">Dr Zarak Khan</div>
+              <div className="mt-1 text-xs leading-5 text-[#f3e7ea]">
+                AI platform builder and product support for this Willing Ways launch.
+              </div>
+            </div>
+          </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <a href="tel:+923007413639" className="footer-pill">
               <Phone className="h-4 w-4" />
