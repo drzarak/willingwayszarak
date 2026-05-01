@@ -30,9 +30,24 @@ Helps patients, families, doctors, and counselors with a voice-first relapse-pre
 - Mobile-friendly, clean voice-first interface.
 
 ## Admin Access
-There is no static admin username/password in the codebase. Admin access is deliberately role-based through Supabase Auth, and passwords should be set through a secure invite or reset link.
+There is no hardcoded admin password in the codebase. Staff access uses Supabase Auth when available and a Neon-backed backup staff directory for launch resilience.
 
-To give Dr. Sadaqat admin access:
+For a one-command production bootstrap from the Vercel-pulled env file:
+
+```bash
+ADMIN_PASSWORD="replace-with-secure-password" npm run admin:bootstrap -- --email justzarak@gmail.com --name "Dr Zarak Khan"
+```
+
+The bootstrap command:
+
+1. Creates or updates the founder admin account in Neon `staff_accounts`.
+2. Verifies the password hash before reporting success.
+3. Creates the operational Neon tables used by staff cases and email aliases.
+4. Attempts the Supabase Auth + `founder_admin` setup when the Supabase project is reachable.
+
+Never commit passwords, `.env.production.local`, or Supabase service-role keys.
+
+If Supabase must be repaired manually, give Dr. Sadaqat admin access like this:
 
 1. Create or invite Dr. Sadaqat as a Supabase Auth user from the Supabase dashboard or the Auth Admin API.
 2. Confirm the user email if required by Supabase.

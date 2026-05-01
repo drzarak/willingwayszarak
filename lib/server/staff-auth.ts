@@ -5,6 +5,7 @@ import {
   isSupabaseStaffAuthConfigured,
   type StaffRole,
 } from "@/lib/server/staff-auth-adapter";
+import { isStaffAccountStoreConfigured } from "@/lib/server/staff-account-store";
 
 const STAFF_SESSION_COOKIE = "ww_staff_session";
 const STAFF_SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
@@ -34,7 +35,10 @@ function sign(value: string) {
 }
 
 export function isStaffDashboardConfigured() {
-  return Boolean(getStaffSecret() && isSupabaseStaffAuthConfigured());
+  return Boolean(
+    getStaffSecret() &&
+      (isSupabaseStaffAuthConfigured() || isStaffAccountStoreConfigured()),
+  );
 }
 
 export function createStaffSessionToken(

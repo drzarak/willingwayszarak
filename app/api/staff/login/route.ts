@@ -6,13 +6,42 @@ import {
   getStaffSessionCookieOptions,
   isStaffDashboardConfigured,
 } from "@/lib/server/staff-auth";
-import { signInStaffWithSupabase } from "@/lib/server/staff-auth-adapter";
+import {
+  isSupabaseStaffAuthConfigured,
+  signInStaffWithSupabase,
+} from "@/lib/server/staff-auth-adapter";
+import {
+  isStaffAccountStoreConfigured,
+  signInStaffWithNeon,
+} from "@/lib/server/staff-account-store";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/request-guard";
 
 const LOGIN_RATE_LIMIT = {
   limit: 10,
   windowMs: 10 * 60 * 1000,
 };
+
+type StaffSignInResult =
+  | Awaited<ReturnType<typeof signInStaffWithSupabase>>
+  | Awaited<ReturnType<typeof signInStaffWithNeon>>;
+
+function createLoginResponse(
+  result: Extract<StaffSignInResult, { ok: true }>,
+  headers: HeadersInit,
+) {
+  const response = NextResponse.json({ ok: true }, { headers });
+  response.cookies.set(
+    getStaffSessionCookieName(),
+    createStaffSessionToken({
+      userId: result.userId,
+      email: result.email,
+      role: result.role,
+      displayName: result.displayName,
+    }),
+    getStaffSessionCookieOptions(),
+  );
+  return response;
+}
 
 export async function POST(request: Request) {
   const rateLimitResult = checkRateLimit(request, "staff-login", LOGIN_RATE_LIMIT);
@@ -53,11 +82,50 @@ export async function POST(request: Request) {
     );
   }
 
-  let result: Awaited<ReturnType<typeof signInStaffWithSupabase>>;
+  let signInError: Extract<StaffSignInResult, { ok: false }> | null = null;
 
-  try {
-    result = await signInStaffWithSupabase(email, password);
-  } catch {
+  if (isSupabaseStaffAuthConfigured()) {
+    try {
+      const supabaseResult = await signInStaffWithSupabase(email, password);
+
+      if (supabaseResult.ok) {
+        return createLoginResponse(supabaseResult, responseHeaders);
+      }
+
+      signInError = supabaseResult;
+    } catch {
+      signInError = {
+        ok: false,
+        status: 502,
+        error: "The Supabase staff sign-in service is temporarily unavailable.",
+      };
+    }
+  }
+
+  if (isStaffAccountStoreConfigured()) {
+    try {
+      const neonResult = await signInStaffWithNeon(email, password);
+
+      if (neonResult.ok) {
+        return createLoginResponse(neonResult, responseHeaders);
+      }
+
+      if (!signInError || signInError.status >= 500 || signInError.status === 503) {
+        signInError = neonResult;
+      }
+    } catch {
+      if (!signInError || signInError.status >= 500 || signInError.status === 503) {
+        signInError = {
+          ok: false,
+          status: 502,
+          error:
+            "The backup staff account database is temporarily unavailable. Please retry in a moment.",
+        };
+      }
+    }
+  }
+
+  if (!signInError) {
     return NextResponse.json(
       {
         error:
@@ -67,23 +135,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error },
-      { status: result.status, headers: responseHeaders },
-    );
-  }
-
-  const response = NextResponse.json({ ok: true }, { headers: responseHeaders });
-  response.cookies.set(
-    getStaffSessionCookieName(),
-    createStaffSessionToken({
-      userId: result.userId,
-      email: result.email,
-      role: result.role,
-      displayName: result.displayName,
-    }),
-    getStaffSessionCookieOptions(),
+  return NextResponse.json(
+    { error: signInError.error },
+    { status: signInError.status, headers: responseHeaders },
   );
-  return response;
 }
