@@ -8,7 +8,11 @@ export function SiteLanguageSwitcher() {
   const { language, setLanguage } = useSiteLanguage();
 
   return (
-    <div className="relative grid h-11 w-full min-w-[120px] grid-cols-2 rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm">
+    <div
+      className="relative grid h-11 w-full min-w-[120px] grid-cols-2 rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm"
+      role="group"
+      aria-label="Site language"
+    >
       <div
         className={cn(
           "absolute inset-y-1 rounded-full bg-slate-100 transition-all duration-300",
@@ -23,6 +27,7 @@ export function SiteLanguageSwitcher() {
           language === "english" ? "text-slate-900" : "text-slate-500",
         )}
         onClick={() => setLanguage("english")}
+        aria-pressed={language === "english"}
       >
         EN
       </button>
@@ -33,6 +38,7 @@ export function SiteLanguageSwitcher() {
           language === "urdu" ? "text-slate-900" : "text-slate-500",
         )}
         onClick={() => setLanguage("urdu")}
+        aria-pressed={language === "urdu"}
       >
         اردو
       </button>

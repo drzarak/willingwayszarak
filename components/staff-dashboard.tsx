@@ -346,7 +346,7 @@ export function StaffDashboard({ initialData, initialError, currentStaff }: Staf
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-3 py-3 text-slate-950 sm:px-5 sm:py-5">
+    <div id="main-content" className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-3 py-3 text-slate-950 sm:px-5 sm:py-5">
       <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] max-w-[1540px] flex-col gap-4">
         <header className="rounded-[30px] border border-white/80 bg-white/92 px-5 py-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

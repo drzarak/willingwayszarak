@@ -49,7 +49,7 @@ export function ContentPage({ page }: ContentPageProps) {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main>
+      <main id="main-content">
         <section className="border-b border-[#ead6dc] bg-white/70">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-16">
             <div>

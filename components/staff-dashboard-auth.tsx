@@ -60,7 +60,7 @@ export function StaffDashboardAuth() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-6xl items-center px-4 py-8 sm:px-6">
+    <div id="main-content" className="mx-auto flex min-h-[100dvh] max-w-6xl items-center px-4 py-8 sm:px-6">
       <div className="grid w-full gap-6 rounded-[36px] border border-slate-200 bg-white p-6 shadow-[0_28px_90px_rgba(15,23,42,0.08)] lg:grid-cols-[1.2fr_420px] lg:p-8">
         <div className="rounded-[30px] bg-[linear-gradient(160deg,#54111f_0%,#7f1d33_48%,#111827_100%)] p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] lg:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">

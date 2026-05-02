@@ -2409,7 +2409,7 @@ export function RealtimeVoicePanel({
         >
           <div className="mx-auto max-w-[860px]">
             <h1
-              className={`max-w-[700px] text-[1.48rem] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950 sm:text-[3rem] [@media(min-width:480px)]:text-[1.75rem] [@media(max-height:700px)]:text-[1.45rem] ${
+              className={`max-w-[700px] text-[1.34rem] font-semibold leading-[1.04] tracking-[-0.035em] text-slate-950 sm:text-[3rem] [@media(min-width:480px)]:text-[1.75rem] [@media(max-height:700px)]:text-[1.28rem] ${
                 language === "urdu" ? "font-urdu text-right" : "text-left"
               }`}
               dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2439,7 +2439,7 @@ export function RealtimeVoicePanel({
             </p>
           </div>
 
-          <div className="mx-auto mt-4 flex w-full max-w-[880px] flex-col rounded-[30px] border border-[rgba(15,23,42,0.06)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(246,246,244,0.96))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_20px_46px_rgba(15,23,42,0.06)] sm:px-6 sm:py-5 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
+          <div className="mx-auto mt-3 flex w-full max-w-[880px] flex-col rounded-[28px] border border-[rgba(15,23,42,0.06)] bg-[linear-gradient(180deg,rgba(255,255,255,0.985),rgba(246,246,244,0.96))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_20px_46px_rgba(15,23,42,0.06)] sm:mt-4 sm:rounded-[30px] sm:px-6 sm:py-5 [@media(max-height:700px)]:mt-3 [@media(max-height:700px)]:px-3 [@media(max-height:700px)]:py-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div
                 className={`text-left ${language === "urdu" ? "font-urdu text-right" : ""}`}
@@ -2471,7 +2471,7 @@ export function RealtimeVoicePanel({
                   href={DR_ZARAK_WEBSITE_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex max-w-[270px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/92 px-2.5 py-2 text-left shadow-sm transition hover:border-slate-300 hover:bg-white"
+                  className="hidden max-w-[270px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/92 px-2.5 py-2 text-left shadow-sm transition hover:border-slate-300 hover:bg-white sm:inline-flex"
                 >
                   <Image
                     src={SITE_MEDIA.builder}
@@ -2511,10 +2511,11 @@ export function RealtimeVoicePanel({
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col items-center text-center sm:mt-5">
+            <div className="mt-3 flex flex-col items-center text-center sm:mt-5">
               <button
                 type="button"
                 onClick={() => void handleCallOrbClick()}
+                aria-hidden="true"
                 aria-label={
                   callIsLive
                     ? isMicMuted
@@ -2528,11 +2529,12 @@ export function RealtimeVoicePanel({
                       ? "ولنگ ویز AI call شروع کریں"
                       : "Start the Willing Ways AI call"
                 }
-                className={`voice-orb h-36 w-36 cursor-pointer sm:h-44 sm:w-44 ${
+                tabIndex={-1}
+                className={`voice-orb h-28 w-28 cursor-pointer sm:h-44 sm:w-44 ${
                   callIsLive ? "voice-orb-live" : callIsStarting ? "voice-orb-ringing" : ""
                 }`}
               >
-                <div className="flex h-[5.2rem] w-[5.2rem] items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-[6.1rem] sm:w-[6.1rem]">
+                <div className="flex h-[4.7rem] w-[4.7rem] items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#f1f5f9)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_24px_rgba(15,23,42,0.08)] sm:h-[6.1rem] sm:w-[6.1rem]">
                   <CallOrbIcon
                     className={`h-8 w-8 sm:h-10 sm:w-10 ${
                       status === "responding"
@@ -2579,12 +2581,25 @@ export function RealtimeVoicePanel({
               <button
                 type="button"
                 onClick={() => void handleCallOrbClick()}
+                aria-label={
+                  callIsLive
+                    ? isMicMuted
+                      ? language === "urdu"
+                        ? "سننا دوبارہ شروع کریں"
+                        : "Resume listening"
+                      : language === "urdu"
+                        ? "کال pause کریں"
+                        : "Pause the call"
+                    : language === "urdu"
+                      ? "ولنگ ویز AI call شروع کریں"
+                      : "Start the Willing Ways AI call"
+                }
                 className={`mt-3 inline-flex min-h-[48px] items-center gap-2 rounded-full border px-5 py-2.5 text-[13px] font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                   callIsLive && !isMicMuted
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : callIsLive && isMicMuted
                       ? "border-amber-200 bg-amber-50 text-amber-700"
-                      : "border-slate-200 bg-white text-slate-700"
+                      : "border-slate-950 bg-slate-950 text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] hover:bg-slate-800"
                 } ${language === "urdu" ? "font-urdu" : ""}`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
               >
@@ -2606,7 +2621,7 @@ export function RealtimeVoicePanel({
               </button>
 
               <div
-                className={`mt-4 max-w-[560px] text-center text-[13px] leading-6 text-slate-500 ${
+                className={`mt-3 hidden max-w-[560px] text-center text-[13px] leading-6 text-slate-500 sm:block ${
                   language === "urdu" ? "font-urdu" : ""
                 }`}
                 dir={language === "urdu" ? "rtl" : "ltr"}
@@ -2639,6 +2654,7 @@ export function RealtimeVoicePanel({
                       key={item.id}
                       type="button"
                       onClick={() => setIdentityHint(item.id)}
+                      aria-pressed={identityHint === item.id}
                       className={`min-h-[42px] rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         identityHint === item.id
                           ? "border-slate-900 bg-slate-950 text-white shadow-sm"
@@ -2656,6 +2672,8 @@ export function RealtimeVoicePanel({
                 <button
                   type="button"
                   onClick={() => setShowMoreOptions((current) => !current)}
+                  aria-expanded={showMoreOptions}
+                  aria-controls="voice-support-options"
                   className="mt-4 inline-flex min-h-[48px] items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                 >
                   {showMoreOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -2672,7 +2690,7 @@ export function RealtimeVoicePanel({
               ) : null}
 
               {!showUtilityPanels ? (
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <div className="mt-4 hidden flex-wrap items-center justify-center gap-2 sm:flex">
                   {[
                     {
                       icon: HeartHandshake,
@@ -2879,13 +2897,15 @@ export function RealtimeVoicePanel({
             ) : null}
 
             {showUtilityPanels || hasConversationHistory || errorMessage ? (
-              <div className="mt-4 max-h-[36dvh] overflow-y-auto pr-1 sm:max-h-[38dvh]">
+              <div id="voice-support-options" className="mt-4 max-h-none overflow-visible pr-1 md:max-h-[38dvh] md:overflow-y-auto">
             {showUtilityPanels ? (
               <div className="mt-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowFamilyTraining((current) => !current)}
+                    aria-expanded={showFamilyTraining}
+                    aria-controls="family-coaching-options"
                     className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
                   >
                     <HeartHandshake className="h-4 w-4 text-slate-700" />
@@ -2931,7 +2951,7 @@ export function RealtimeVoicePanel({
             ) : null}
 
             {showUtilityPanels && showFamilyTraining ? (
-              <div className="mt-4 rounded-[28px] border border-black/5 bg-white px-4 py-4 shadow-sm sm:px-5">
+              <div id="family-coaching-options" className="mt-4 rounded-[28px] border border-black/5 bg-white px-4 py-4 shadow-sm sm:px-5">
                 <div
                   className={`${language === "urdu" ? "font-urdu text-right" : ""}`}
                   dir={language === "urdu" ? "rtl" : "ltr"}
@@ -3050,6 +3070,8 @@ export function RealtimeVoicePanel({
               <button
                 type="button"
                 onClick={() => setShowVoiceOptions((current) => !current)}
+                aria-expanded={showVoiceOptions}
+                aria-controls="voice-choice-options"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
               >
                 <Volume2 className="h-4 w-4 text-slate-700" />
@@ -3063,7 +3085,7 @@ export function RealtimeVoicePanel({
             </div>
 
             {showVoiceOptions ? (
-              <label className="mt-4 block space-y-2">
+              <label id="voice-choice-options" className="mt-4 block space-y-2">
                 <div
                   className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${
                     language === "urdu" ? "font-urdu justify-end normal-case" : ""
@@ -3267,6 +3289,8 @@ export function RealtimeVoicePanel({
                 <button
                   type="button"
                   onClick={() => setShowNotes((current) => !current)}
+                  aria-expanded={showNotes}
+                  aria-controls="voice-call-notes"
                   className="site-action-link justify-center self-start sm:self-auto"
                 >
                   {showNotes ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -3312,7 +3336,7 @@ export function RealtimeVoicePanel({
               </div>
 
               {showNotes ? (
-                <div className="mt-4 grid gap-3">
+                <div id="voice-call-notes" className="mt-4 grid gap-3">
                   {localTranscript.slice(-8).map((entry) => (
                     <div
                       key={entry.id}

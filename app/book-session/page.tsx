@@ -11,7 +11,7 @@ export default function BookSessionPage() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main>
+      <main id="main-content">
         <section className="border-b border-[#ead6dc] bg-white/70">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.04fr_0.96fr] lg:px-8 lg:py-16">
             <div>

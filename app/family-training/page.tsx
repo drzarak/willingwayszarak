@@ -6,7 +6,7 @@ export default function FamilyTrainingPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main>
+      <main id="main-content">
         <FamilyTrainingHub />
       </main>
       <SiteFooter />

@@ -105,13 +105,15 @@ export function SiteHeader() {
           className="inline-flex rounded-2xl border border-[#ead6dc] bg-white p-3 text-[#58323f] shadow-soft xl:hidden"
           onClick={() => setOpen((current) => !current)}
           aria-label={isUrdu ? "نیویگیشن کھولیں یا بند کریں" : "Open or close navigation"}
+          aria-expanded={open}
+          aria-controls="site-mobile-navigation"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {open ? (
-        <div className="border-t border-[#ead6dc] bg-[#fffaf8] xl:hidden">
+        <div id="site-mobile-navigation" className="border-t border-[#ead6dc] bg-[#fffaf8] xl:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 sm:px-6">
             <div className="rounded-[22px] border border-[#ead6dc] bg-white px-4 py-4 shadow-soft">
               <Image

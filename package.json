@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:e2e": "playwright test",
     "admin:bootstrap": "node scripts/bootstrap-founder-admin.mjs",
     "sync:content": "node scripts/sync-willingways-site.mjs"
   },

@@ -13,7 +13,7 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
   ).trim();
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-3xl items-center px-4 py-10 sm:px-6">
+    <main id="main-content" className="mx-auto flex min-h-[100dvh] max-w-3xl items-center px-4 py-10 sm:px-6">
       <section className="w-full rounded-[32px] border border-rose-200 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-8">
         <div className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">
           Authentication error

@@ -15,7 +15,7 @@ export default function LibraryPage() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <section className="max-w-4xl">
           <div className="section-kicker">
             <LocalizedText english="Willing Ways Library" urdu="ولنگ ویز لائبریری" />

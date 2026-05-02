@@ -43,7 +43,7 @@ export const metadata = {
 
 export default function ForCentersPage() {
   return (
-    <main className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#efe8dc_100%)] px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main id="main-content" className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#efe8dc_100%)] px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/" className="site-action-link">

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink, LayoutDashboard, PhoneCall } from "lucide-react";
+import { CalendarDays, ExternalLink, LayoutDashboard, PhoneCall } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -252,7 +252,7 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(15,23,42,0.04),_transparent_26%)]" />
 
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1220px] flex-col px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
-        <header className="rounded-[24px] border border-slate-200/80 bg-white/84 px-3 py-2.5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] backdrop-blur sm:px-4 sm:py-3">
+        <header className="rounded-[22px] border border-slate-200/80 bg-white/88 px-3 py-2 shadow-[0_14px_34px_rgba(15,23,42,0.06)] backdrop-blur sm:rounded-[24px] sm:px-4 sm:py-3">
           <div className="flex flex-col gap-2 sm:gap-3">
             <div className="flex items-center justify-between gap-3">
               <Link
@@ -265,7 +265,7 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
                   alt="Willing Ways"
                   width={320}
                   height={80}
-                  className="h-7 w-auto max-w-[148px] object-contain sm:h-8 sm:max-w-[172px]"
+                  className="h-6 w-auto max-w-[132px] object-contain sm:h-8 sm:max-w-[172px]"
                   priority
                   sizes="(max-width: 640px) 148px, 172px"
                 />
@@ -303,34 +303,45 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
                   <LayoutDashboard className="h-4 w-4" />
                   <span>{isUrdu ? "اسٹاف لاگ اِن" : "Staff login"}</span>
                 </Link>
+                <Link
+                  href="/book-session"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#ead6dc] bg-[#651328] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#531120] md:hidden"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  <span className={isUrdu ? "font-urdu" : ""} dir={isUrdu ? "rtl" : "ltr"}>
+                    {isUrdu ? "سیشن" : "Book"}
+                  </span>
+                </Link>
                 <LanguageToggle
                   language={session.language}
                   onChange={handleLanguageChange}
                   compact
                   className="w-[116px] shrink-0"
                 />
-                <PrivacyDeviceToggle
-                  checked={rememberOnDevice}
-                  compact
-                  isUrdu={isUrdu}
-                  onCheckedChange={handleRememberOnDeviceChange}
-                />
+                <div className="hidden sm:block">
+                  <PrivacyDeviceToggle
+                    checked={rememberOnDevice}
+                    compact
+                    isUrdu={isUrdu}
+                    onCheckedChange={handleRememberOnDeviceChange}
+                  />
+                </div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-slate-500">
               <p
-                className={`min-w-0 flex-1 leading-5 ${isUrdu ? "font-urdu text-right" : ""}`}
+                className={`hidden min-w-0 flex-1 leading-5 sm:block ${isUrdu ? "font-urdu text-right" : ""}`}
                 dir={isUrdu ? "rtl" : "ltr"}
               >
                 {isUrdu
                   ? "مریضوں اور گھر والوں کے لئے 24/7 ریلیپس سپورٹ، فیملی گائیڈنس، اور ڈاکٹر کے لئے واضح بریف۔"
                   : "24/7 relapse support, family guidance, and a doctor-ready brief from one calm call."}
               </p>
-              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+              <div className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:w-auto sm:justify-end">
                 <a
                   href={WILLING_WAYS_HELPLINE_HREF}
-                  className="inline-flex items-center gap-1.5 font-medium text-slate-700 transition hover:text-slate-950"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 shadow-sm transition hover:text-slate-950 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:font-medium sm:shadow-none"
                 >
                   <PhoneCall className="h-4 w-4" />
                   {WILLING_WAYS_HELPLINE_DISPLAY}
@@ -339,14 +350,14 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
                   href={DR_ZARAK_WEBSITE_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-slate-500 transition hover:text-slate-900"
+                  className="hidden items-center gap-1.5 text-slate-500 transition hover:text-slate-900 sm:inline-flex"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   {DR_ZARAK_NAME} · {DR_ZARAK_WEBSITE_DISPLAY}
                 </a>
                 <a
                   href={DR_ZARAK_PHONE_HREF}
-                  className="inline-flex items-center gap-1.5 text-slate-500 transition hover:text-slate-900"
+                  className="hidden items-center gap-1.5 text-slate-500 transition hover:text-slate-900 md:inline-flex"
                 >
                   <PhoneCall className="h-3.5 w-3.5" />
                   Product support {DR_ZARAK_PHONE_DISPLAY}
@@ -356,7 +367,7 @@ export function ChatApp({ initialRuntimeStatus }: ChatAppProps) {
           </div>
         </header>
 
-        <main className="mt-2 min-h-0 flex-1">
+        <main id="main-content" className="mt-2 min-h-0 flex-1">
           <RealtimeVoicePanel
             key={`${session.id}:voice:${session.language}`}
             bookingConfigured={Boolean(runtimeStatus.bookingConfigured)}

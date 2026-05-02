@@ -222,7 +222,7 @@ function AdminUnavailable({
   description: string;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-8 text-slate-950 sm:px-6">
+    <div id="main-content" className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-8 text-slate-950 sm:px-6">
       <div className="mx-auto max-w-5xl rounded-[32px] border border-white/80 bg-white/94 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800">
           Admin summary unavailable
@@ -341,7 +341,7 @@ export default async function StaffAdminPage() {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
+    <div id="main-content" className="min-h-[100dvh] bg-[linear-gradient(180deg,#f7f5ef_0%,#f1ede4_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
       <div className="mx-auto flex max-w-[1480px] flex-col gap-4">
         <header className="rounded-[32px] border border-white/80 bg-white/94 px-6 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

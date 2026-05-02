@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="mx-auto flex max-w-4xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto flex max-w-4xl flex-col items-center px-4 py-24 text-center sm:px-6 lg:px-8">
         <div className="section-kicker">Not found</div>
         <h1 className="mt-4 font-serif text-5xl font-semibold text-slate-950">
           This Willing Ways page is not available in the new app yet.

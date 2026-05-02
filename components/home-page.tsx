@@ -141,7 +141,7 @@ export function HomePage() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main>
+      <main id="main-content">
         <section className="border-b border-[#ead6dc]">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:px-8 lg:py-14">
             <div className="space-y-6">
